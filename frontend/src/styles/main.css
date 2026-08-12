@@ -1,0 +1,167 @@
+/* ============================================
+   Quantlerning 设计系统 — 浅色简约风
+   ============================================ */
+
+:root {
+  /* 色彩 */
+  --bg-page: #f6f7f9;
+  --bg-card: #ffffff;
+  --bg-hover: #f0f2f5;
+  --bg-active: #e8f0fe;
+
+  --border: #e3e6ea;
+  --border-strong: #d0d5dd;
+
+  --text-1: #1a1f2b;   /* 主文字 */
+  --text-2: #5c6470;   /* 次要文字 */
+  --text-3: #9aa3af;   /* 弱文字/占位 */
+
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-soft: #dbeafe;
+
+  --success: #16a34a;
+  --success-soft: #dcfce7;
+  --warning: #d97706;
+  --warning-soft: #fef3c7;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+
+  /* 布局 */
+  --sidebar-w: 230px;
+  --topbar-h: 56px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-md: 0 2px 8px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 8px 24px rgba(16, 24, 40, 0.12);
+
+  /* 字体 */
+  --font-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono',
+    Menlo, monospace;
+
+  /* 代码底色（浅色模式用浅底，深色模式覆盖） */
+  --bg-code: #f1f3f5;
+}
+
+/* 深色模式：切换 <html data-theme="dark"> */
+[data-theme="dark"] {
+  --bg-page: #0f1420;
+  --bg-card: #161d2e;
+  --bg-hover: #1e2638;
+  --bg-active: #1f2f4d;
+  --border: #2b3448;
+  --border-strong: #3c4760;
+  --text-1: #e7eaf1;
+  --text-2: #a7b0c0;
+  --text-3: #6d7688;
+  --primary: #4a8ef7;
+  --primary-hover: #6ca7fa;
+  --primary-soft: #20355c;
+  --success: #4ade80;
+  --success-soft: #173223;
+  --warning: #fbbf24;
+  --warning-soft: #342a10;
+  --danger: #f87171;
+  --danger-soft: #3a1e1e;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --bg-code: #1e2638;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  /* 防 iOS 横屏/缩放自动放大字号 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* 移动端去掉点击高亮、消除 300ms 延迟 */
+* { -webkit-tap-highlight-color: transparent; }
+button, a, [role="button"], input, select, textarea { touch-action: manipulation; }
+
+html, body, #app { min-height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-base);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-1);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { margin: 0; font-weight: 600; line-height: 1.35; }
+h1 { font-size: 24px; }
+h2 { font-size: 20px; }
+h3 { font-size: 16px; }
+h4 { font-size: 14px; }
+
+p { margin: 0; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { color: var(--primary-hover); }
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--bg-code);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ---------- 通用组件 ---------- */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong); background: var(--bg-card);
+  color: var(--text-1); font-size: 14px; cursor: pointer;
+  transition: all 0.15s;
+}
+.btn:hover { background: var(--bg-hover); border-color: var(--text-3); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--primary); border-color: var(--primary); color: #fff;
+}
+.btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: #fff; }
+
+.btn-sm { padding: 4px 10px; font-size: 13px; }
+
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
+  padding: 20px;
+}
+
+.badge {
+  display: inline-flex; align-items: center;
+  font-size: 12px; padding: 2px 10px; border-radius: 999px;
+  background: var(--bg-hover); color: var(--text-2);
+}
+.badge-primary { background: var(--primary-soft); color: var(--primary); }
+.badge-success { background: var(--success-soft); color: var(--success); }
+.badge-warning { background: var(--warning-soft); color: var(--warning); }
+
+/* 状态文本 */
+.muted { color: var(--text-2); }
+.faint { color: var(--text-3); }
+.error-text { color: var(--danger); }
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* 键盘导航可见焦点（可访问性）：仅 Tab/键盘聚焦时显示 */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
