@@ -428,6 +428,22 @@ watch(
 .bubble-md :deep(ul),
 .bubble-md :deep(ol) { margin: 0 0 8px; padding-left: 1.4em; }
 .bubble-md :deep(li) { margin-bottom: 2px; }
+.bubble-md :deep(pre) {
+  background: var(--bg-code);
+  color: var(--text-1);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.bubble-md :deep(pre code) {
+  background: none;
+  color: inherit;
+  padding: 0;
+  font-size: 13px;
+}
 .bubble-md :deep(code) {
   font-family: var(--font-mono);
   font-size: 0.88em;

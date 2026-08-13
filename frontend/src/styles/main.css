@@ -167,14 +167,25 @@ code {
 }
 
 /* ---------- 代码块语法高亮（highlight.js token 颜色，随设计变量自适应深浅色） ---------- */
-.hljs { display: block; overflow-x: auto; }
-.hljs-comment, .hljs-quote { color: var(--text-3); font-style: italic; }
+.hljs { display: block; overflow-x: auto; color: var(--text-1); }
+.hljs-comment, .hljs-quote { color: var(--text-2); font-style: italic; }
 .hljs-keyword, .hljs-selector-tag, .hljs-literal { color: var(--primary); }
 .hljs-string, .hljs-regexp, .hljs-addition { color: var(--success); }
 .hljs-number, .hljs-symbol, .hljs-bullet { color: var(--warning); }
 .hljs-title, .hljs-title.function_, .hljs-title.class_ { color: var(--primary-hover); }
 .hljs-built_in { color: var(--warning); }
 .hljs-attr, .hljs-attribute, .hljs-variable, .hljs-operator { color: var(--text-2); }
-.hljs-meta { color: var(--text-3); }
+.hljs-meta { color: var(--text-2); }
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: 600; }
+
+/* 深色模式：--text-3 在深底上过暗，token 单独提亮保证可读 */
+[data-theme="dark"] .hljs-comment,
+[data-theme="dark"] .hljs-quote { color: #8b94a7; }
+[data-theme="dark"] .hljs-keyword,
+[data-theme="dark"] .hljs-selector-tag,
+[data-theme="dark"] .hljs-literal { color: #7aa7ff; }
+[data-theme="dark"] .hljs-attr,
+[data-theme="dark"] .hljs-attribute,
+[data-theme="dark"] .hljs-variable,
+[data-theme="dark"] .hljs-operator { color: #b8c1d0; }
