@@ -23,4 +23,17 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    chunkSizeWarningLimit: 900, // 大 vendor 拆分后仍超 500KB 的 chunk 不报警
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router'],
+          'echarts': ['echarts', 'zrender', 'vue-echarts'],
+          'katex': ['katex'],
+          'mathjs': ['mathjs'],
+        },
+      },
+    },
+  },
 })

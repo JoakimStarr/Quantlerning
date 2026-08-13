@@ -14,7 +14,7 @@
  *  - parseAst / evaluateAst / astToLatex / differentiate：AST 级操作（供泰勒系数/凹凸拐点用）
  *  - taylorCoefficients：符号微分逐阶求导
  */
-import { parse, derivative, type MathNode } from 'mathjs'
+import { parse, derivative, type MathNode } from 'mathjs/number'
 
 export type ExprNode = MathNode
 

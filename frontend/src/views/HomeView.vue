@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import MarkdownIt from 'markdown-it'
-import mathPlugin from '@/utils/markdownMath'
-import 'katex/dist/katex.min.css'
 import { fetchCourses, streamPlan } from '@/api'
 import { getProgress, isCompleted, learningDays, sandboxRunCount, totalExercises } from '@/stores/progress'
 import { chapterLabel } from '@/utils/chapter'
 import AppSpinner from '@/components/common/AppSpinner.vue'
 import AppError from '@/components/common/AppError.vue'
+
+// AI 规划结果懒加载渲染（避免 markdown-it/KaTeX 进首屏，仅生成后加载）
+const PlanCard = defineAsyncComponent(() => import('@/components/common/PlanCard.vue'))
 
 const router = useRouter()
 const phases = ref<any[]>([])
@@ -20,21 +20,9 @@ const LAST_PATH_KEY = 'ql:lastPath'
 const lastPath = ref('')
 
 // AI 学习规划
-const md = new MarkdownIt({ html: false, linkify: true }).use(mathPlugin, {
-  throwOnError: false,
-  errorColor: '#dc2626',
-})
 const plan = ref('')
 const planBusy = ref(false)
 const planError = ref('')
-
-function renderBubble(content: string): string {
-  const normalized = content
-    .replace(/\$\$([\s\S]+?)\$\$/g, (_, m: string) => `$${m.trim()}$`)
-    .replace(/\\\[([\s\S]+?)\\\]/g, (_, m: string) => `$${m.trim()}$`)
-    .replace(/\\\(([\s\S]+?)\\\)/g, (_, m: string) => `$${m.trim()}$`)
-  return md.render(normalized)
-}
 
 function buildProgressSummary(): string {
   const lines: string[] = []
@@ -181,7 +169,7 @@ const overall = computed(() => {
           </button>
         </div>
         <div v-if="planError" class="plan-error">{{ planError }}</div>
-        <div v-if="plan" class="plan-body" v-html="renderBubble(plan)"></div>
+        <PlanCard v-if="plan" :plan="plan" />
       </div>
 
       <div v-for="p in phases" :key="p.phase" class="phase-card" :class="{ active: p.status === 'in_progress' }" @click="goPhase(p)">
@@ -251,16 +239,6 @@ const overall = computed(() => {
   background: color-mix(in srgb, var(--danger, #dc2626) 8%, transparent);
   border-radius: var(--radius-sm); padding: 8px 12px; line-height: 1.6;
 }
-.plan-body {
-  margin-top: 12px; font-size: 14px; line-height: 1.75; color: var(--text-1);
-  border-top: 1px dashed var(--border); padding-top: 12px;
-}
-.plan-body :deep(p) { margin: 0 0 8px; }
-.plan-body :deep(p:last-child) { margin-bottom: 0; }
-.plan-body :deep(ul), .plan-body :deep(ol) { margin: 0 0 8px; padding-left: 1.4em; }
-.plan-body :deep(li) { margin-bottom: 2px; }
-.plan-body :deep(strong) { font-weight: 600; }
-.plan-body :deep(.katex) { font-size: 1em; }
 .phase-card {
   background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
   padding: 20px 24px; cursor: pointer; transition: all 0.15s; box-shadow: var(--shadow-sm);
