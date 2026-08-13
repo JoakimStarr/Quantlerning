@@ -5,12 +5,21 @@ import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkPointComponent } from 'echarts/components'
+import MarkdownIt from 'markdown-it'
+import mathPlugin from '../../utils/markdownMath'
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkPointComponent])
 
 // CAPM 证券市场线 SML：E[R] = rf + β·(Rm − rf)
 // 拖动 β 看期望收益在 SML 上的位置；rf / Rm 可调
 // 教学示意模型（非真实数据）
+
+// 公式渲染：katex（与正文同一套 markdown-it 数学插件）
+const md = new MarkdownIt({ html: false, linkify: true }).use(mathPlugin, {
+  throwOnError: false,
+  errorColor: '#dc2626',
+})
+const formulaHtml = md.renderInline('$E[R] = r_f + \\beta \\cdot (R_m - r_f)$')
 
 const props = defineProps<{
   params?: Record<string, unknown>
@@ -87,7 +96,7 @@ const option = computed(() => ({
       </div>
       <div class="result-item">
         <span class="result-label">公式</span>
-        <strong class="result-value formula">rf + β×(Rm − rf)</strong>
+        <strong class="result-value formula" v-html="formulaHtml"></strong>
       </div>
       <div class="result-item">
         <span class="result-label">定位</span>
@@ -129,6 +138,7 @@ const option = computed(() => ({
 .result-value { font-size: 18px; font-weight: 700; }
 .result-value.primary { color: var(--primary); }
 .result-value.formula { font-size: 14px; color: var(--text-2); font-family: var(--font-mono); }
+.result-value.formula :deep(.katex) { font-size: 1em; }
 .result-value.sm { font-size: 13px; color: var(--text-2); }
 .controls { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
 .control-row { display: flex; align-items: center; gap: 12px; }

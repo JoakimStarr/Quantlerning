@@ -44,18 +44,21 @@ curl http://localhost:8100/api/v1/health
 前端 Vue3+TS (5173)                 后端 FastAPI (8100)
 ┌──────────────────────┐           ┌──────────────────────────────┐
 │ views/               │           │ app/api/                     │
-│  Home/Phase/Lesson/  │  /api/v1  │  courses.py  data.py compute │
-│  Lab/Cheatsheet/...  │ ────────► │ app/services/content/        │
-│ components/lesson/   │           │  courses.py(元数据)           │
-│  MarkdownRenderer    │           │  phase0/1/1_market/1_tools.py│
-│  VizBlock            │           │ app/services/data/queries.py │
-│ components/simulators│           │ app/services/compute/metrics │
-│  DiscountCurve etc   │           └──────────────┬───────────────┘
-└──────────────────────┘                          │ 只读 SQLAlchemy
+│  Home/Phase/Lesson/  │  /api/v1  │  courses.py data.py chat.py  │
+│  Lab/Cheatsheet/...  │ ────────► │  exec.py settings.py         │
+│ components/lesson/   │           │ app/services/                │
+│  MarkdownRenderer    │           │  content/(courses,loader)    │
+│  VizBlock            │           │  data/queries.py             │
+│ components/simulators│           │  sandbox/(runner,security)   │
+│  DiscountCurve etc   │           │  ai/(chat,settings_store)    │
+└──────────────────────┘           └──────────────┬───────────────┘
+                                                  │ 只读 SQLAlchemy
                                           ┌───────▼───────┐
                                           │ quantlab 库(PG)│
                                           └───────────────┘
 ```
+
+> 注意：夏普等金融指标**全在前端计算**（`useStockDaily`/各模拟器），后端无 `compute` 模块；后端只负责查询原始行情（`data/queries.py`）与沙箱/聊天。
 
 ### 内容管线（重点理解）
 
@@ -87,7 +90,7 @@ summary: 一句话引言（渲染为蓝色引言框）
 - 年化收益 = (1+累计)^(252/241) − 1（几何，非算术）
 - 日波动 = pct_chg[1:].std(ddof=1)；年化波动 = 日波动×√252
 - 夏普 = (几何年化收益 − rf)/年化波动
-- 实现位置：`frontend/src/composables/useStockDaily.ts`(nav)、`backend/app/services/compute/metrics.py::sharpe_ratio`(几何口径)、各模拟器
+- 实现位置：`frontend/src/composables/useStockDaily.ts`(nav)、`frontend/src/utils/portfolio.ts`、各模拟器（指标均前端计算，后端不重复实现）
 
 ### 前端渲染管线
 
@@ -96,7 +99,7 @@ summary: 一句话引言（渲染为蓝色引言框）
 - 支持 `$...$` 行内、`$$...$$` 块级 LaTeX；公式根节点带 `data-latex` 属性（供「选中问 AI」还原源码）
 - 解析 `:::viz` 块与 `:::quiz` 测验块，切分 Markdown 片段与交互组件
 
-**VizBlock.vue**：可视化组件注册表（`components/lesson/vizRegistry.ts`，组件名 → 组件）。注册表已基本全量激活（60+ 组件，含各章模拟器），未实现的显示带 caption 占位。新增组件在 `vizRegistry.ts` 注册并放入 `components/simulators/`；`component` prop 类型收窄为注册表键名，md 里写错组件名 `vue-tsc` 即报错。
+**VizBlock.vue**：可视化组件注册表（`components/lesson/vizRegistry.ts`，组件名 → 组件）。注册表已全量激活（74 个组件，含各章模拟器），未实现的显示带 caption 占位。新增组件在 `vizRegistry.ts` 注册并放入 `components/simulators/`；`component` prop 类型收窄为注册表键名，md 里写错组件名 `vue-tsc` 即报错。图注行右侧有「↺ 重置」按钮（递增 `:key` 重挂载组件）。
 
 **viz 嵌入语法**（写在课程 body 中）：
 ```
@@ -115,14 +118,26 @@ E: 解析
 :::
 ```
 
+**exercise 应用题语法**（`ExerciseBlock.vue`，提交后调 `POST /api/v1/chat/judge` AI 批改）：
+```
+:::exercise
+T: 题目标题
+Q: 题目正文（Markdown/LaTeX）
+:::
+```
+
 **目录同步**：`App.vue` 左侧目录从课程 API 动态生成。子节 id 必须与 `LessonView.vue` 的 section id 对齐——两者都用 `sec-${i}`（0-based）。点击章节展开/再点收起。
 
 ### 交互功能（2026-08-12 起陆续加入）
 
 - **AI 追问**（`components/lesson/AiAskPanel.vue` + 后端 `POST /api/v1/chat/stream`）：课程页右下角悬浮面板，围绕当前小节多轮对话、SSE 流式。对话按「课程+小节」存 localStorage（`aiask:v1:{lesson}:{section}`），重开/刷新自动恢复；AI 回答渲染 Markdown/LaTeX（归一化 `$$`/`\(`/`\[` 分隔符）
 - **选中问 AI**（`LessonView.vue` + `utils/selectionToMarkdown.ts`）：选中正文文字弹「问 AI」按钮，katex 公式靠 `data-latex` 还原成 `$...$` 源码随问题发给 AI
-- **阅读位置记忆**：`App.vue` 存 `ql:lastPath`（回到上次课程页）；`LessonView.vue` 滚动跟踪小节并存 `ql:pos:{lesson}`（刷新后回到读的那一节）；滚动监听用 `document` 捕获阶段（滚动容器是 `.main`）
+- **阅读位置记忆**：`App.vue` 存 `ql:lastPath`（首页「继续学习」回到上次课程页）；页内滚动位置靠浏览器原生恢复（`main.ts` 设 `history.scrollRestoration='auto'`，body 滚动）。`LessonView.vue` 的滚动监听只用于**当前小节跟踪**（阅读进度条 + AI 追问上下文），不持久化
 - **函数表达式解析**（`utils/mathExpr.ts`）：安全解析器（非 eval），支持 `x/y`、`+ - * / ^`、括号、隐式乘法（`2x`、`x(x+1)`、`2|x|`）、函数 sin/cos/tan/sqrt/log/ln/exp/abs、`|x|` 绝对值；含**符号微分** `differentiate(AST)`（泰勒系数/凹凸拐点用，比数值差分精确）与 `exprToLatex`（AST→LaTeX 公式展示）
+- **主题跟随系统**（`App.vue` + `main.ts`）：`ql:theme` 未手动设置时跟随 `prefers-color-scheme`（matchMedia 监听）；手动切换后固定。`main.ts` 挂载前按「手动选择 > 系统偏好」初始化防闪烁
+- **辅助页面包屑**（`components/common/PageBreadcrumb.vue`）：Lab/Cheatsheet/DataBrowser/Factors/Stats/Settings 六页顶部「学习地图 / 当前页」，解决工具页无返回入口
+- **日线缓存统一**（`api/index.ts::fetchStockDaily`）：缓存下沉到 API 层（模块级 Map，key 用 code 小写归一化），`useStockDaily` / `usePortfolioDaily` / 各模拟器共享同一份，同股票不再重复请求
+- **可视化重置**（`VizBlock.vue`）：图注行右侧「↺ 重置」按钮，点击递增 `:key` 强制重挂载模拟器组件回到初始值（不遮挡图表内容）
 
 ## 关键约定
 
@@ -139,20 +154,35 @@ E: 解析
 |---|---|
 | `GET /api/v1/courses` | 课程地图（阶段+课程+进度） |
 | `GET /api/v1/courses/{id}` | 课程详情（summary+sections+prev/next） |
-| `GET /api/v1/data/stock/{code}/daily` | 个股日线（code 大小写不敏感，如 sh600519） |
-| `GET /api/v1/data/factors` | 因子库（真实 factor 表） |
-| `GET /api/v1/data/macro/{indicator}` | 宏观指标 |
-| `POST /api/v1/exec/run` | 练习沙箱：AST 白名单过滤 + 子进程隔离（python -I + 资源限制）执行，白名单库 + `get_daily` 只读真实行情 |
+| `GET /api/v1/data/search?q=` | 个股搜索（代码/名称，如 600519/茅台） |
+| `GET /api/v1/data/stock/{code}/daily` | 个股日线（code 大小写不敏感，如 sh600519；前端有模块级缓存） |
+| `GET /api/v1/data/indices` | 指数元数据清单 |
+| `GET /api/v1/data/macro/indicators` | 宏观指标列表 |
+| `GET /api/v1/data/macro/{indicator}` | 宏观指标序列 |
+| `GET /api/v1/data/factors` | 因子库（真实 factor 表，支持 status/category/order_by 过滤） |
+| `GET /api/v1/data/factors/summary` | 因子总数/活跃数/类别 |
+| `GET /api/v1/data/factors/ic-distribution` | 161 因子 IC 直方图 |
+| `GET /api/v1/data/factors/pe-layers` | 全市场 PE 分层收益热力图 |
+| `GET /api/v1/data/factors/pe-ic` | PE 因子月度 Rank IC 序列 |
+| `GET /api/v1/data/factors/industry-pe` | 行业 PE 中位数对比 |
+| `GET /api/v1/data/market/pe-distribution` | 全市场某日 PE 分布 |
+| `GET /api/v1/data/backtests` | QuantLab 多因子回测结果（含净值曲线） |
+| `POST /api/v1/exec/run` | 练习沙箱：AST 白名单过滤 + 子进程隔离（python -I + 资源限制）执行，白名单库 + `get_daily` 只读真实行情（实现：`services/sandbox/`） |
+| `POST /api/v1/chat/stream` | AI 追问（SSE 流式，围绕课程小节） |
+| `POST /api/v1/chat/judge` | AI 批改应用题（SSE 流式） |
+| `GET/PUT /api/v1/settings/ai` | AI 模型配置（base_url/model/api_key，密钥掩码存储） |
 
 ## 里程碑
 
-- M0 ✅ 骨架：前后端、课程地图、内容填充（前言+第一章 24 课）
-- M1 交互组件批量实现（sharpe/mdd/macd/rsi/capm 等）
-- M2+ 第二章回测内容与可视化
-- M3 第三章因子内容与可视化（10 课 + 5 模拟器：ic_distribution / factor_ic / layer_returns / industry_pe / factor_backtest_dashboard）
-- M4 ✅ 第四章衍生品内容与可视化（10 课 + 5 模拟器：random_walk / bs_price_slider / binomial_tree / monte_carlo_pricing / var_simulator）
-- M5 ✅ 第五章 ML 内容与可视化（10 课 + 4 新模拟器：label_design / overfit_demo / feature_importance / ml_backtest，复用 gradient_field 讲梯度下降）
-- M6 第六章组合优化与实盘内容与可视化（10 课 + 5 新模拟器：frontier / risk_parity / black_litterman / pair_trading / portfolio_risk）
+> 实际进度（2026-08 验证）：内容分布 phase0=6 / phase1=11 / phase2=10 / phase3=7 / phase4=7 / phase5=8 / phase6=6 课；simulators 目录 74 个组件，vizRegistry 基本全量激活。
+
+- M0 ✅ 骨架：前后端、课程地图、内容填充（前言+第一章）
+- M1 ✅ 交互组件批量实现（sharpe/mdd/macd/rsi/capm 等）
+- M2 ✅ 第二章回测内容与可视化（10 课）
+- M3 ✅ 第三章因子内容与可视化（7 课 + ic_distribution / factor_ic / layer_returns / industry_pe / factor_backtest_dashboard）
+- M4 ✅ 第四章衍生品内容与可视化（7 课 + random_walk / bs_price_slider / binomial_tree / monte_carlo_pricing / var_simulator）
+- M5 ✅ 第五章 ML 内容与可视化（8 课 + label_design / overfit_demo / feature_importance / ml_backtest，复用 gradient_field 讲梯度下降）
+- M6 🚧 第六章组合优化与实盘（6 课已写 + 5 模拟器已完成：frontier / risk_parity / black_litterman / pair_trading / portfolio_risk；剩余 4 课待补）
 
 ### 第四章真实锚点（模型 + 真实数据）
 

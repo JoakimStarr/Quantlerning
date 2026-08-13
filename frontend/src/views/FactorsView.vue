@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { fetchFactorSummary, fetchFactors } from '@/api'
 import AppSpinner from '@/components/common/AppSpinner.vue'
 import AppError from '@/components/common/AppError.vue'
+import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 
 // 因子库：展示 QuantLab factor 表的真实数据
 interface Factor {
@@ -62,6 +63,7 @@ function onOrderChange() {
 <template>
   <div class="page">
     <div class="page-head">
+      <PageBreadcrumb current="因子库" />
       <h1>因子库</h1>
       <p class="muted">QuantLab 挖掘的真实因子 · 数据源：factor 表</p>
     </div>
@@ -145,7 +147,7 @@ function onOrderChange() {
 </template>
 
 <style scoped>
-.page { max-width: 1000px; }
+.page { max-width: 1000px; margin: 0 auto; }
 .page-head { margin-bottom: 24px; }
 .page-head h1 { font-size: 24px; margin-bottom: 4px; }
 .status { padding: 40px; text-align: center; }

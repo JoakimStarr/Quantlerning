@@ -37,9 +37,18 @@ export async function searchStock(q: string) {
   return data
 }
 
+// 个股日线模块级缓存：同 (code,start,end) 只请求一次
+// 缓存下沉到 API 层，让 useStockDaily / usePortfolioDaily 共享同一份数据
+const stockDailyCache = new Map<string, StockDaily[]>()
+
 export async function fetchStockDaily(code: string, start: string, end: string) {
+  const key = `${code.toLowerCase()}_${start}_${end}`
+  const hit = stockDailyCache.get(key)
+  if (hit) return hit
   const { data } = await api.get(`/data/stock/${code}/daily`, { params: { start, end } })
-  return data as StockDaily[]
+  const rows = data as StockDaily[]
+  stockDailyCache.set(key, rows)
+  return rows
 }
 
 export interface MarketPeDistribution {
@@ -164,6 +173,7 @@ export interface ExecResult {
   stderr: string
   duration_ms: number
   blocked: string[]
+  images: string[] // matplotlib 图形（base64 PNG）
 }
 
 export async function runCode(code: string): Promise<ExecResult> {
@@ -178,15 +188,16 @@ export interface ChatTurn {
 }
 
 /**
- * 围绕当前课程小节追问，SSE 流式返回。
+ * 通用 SSE 流式 POST：解析 {"delta"} / {"done"} / {"error"} 事件。
  * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
  */
-export async function streamChat(
-  payload: { lesson_id: string; section_index: number; messages: ChatTurn[] },
+async function streamSSE(
+  url: string,
+  payload: unknown,
   onDelta: (text: string) => void,
   signal?: AbortSignal,
 ): Promise<{ error?: string }> {
-  const res = await fetch('/api/v1/chat/stream', {
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -222,6 +233,18 @@ export async function streamChat(
 }
 
 /**
+ * 围绕当前课程小节追问，SSE 流式返回。
+ * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
+ */
+export async function streamChat(
+  payload: { lesson_id: string; section_index: number; messages: ChatTurn[] },
+  onDelta: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<{ error?: string }> {
+  return streamSSE('/api/v1/chat/stream', payload, onDelta, signal)
+}
+
+/**
  * AI 批改应用题，SSE 流式返回批改结果。
  * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
  */
@@ -230,39 +253,56 @@ export async function judgeAnswer(
   onDelta: (text: string) => void,
   signal?: AbortSignal,
 ): Promise<{ error?: string }> {
-  const res = await fetch('/api/v1/chat/judge', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    signal,
-  })
-  if (!res.ok || !res.body) {
-    return { error: `请求失败（HTTP ${res.status}）` }
-  }
-  const reader = res.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-    let sep: number
-    while ((sep = buffer.indexOf('\n\n')) !== -1) {
-      const raw = buffer.slice(0, sep)
-      buffer = buffer.slice(sep + 2)
-      const line = raw.split('\n').find((l) => l.trim().startsWith('data:'))
-      if (!line) continue
-      try {
-        const evt = JSON.parse(line.slice(line.indexOf('data:') + 5).trim())
-        if (typeof evt.delta === 'string' && evt.delta) onDelta(evt.delta)
-        if (evt.error) return { error: String(evt.error) }
-        if (evt.done) return {}
-      } catch {
-        // 忽略无法解析的帧
-      }
-    }
-  }
-  return {}
+  return streamSSE('/api/v1/chat/judge', payload, onDelta, signal)
+}
+
+/**
+ * 批改后追问：结合题目、学生答案与上轮批改反馈，回答学生对批改的疑问（SSE 流式）。
+ * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
+ */
+export async function streamJudgeFollowup(
+  payload: {
+    lesson_id: string
+    section_index: number
+    question: string
+    answer: string
+    feedback: string
+    messages: ChatTurn[]
+  },
+  onDelta: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<{ error?: string }> {
+  return streamSSE('/api/v1/chat/judge-followup', payload, onDelta, signal)
+}
+
+/**
+ * 生成变式应用题：依据原题与学生表现，出同知识点、相近难度的练习题（SSE 流式）。
+ * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
+ */
+export async function streamGenExercise(
+  payload: {
+    lesson_id: string
+    section_index: number
+    question: string
+    answer: string
+    feedback: string
+  },
+  onDelta: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<{ error?: string }> {
+  return streamSSE('/api/v1/chat/gen-exercise', payload, onDelta, signal)
+}
+
+/**
+ * 学习路径规划：基于进度数据，输出复习重点与下一步建议（SSE 流式）。
+ * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
+ */
+export async function streamPlan(
+  payload: { summary: string },
+  onDelta: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<{ error?: string }> {
+  return streamSSE('/api/v1/chat/plan', payload, onDelta, signal)
 }
 
 export default api
@@ -272,8 +312,14 @@ export interface AISettings {
   base_url: string
   model: string
   max_tokens: number
+  temperature: number
   api_key_masked: string
   configured: boolean
+  fallback_base_url: string
+  fallback_model: string
+  fallback_max_tokens: number | null
+  fallback_api_key_masked: string
+  fallback_configured: boolean
 }
 
 export async function fetchAISettings(): Promise<AISettings> {
@@ -286,6 +332,11 @@ export async function saveAISettings(payload: {
   api_key?: string
   model: string
   max_tokens?: number | null
+  temperature?: number | null
+  fallback_base_url?: string
+  fallback_api_key?: string
+  fallback_model?: string
+  fallback_max_tokens?: number | null
 }): Promise<AISettings> {
   const { data } = await api.put('/settings/ai', payload)
   return data
@@ -296,6 +347,7 @@ export async function testAISettings(payload: {
   api_key?: string
   model: string
   max_tokens?: number | null
+  temperature?: number | null
 }): Promise<{ ok: boolean; message: string; reply?: string }> {
   const { data } = await api.post('/settings/ai/test', payload)
   return data

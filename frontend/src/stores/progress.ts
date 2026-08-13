@@ -18,6 +18,8 @@ interface LessonProgress {
 interface Activity {
   dates: string[] // 有学习活动的日期（YYYY-MM-DD，去重）
   sandboxRuns: number
+  sandboxSuccess?: number // 沙箱运行成功次数
+  sandboxFail?: number // 沙箱运行失败次数
 }
 
 function load<T>(key: string, fallback: T): T {
@@ -104,9 +106,11 @@ export function recordExercise(lessonId: string) {
   markActivity()
 }
 
-/** 记录一次代码沙箱运行 */
-export function recordSandboxRun() {
+/** 记录一次代码沙箱运行（ok=是否执行成功，驱动「跑通」与「尝试」统计） */
+export function recordSandboxRun(ok = true) {
   activity.sandboxRuns += 1
+  if (ok) activity.sandboxSuccess = (activity.sandboxSuccess ?? 0) + 1
+  else activity.sandboxFail = (activity.sandboxFail ?? 0) + 1
   save(ACTIVITY_KEY, activity)
   markActivity()
 }

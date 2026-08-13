@@ -1,5 +1,6 @@
 // 多股票日线并行拉取 + 同步收益矩阵对齐
 // 第六章组合分析用：马科维茨/风险平价/BL 需要多股票同日期收益
+// 日线缓存统一在 API 层（与 useStockDaily 共享，避免同股票重复请求）
 import { computed, onMounted, ref, type Ref } from 'vue'
 import { fetchStockDaily, type StockDaily } from '@/api'
 
@@ -8,16 +9,9 @@ export interface PortfolioUniverse {
   name: string
 }
 
-const cache = new Map<string, StockDaily[]>()
-
-/** 拉单只股票（模块级缓存，与 useStockDaily 共用同一数据源） */
+/** 拉单只股票（API 层已有缓存，与 useStockDaily 共用同一数据源） */
 async function fetchOne(code: string, start: string, end: string): Promise<StockDaily[]> {
-  const key = `${code}_${start}_${end}`
-  const hit = cache.get(key)
-  if (hit) return hit
-  const rows = await fetchStockDaily(code, start, end)
-  cache.set(key, rows)
-  return rows
+  return fetchStockDaily(code, start, end)
 }
 
 export function usePortfolioDaily(

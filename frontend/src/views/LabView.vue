@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { vizRegistry, type VizKey } from '@/components/lesson/vizRegistry'
+import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 
 // 可视化实验室：列出全部已注册模拟器（vizRegistry），按阶段分组，点开即玩
 // 仅展示已实现（comp 存在）的模拟器；未实现的占位组件不列入
@@ -91,6 +92,7 @@ function countOf(phase: number) {
 <template>
   <div class="page">
     <div class="page-head">
+      <PageBreadcrumb current="可视化实验室" />
       <h1>可视化实验室</h1>
       <p class="muted">共 {{ total }} 个交互模拟器 · 点击卡片展开即玩，不受课程顺序约束</p>
     </div>

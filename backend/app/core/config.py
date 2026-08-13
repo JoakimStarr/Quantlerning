@@ -28,8 +28,9 @@ class Settings(BaseSettings):
     # AI 追问（opencodezen，OpenAI 兼容接口；key 仅存后端）
     opencodezen_api_key: str = ""
     opencodezen_base_url: str = "https://opencode.ai/zen/v1"
-    opencodezen_model: str = "deepseek-v4-flash-free"
+    opencodezen_model: str = "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"
     opencodezen_max_tokens: int = 1024
+    opencodezen_temperature: float = 0.4
 
     @property
     def ai_configured(self) -> bool:

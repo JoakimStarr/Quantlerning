@@ -10,8 +10,12 @@ if ('scrollRestoration' in history) {
 }
 
 // 深色模式初始化（在 Vue 挂载前设置，避免首屏闪烁）
+// 优先级：用户手动选择（ql:theme）> 系统偏好（prefers-color-scheme）
 try {
-  if (localStorage.getItem('ql:theme') === 'dark') {
+  const stored = localStorage.getItem('ql:theme')
+  if (stored === 'dark' || stored === 'light') {
+    document.documentElement.setAttribute('data-theme', stored)
+  } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
     document.documentElement.setAttribute('data-theme', 'dark')
   }
 } catch {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MarkdownRenderer from '@/components/lesson/MarkdownRenderer.vue'
+import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 
 interface CheatItem {
   name: string
@@ -72,6 +73,7 @@ const sections: CheatSection[] = [
 <template>
   <div class="page">
     <div class="page-head">
+      <PageBreadcrumb current="速查表" />
       <h1>速查表</h1>
       <p class="muted">Phase 0 前置知识速查 · LaTeX 公式渲染 · 学习时随时翻看</p>
     </div>

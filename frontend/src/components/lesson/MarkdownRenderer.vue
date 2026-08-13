@@ -40,6 +40,7 @@ interface Part {
   quiz?: QuizQuestion
   quizIndex?: number
   exercise?: ExerciseQuestion
+  exerciseIndex?: number
 }
 
 const props = defineProps<{
@@ -105,13 +106,32 @@ const parts = computed<Part[]>(() => {
       }
       // 提取参数（排除 caption=）
       viz.params = parseParams(rest.replace(/caption=.+$/, ''))
+      // code_sandbox：把块正文作为起始代码（教学代码开箱即运行）；
+      // 正文中「# === 预期输出 ===」标记之后的文本作为预期输出（可折叠自检）
+      if (viz.component === 'code_sandbox' && m[3].trim()) {
+        const body = m[3].trim()
+        const marker = body.indexOf('# === 预期输出 ===')
+        if (marker !== -1) {
+          viz.params.code = body.slice(0, marker).trim()
+          viz.params.expected = body.slice(marker + '# === 预期输出 ==='.length).trim()
+        } else {
+          viz.params.code = body
+        }
+        viz.params.lesson_id = props.lessonId ?? ''
+      }
       out.push({ kind: 'viz', viz })
     } else if (tag === 'quiz') {
       const quiz = parseQuiz(m[3])
       if (quiz) out.push({ kind: 'quiz', quiz, quizIndex: out.filter((p) => p.kind === 'quiz').length })
     } else if (tag === 'exercise') {
       const exercise = parseExercise(m[3])
-      if (exercise) out.push({ kind: 'exercise', exercise })
+      if (exercise) {
+        out.push({
+          kind: 'exercise',
+          exercise,
+          exerciseIndex: out.filter((p) => p.kind === 'exercise').length,
+        })
+      }
     }
     last = m.index + m[0].length
   }
@@ -158,22 +178,43 @@ function parseQuiz(raw: string): QuizQuestion | null {
 // 解析 :::exercise 块正文 → ExerciseQuestion；缺标题时返回 null
 // 语法：
 //   :::exercise
-//   T: 题目（应用题）
-//   H: 提示（可选）
+//   T: 题目（应用题，支持多行）
+//   H: 提示（可选，支持多行）
 //   :::
+// T:/H: 支持多行续行：块内空行 → 段落分隔（渲染为 <p>），
+// 非空续行 → 并入当前 T:/H: 的同一段落（markdown 单换行渲染为空格）。
 function parseExercise(raw: string): ExerciseQuestion | null {
-  const lines = raw
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0)
   let title = ''
-  const hints: string[] = []
-  for (const line of lines) {
-    if (line.startsWith('T:')) title = line.slice(2).trim()
-    else if (line.startsWith('H:')) hints.push(line.slice(2).trim())
+  let hint = ''
+  let mode: 'title' | 'hint' | null = null
+  let buf = ''
+  // 段落缓冲结束：把当前段并入所属字段，空段忽略
+  const flush = () => {
+    const text = buf.trim()
+    if (!text) return
+    if (mode === 'title') title = title ? title + '\n\n' + text : text
+    else if (mode === 'hint') hint = hint ? hint + '\n\n' + text : text
+    buf = ''
   }
+  for (const rawLine of raw.split('\n')) {
+    const line = rawLine.trim()
+    if (line.startsWith('T:')) {
+      flush()
+      mode = 'title'
+      buf = line.slice(2).trim()
+    } else if (line.startsWith('H:')) {
+      flush()
+      mode = 'hint'
+      buf = line.slice(2).trim()
+    } else if (mode && !line) {
+      flush() // 空行 → 段落分隔
+    } else if (mode && line) {
+      buf = buf ? buf + '\n' + line : line
+    }
+  }
+  flush()
   if (!title) return null
-  return { title, hint: hints.length ? hints.join('\n\n') : undefined }
+  return { title, hint: hint || undefined }
 }
 
 function parseParams(raw: string): Record<string, unknown> {
@@ -210,6 +251,7 @@ function parseParams(raw: string): Record<string, unknown> {
         :exercise="part.exercise"
         :lesson-id="lessonId ?? ''"
         :section-index="sectionIndex ?? 0"
+        :exercise-index="part.exerciseIndex ?? 0"
       />
       <div v-else-if="part.html" v-html="part.html" class="md-fragment"></div>
     </template>
@@ -250,8 +292,8 @@ function parseParams(raw: string): Record<string, unknown> {
 }
 
 .md-fragment :deep(pre) {
-  background: #0f1420;
-  color: #e6e9ef;
+  background: var(--bg-code);
+  color: var(--text-1);
   border-radius: var(--radius-md);
   padding: 14px 16px;
   overflow-x: auto;

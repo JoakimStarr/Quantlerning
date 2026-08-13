@@ -4,6 +4,7 @@ import { fetchCourses } from '@/api'
 import { isCompleted, totalQuizPassed, learningDays, totalExercises } from '@/stores/progress'
 import { chapterLabel } from '@/utils/chapter'
 import AppSpinner from '@/components/common/AppSpinner.vue'
+import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 
 // 学习统计：进度/活跃度（数据来自前端 localStorage 单一真源）
 const phases = ref<any[]>([])
@@ -33,6 +34,7 @@ const stats = computed(() => [
 <template>
   <div class="page">
     <div class="page-head">
+      <PageBreadcrumb current="学习统计" />
       <h1>学习统计</h1>
       <p class="muted">学习进度与活跃度 · 数据本地保存</p>
     </div>

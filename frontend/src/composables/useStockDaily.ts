@@ -1,9 +1,6 @@
-// 拉取个股日线 + 模块级缓存，供 MACD/RSI/MDD 模拟器复用
+// 拉取个股日线（缓存统一在 API 层），供 MACD/RSI/MDD 模拟器复用
 import { computed, onMounted, ref, watch, type Ref } from 'vue'
 import { fetchStockDaily, type StockDaily } from '@/api'
-
-// 模块级缓存：同 (code,start,end) 只请求一次
-const cache = new Map<string, StockDaily[]>()
 
 export function useStockDaily(
   code: Ref<string>,
@@ -16,21 +13,13 @@ export function useStockDaily(
   let reqId = 0 // 竞态防护：只接受最新一次请求的结果
 
   async function load() {
-    const key = `${code.value}_${start}_${end}`
     const id = ++reqId
     data.value = null // 换股票/区间时清空旧数据，避免串号
     loading.value = true
     error.value = null
-    const hit = cache.get(key)
-    if (hit) {
-      data.value = hit
-      loading.value = false
-      return
-    }
     try {
       const rows = await fetchStockDaily(code.value, start, end)
       if (id !== reqId) return // 已被更新的请求取代
-      cache.set(key, rows)
       data.value = rows
     } catch (e) {
       if (id !== reqId) return

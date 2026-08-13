@@ -30,6 +30,7 @@ class RunResponse(BaseModel):
     stderr: str
     duration_ms: int
     blocked: list[str] = []  # 静态过滤拦截原因（非空时未执行）
+    images: list[str] = []  # matplotlib 图形（base64 PNG，按生成顺序）
 
 
 @router.post("/run")
@@ -47,12 +48,15 @@ def run_code(payload: RunRequest) -> RunResponse:
     # asyncpg 只认 postgresql:// 协议（SQLAlchemy 的 +asyncpg 后缀要去掉）
     db_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
     # 禁用 BLAS/OpenMP 多线程：避免子进程内线程风暴与资源限制冲突
+    # MPLBACKEND=Agg：无显示器后端；MPLCONFIGDIR=/tmp：matplotlib 配置不写 HOME
     env = {
         **os.environ,
         "QL_DB_URL": db_url,
         "OPENBLAS_NUM_THREADS": "1",
         "OMP_NUM_THREADS": "1",
         "MKL_NUM_THREADS": "1",
+        "MPLBACKEND": "Agg",
+        "MPLCONFIGDIR": "/tmp",
     }
     t0 = time.perf_counter()
     try:
@@ -79,9 +83,32 @@ def run_code(payload: RunRequest) -> RunResponse:
     stderr = proc.stderr[-_MAX_OUTPUT:]
     if not ok and not stderr.strip():
         stderr = "运行被终止（可能超时或超出资源限制）"
+
+    # 从 stdout 中抽出 __SANDBOX_IMG__ 标记行 → images；其余文本保留为 stdout（截断防爆）
+    stdout, images = _split_images(proc.stdout)
     return RunResponse(
         ok=ok,
-        stdout=proc.stdout[-_MAX_OUTPUT:],
+        stdout=stdout[-_MAX_OUTPUT:],
         stderr=stderr,
         duration_ms=dur,
+        images=images,
     )
+
+
+_IMG_PREFIX = "__SANDBOX_IMG__"
+_MAX_IMAGES = 4  # 单次最多返回的图形数
+_MAX_IMAGE_BYTES = 1024 * 1024  # 单张 base64 上限（约 750KB PNG）
+
+
+def _split_images(stdout: str) -> tuple[str, list[str]]:
+    """把 runner 输出的图片标记行剥离出来，返回 (文本, base64 图片列表)。"""
+    images: list[str] = []
+    text_parts: list[str] = []
+    for line in stdout.splitlines():
+        if line.startswith(_IMG_PREFIX):
+            data = line[len(_IMG_PREFIX):]
+            if len(images) < _MAX_IMAGES and len(data) <= _MAX_IMAGE_BYTES:
+                images.append(data)
+        else:
+            text_parts.append(line)
+    return "\n".join(text_parts), images

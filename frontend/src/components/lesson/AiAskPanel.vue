@@ -2,6 +2,7 @@
 import { nextTick, onMounted, ref, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 import mathPlugin from '@/utils/markdownMath'
+import { unwrapOuterFence } from '@/utils/aiOutput'
 import 'katex/dist/katex.min.css'
 import { streamChat, type ChatTurn } from '@/api'
 import { useChatHistory } from '@/composables/useChatHistory'
@@ -18,8 +19,9 @@ const bubbleMd = new MarkdownIt({
 // AI 输出的公式分隔符不统一（$$...$$、\(...\)、\[...\] 都可能出现），
 // 统一归一化为行内 $...$，避免块级 $$ 不在行首时无法渲染；
 // trim 掉公式首尾空白，防止 $ 与空白相邻而被识别为普通文本
+// 先剥掉外层代码围栏：模型把整段 Markdown 包在 ```…``` 里时会整块显示为代码框
 function renderBubble(content: string): string {
-  const normalized = content
+  const normalized = unwrapOuterFence(content)
     .replace(/\$\$([\s\S]+?)\$\$/g, (_, m: string) => `$${m.trim()}$`)
     .replace(/\\\[([\s\S]+?)\\\]/g, (_, m: string) => `$${m.trim()}$`)
     .replace(/\\\(([\s\S]+?)\\\)/g, (_, m: string) => `$${m.trim()}$`)
@@ -440,7 +442,9 @@ watch(
   color: #e6e9ef;
   border-radius: var(--radius-sm);
   padding: 10px 12px;
-  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   margin: 0 0 8px;
 }
 .bubble-md :deep(.copy-code-btn) {

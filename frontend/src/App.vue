@@ -68,8 +68,16 @@ function closeMenu() {
   menuOpen.value = false
 }
 
-// 侧边栏「工具」二级菜单（悬停/点击浮出）
+// 侧边栏「工具」二级菜单（点击展开，点击外部收起）
 const toolsOpen = ref(false)
+const toolsRef = ref<HTMLElement | null>(null)
+// 点击菜单外部时收起
+function onDocClick(e: MouseEvent) {
+  if (toolsOpen.value && toolsRef.value && !toolsRef.value.contains(e.target as Node)) {
+    toolsOpen.value = false
+  }
+}
+onMounted(() => document.addEventListener('click', onDocClick))
 // 路由变化时收起弹层（导航后不再遮挡内容）
 watch(
   () => route.fullPath,
@@ -82,7 +90,31 @@ watch(
 const theme = ref<'light' | 'dark'>(
   document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
 )
+
+// 未手动设置过主题时，跟随系统偏好（用户一旦手动切换即固定）
+let mql: MediaQueryList | null = null
+let followSystem = false
+try {
+  followSystem = !localStorage.getItem('ql:theme')
+} catch {
+  followSystem = true
+}
+function applySystemTheme(e?: MediaQueryListEvent) {
+  if (!followSystem) return
+  theme.value = e ? (e.matches ? 'dark' : 'light') : (mql?.matches ? 'dark' : 'light')
+  document.documentElement.setAttribute('data-theme', theme.value)
+}
+if (followSystem && typeof window.matchMedia === 'function') {
+  mql = window.matchMedia('(prefers-color-scheme: dark)')
+  applySystemTheme() // 与 main.ts 初始化保持一致（如系统在挂载后变化）
+  mql.addEventListener('change', applySystemTheme)
+}
+
 function toggleTheme() {
+  // 手动选择后固定，不再跟随系统
+  followSystem = false
+  mql?.removeEventListener('change', applySystemTheme)
+  mql = null
   theme.value = theme.value === 'dark' ? 'light' : 'dark'
   document.documentElement.setAttribute('data-theme', theme.value)
   try {
@@ -237,8 +269,8 @@ const tools: { to?: string; href?: string; label: string; icon: string; external
         </div>
       </nav>
 
-      <!-- 底部功能入口：二级菜单，悬停/点击「工具」浮出 -->
-      <div class="tools" @mouseenter="toolsOpen = true" @mouseleave="toolsOpen = false">
+      <!-- 底部功能入口：二级菜单，点击「工具」展开/收起 -->
+      <div ref="toolsRef" class="tools">
         <button class="tools-toggle" :aria-expanded="toolsOpen" @click="toolsOpen = !toolsOpen">
           工具 <span class="tools-arrow">{{ toolsOpen ? '▴' : '▾' }}</span>
         </button>

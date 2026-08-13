@@ -8,7 +8,7 @@ import httpx
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from ..services.ai.chat import AIProviderError
+from ..services.ai.chat import AIProviderError, friendly_ai_error
 from ..services.ai.settings_store import public_config, save_config
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -20,6 +20,12 @@ class AISettingsPayload(BaseModel):
     api_key: str | None = Field(None, max_length=500)
     model: str = Field("", max_length=200)
     max_tokens: int | None = Field(None, ge=16, le=8192)
+    temperature: float | None = Field(None, ge=0.0, le=2.0)
+    # 备用模型（主模型限流时自动切换）
+    fallback_base_url: str = Field("", max_length=300)
+    fallback_api_key: str | None = Field(None, max_length=500)
+    fallback_model: str = Field("", max_length=200)
+    fallback_max_tokens: int | None = Field(None, ge=16, le=8192)
 
 
 @router.get("/ai")
@@ -44,16 +50,18 @@ async def test_ai_settings(payload: AISettingsPayload):
     # 用提交的配置（未保存）临时测试；api_key 为空时回退到已保存/环境配置
     from app.services.ai.settings_store import get_effective_config
 
-    base = payload.base_url.strip()
-    key = payload.api_key.strip()
-    model = payload.model.strip()
+    base = (payload.base_url or "").strip()
+    key = (payload.api_key or "").strip()
+    model = (payload.model or "").strip()
     max_tokens = payload.max_tokens
+    temperature = payload.temperature
     if not base or not key or not model:
         eff = get_effective_config()
         base = base or eff["base_url"]
         key = key or eff.get("api_key", "")
         model = model or eff["model"]
         max_tokens = max_tokens or eff.get("max_tokens")
+        temperature = temperature if temperature is not None else eff.get("temperature")
 
     if not key:
         return {"ok": False, "message": "未配置 API key：请填写或先在设置页保存"}
@@ -68,16 +76,17 @@ async def test_ai_settings(payload: AISettingsPayload):
         "messages": [{"role": "user", "content": "你好，请只回复两个字：正常"}],
         "max_tokens": int(max_tokens or 64),
         "stream": False,
-        "temperature": 0.2,
+        "temperature": temperature if temperature is not None else 0.2,
     }
     try:
         async with httpx.AsyncClient(trust_env=False, timeout=30) as client:
             resp = await client.post(url, headers=headers, json=body)
             if resp.status_code != 200:
                 detail = resp.text[:200]
+                message = f"HTTP {resp.status_code}: {detail}"
                 return {
                     "ok": False,
-                    "message": f"HTTP {resp.status_code}: {detail}",
+                    "message": friendly_ai_error(message),
                 }
             data = resp.json()
         reply = (data.get("choices") or [{}])[0].get("message", {}).get("content", "")

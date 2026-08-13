@@ -18,6 +18,7 @@ ALLOWED_IMPORTS = {
     "typing",
     "pandas",
     "numpy",
+    "matplotlib",
 }
 
 # 禁用的内建函数调用

@@ -193,7 +193,7 @@ function stateClass(i: number): string {
 
 .quiz-explain {
   margin-top: 14px; padding: 12px 14px; border-radius: var(--radius-sm);
-  background: var(--bg-hover); border-left: 3px solid var(--primary);
+  background: var(--bg-hover);
 }
 .explain-title { font-size: 12px; font-weight: 600; color: var(--primary); margin-bottom: 6px; }
 .explain-body { font-size: 14px; line-height: 1.7; color: var(--text-2); }

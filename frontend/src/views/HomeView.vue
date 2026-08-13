@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { fetchCourses } from '@/api'
-import { isCompleted } from '@/stores/progress'
+import MarkdownIt from 'markdown-it'
+import mathPlugin from '@/utils/markdownMath'
+import 'katex/dist/katex.min.css'
+import { fetchCourses, streamPlan } from '@/api'
+import { getProgress, isCompleted, learningDays, sandboxRunCount, totalExercises } from '@/stores/progress'
 import { chapterLabel } from '@/utils/chapter'
 import AppSpinner from '@/components/common/AppSpinner.vue'
 import AppError from '@/components/common/AppError.vue'
@@ -15,6 +18,61 @@ const error = ref('')
 // 继续上次学习：读取 App.vue 写入的 ql:lastPath，解析出课程
 const LAST_PATH_KEY = 'ql:lastPath'
 const lastPath = ref('')
+
+// AI 学习规划
+const md = new MarkdownIt({ html: false, linkify: true }).use(mathPlugin, {
+  throwOnError: false,
+  errorColor: '#dc2626',
+})
+const plan = ref('')
+const planBusy = ref(false)
+const planError = ref('')
+
+function renderBubble(content: string): string {
+  const normalized = content
+    .replace(/\$\$([\s\S]+?)\$\$/g, (_, m: string) => `$${m.trim()}$`)
+    .replace(/\\\[([\s\S]+?)\\\]/g, (_, m: string) => `$${m.trim()}$`)
+    .replace(/\\\(([\s\S]+?)\\\)/g, (_, m: string) => `$${m.trim()}$`)
+  return md.render(normalized)
+}
+
+function buildProgressSummary(): string {
+  const lines: string[] = []
+  lines.push(
+    `学习天数 ${learningDays()} 天；沙箱运行 ${sandboxRunCount()} 次；应用题提交 ${totalExercises()} 次。`,
+  )
+  lines.push('各课进度：')
+  for (const p of phases.value) {
+    for (const l of p.lessons) {
+      const pr = getProgress(l.id)
+      if (!pr) continue
+      const parts = [`《${l.title}》`]
+      if (pr.completed) parts.push('已完成')
+      if (pr.quizScore != null && pr.quizzesTotal != null) parts.push(`测验 ${pr.quizScore}/${pr.quizzesTotal}`)
+      if (pr.exercises) parts.push(`应用题 ${pr.exercises} 次`)
+      if (pr.reads) parts.push(`阅读 ${pr.reads} 次`)
+      lines.push(`- ${parts.join('；')}`)
+    }
+  }
+  return lines.join('\n')
+}
+
+async function getPlan() {
+  if (planBusy.value) return
+  plan.value = ''
+  planError.value = ''
+  planBusy.value = true
+  try {
+    const result = await streamPlan({ summary: buildProgressSummary() }, (d) => {
+      plan.value += d
+    })
+    if (result.error) planError.value = result.error
+  } catch {
+    // 中止等：忽略
+  } finally {
+    planBusy.value = false
+  }
+}
 
 async function load() {
   loading.value = true
@@ -111,6 +169,21 @@ const overall = computed(() => {
 
     <!-- 阶段列表 -->
     <div v-else class="phase-list">
+      <!-- AI 学习规划 -->
+      <div class="plan-card">
+        <div class="plan-head">
+          <div>
+            <div class="plan-title">AI 学习规划</div>
+            <div class="plan-sub">根据你的学习进度，推荐复习重点与下一步路径</div>
+          </div>
+          <button class="btn btn-primary" :disabled="planBusy" @click="getPlan">
+            {{ planBusy ? '生成中…' : '生成规划' }}
+          </button>
+        </div>
+        <div v-if="planError" class="plan-error">{{ planError }}</div>
+        <div v-if="plan" class="plan-body" v-html="renderBubble(plan)"></div>
+      </div>
+
       <div v-for="p in phases" :key="p.phase" class="phase-card" :class="{ active: p.status === 'in_progress' }" @click="goPhase(p)">
         <div class="phase-row">
           <span class="phase-num">{{ chapterLabel(p.phase) }}</span>
@@ -164,6 +237,30 @@ const overall = computed(() => {
 .resume-arrow { font-size: 20px; color: var(--primary); flex-shrink: 0; }
 
 .phase-list { display: flex; flex-direction: column; gap: 14px; }
+
+.plan-card {
+  background: var(--bg-card); border: 1px solid var(--primary);
+  border-radius: var(--radius-md); padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+}
+.plan-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.plan-title { font-size: 15px; font-weight: 600; color: var(--primary); }
+.plan-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+.plan-error {
+  margin-top: 12px; font-size: 13px; color: var(--danger, #dc2626);
+  background: color-mix(in srgb, var(--danger, #dc2626) 8%, transparent);
+  border-radius: var(--radius-sm); padding: 8px 12px; line-height: 1.6;
+}
+.plan-body {
+  margin-top: 12px; font-size: 14px; line-height: 1.75; color: var(--text-1);
+  border-top: 1px dashed var(--border); padding-top: 12px;
+}
+.plan-body :deep(p) { margin: 0 0 8px; }
+.plan-body :deep(p:last-child) { margin-bottom: 0; }
+.plan-body :deep(ul), .plan-body :deep(ol) { margin: 0 0 8px; padding-left: 1.4em; }
+.plan-body :deep(li) { margin-bottom: 2px; }
+.plan-body :deep(strong) { font-weight: 600; }
+.plan-body :deep(.katex) { font-size: 1em; }
 .phase-card {
   background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md);
   padding: 20px 24px; cursor: pointer; transition: all 0.15s; box-shadow: var(--shadow-sm);
