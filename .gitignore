@@ -18,6 +18,13 @@ node_modules/
 dist/
 *.local
 
+# vite.config.ts 的 tsc 编译产物（vite 会优先加载 .js，误留会导致配置不生效）
+vite.config.js
+vite.config.d.ts
+
+# TypeScript 构建缓存
+*.tsbuildinfo
+
 # 日志与临时文件
 *.log
 /tmp/

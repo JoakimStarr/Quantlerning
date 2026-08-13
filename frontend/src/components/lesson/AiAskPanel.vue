@@ -1,20 +1,18 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue'
-import MarkdownIt from 'markdown-it'
-import mathPlugin from '@/utils/markdownMath'
+import { Copy, Maximize2, Minimize2 } from 'lucide-vue-next'
+import { createMarkdown } from '@/utils/markdownIt'
 import { unwrapOuterFence } from '@/utils/aiOutput'
 import 'katex/dist/katex.min.css'
 import { streamChat, type ChatTurn } from '@/api'
 import { useChatHistory } from '@/composables/useChatHistory'
+
+// 运行时注入代码块的复制按钮图标（DOM 操作无法用 Vue 组件，内联 lucide Copy 的 SVG）
+const COPY_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>'
+
 // AI 回答渲染器：与课程正文同一套 markdown-it + katex，支持公式/代码
-const bubbleMd = new MarkdownIt({
-  html: false,
-  linkify: true,
-  breaks: false,
-}).use(mathPlugin, {
-  throwOnError: false,
-  errorColor: '#dc2626',
-})
+const bubbleMd = createMarkdown({ breaks: false })
 
 // AI 输出的公式分隔符不统一（$$...$$、\(...\)、\[...\] 都可能出现），
 // 统一归一化为行内 $...$，避免块级 $$ 不在行首时无法渲染；
@@ -37,7 +35,7 @@ function enhanceCodeBlocks() {
     const btn = document.createElement('button')
     btn.className = 'copy-code-btn'
     btn.title = '复制代码'
-    btn.textContent = '⧉'
+    btn.innerHTML = COPY_SVG
     btn.setAttribute('aria-label', '复制代码')
     btn.addEventListener('click', () => {
       navigator.clipboard?.writeText(pre.innerText)?.catch(() => {})
@@ -213,7 +211,8 @@ watch(
             清空
           </button>
           <button class="panel-expand" :title="expanded ? '缩小窗口' : '放大窗口'" @click="expanded = !expanded">
-            {{ expanded ? '⤡' : '⤢' }}
+            <Maximize2 v-if="!expanded" :size="14" />
+            <Minimize2 v-else :size="14" />
           </button>
           <button class="panel-close" title="关闭" @click="close">×</button>
         </div>
@@ -235,7 +234,7 @@ watch(
           <div v-else class="bubble bubble-md">
             <span v-if="m.content" v-html="renderBubble(m.content)"></span>
             <span v-else-if="thinking && i === messages.length - 1" class="typing">▍</span>
-            <button v-if="m.content" class="copy-btn" title="复制回答" @click="copyMessage(m.content)">⧉</button>
+            <button v-if="m.content" class="copy-btn" title="复制回答" @click="copyMessage(m.content)"><Copy :size="13" /></button>
           </div>
         </div>
       </div>

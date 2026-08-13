@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import MarkdownIt from 'markdown-it'
-import mathPlugin from '../../utils/markdownMath'
+import { Check, X } from 'lucide-vue-next'
+import { createMarkdown } from '../../utils/markdownIt'
 import type { QuizQuestion } from './MarkdownRenderer.vue'
 
 const props = defineProps<{
@@ -15,10 +15,7 @@ const emit = defineEmits<{
   (e: 'submitted', score: number, question: string): void
 }>()
 
-const md = new MarkdownIt({ html: false, linkify: true }).use(mathPlugin, {
-  throwOnError: false,
-  errorColor: '#dc2626',
-})
+const md = createMarkdown()
 
 const selected = ref<number[]>([])
 const submitted = ref(false)
@@ -113,7 +110,10 @@ function stateClass(i: number): string {
       >
         <span class="opt-idx">{{ String.fromCharCode(65 + i) }}</span>
         <span class="opt-text" v-html="render(opt)"></span>
-        <span class="opt-mark">{{ stateClass(i).includes('correct') ? '✓' : stateClass(i).includes('wrong') ? '✗' : '' }}</span>
+        <span class="opt-mark">
+          <Check v-if="stateClass(i).includes('correct')" :size="13" />
+          <X v-else-if="stateClass(i).includes('wrong')" :size="13" />
+        </span>
       </button>
     </div>
 

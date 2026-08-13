@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch, type Component } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import {
+  BarChart3, BookMarked, Check, ChevronDown, ChevronRight, ChevronUp,
+  ClipboardList, Dna, FlaskConical, Menu, Microscope, Moon, Settings, Sun, TrendingUp,
+} from 'lucide-vue-next'
 import { fetchCourses, fetchLesson } from '@/api'
 import { isCompleted } from '@/stores/progress'
 import { chapterLabel } from '@/utils/chapter'
@@ -189,14 +193,14 @@ const phaseStatus: Record<string, { label: string; cls: string }> = {
 }
 
 // 底部功能入口
-const tools: { to?: string; href?: string; label: string; icon: string; external?: boolean }[] = [
-  { to: '/lab', label: '可视化实验室', icon: '🧪' },
-  { to: '/cheatsheet', label: '速查表', icon: '📋' },
-  { to: '/data-browser', label: '数据浏览器', icon: '📊' },
-  { to: '/factors', label: '因子库', icon: '🧬' },
-  { to: '/stats', label: '学习统计', icon: '📈' },
-  { to: '/settings', label: '设置', icon: '⚙️' },
-  { href: 'http://localhost:3000', label: 'QuantLab 回测', icon: '🔬', external: true },
+const tools: { to?: string; href?: string; label: string; icon: Component; external?: boolean }[] = [
+  { to: '/lab', label: '可视化实验室', icon: FlaskConical },
+  { to: '/cheatsheet', label: '速查表', icon: ClipboardList },
+  { to: '/data-browser', label: '数据浏览器', icon: BarChart3 },
+  { to: '/factors', label: '因子库', icon: Dna },
+  { to: '/stats', label: '学习统计', icon: TrendingUp },
+  { to: '/settings', label: '设置', icon: Settings },
+  { href: 'http://localhost:3000', label: 'QuantLab 回测', icon: Microscope, external: true },
 ]
 </script>
 
@@ -204,13 +208,14 @@ const tools: { to?: string; href?: string; label: string; icon: string; external
   <div class="layout">
     <!-- 移动端顶栏（≤900px 显示）：汉堡 + 品牌 + 当前课程 -->
     <header class="topbar">
-      <button class="menu-btn" aria-label="切换目录" @click="menuOpen = !menuOpen">☰</button>
+      <button class="menu-btn" aria-label="切换目录" @click="menuOpen = !menuOpen"><Menu :size="20" /></button>
       <RouterLink to="/" class="topbar-brand" @click="closeMenu">
         <span class="brand-mark">Q</span>
       </RouterLink>
       <span class="topbar-title">{{ currentLessonTitle || 'Quantlerning' }}</span>
       <button class="theme-btn" :title="theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'" aria-label="切换深浅色模式" @click="toggleTheme">
-        {{ theme === 'dark' ? '☀️' : '🌙' }}
+        <Sun v-if="theme === 'dark'" :size="18" />
+        <Moon v-else :size="18" />
       </button>
     </header>
 
@@ -219,12 +224,24 @@ const tools: { to?: string; href?: string; label: string; icon: string; external
 
     <!-- 左侧：书的目录 -->
     <aside class="sidebar" :class="{ open: menuOpen }">
-      <RouterLink to="/" class="brand" @click="closeMenu">
-        <span class="brand-mark">Q</span>
-        <span class="brand-name">Quantlerning</span>
-      </RouterLink>
+      <!-- 品牌行（含桌面端主题切换，替代原右上角悬浮按钮） -->
+      <div class="brand-row">
+        <RouterLink to="/" class="brand" @click="closeMenu">
+          <span class="brand-mark">Q</span>
+          <span class="brand-name">Quantlerning</span>
+        </RouterLink>
+        <button
+          class="theme-btn tool-desktop"
+          :title="theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'"
+          aria-label="切换深浅色模式"
+          @click="toggleTheme"
+        >
+          <Sun v-if="theme === 'dark'" :size="16" />
+          <Moon v-else :size="16" />
+        </button>
+      </div>
 
-      <div class="toc-label">📑 目录</div>
+      <div class="toc-label"><BookMarked :size="13" class="toc-icon" /> 目录</div>
 
       <div class="toc-search">
         <input v-model="searchQuery" type="search" placeholder="搜索课程…" spellcheck="false" />
@@ -248,7 +265,11 @@ const tools: { to?: string; href?: string; label: string; icon: string; external
               :class="{ active: currentLessonId === l.id }"
               @click="toggleLesson(l)"
             >
-              <span class="chapter-icon">{{ openLessons.has(l.id) ? '▾' : (isCompleted(l.id) ? '✓' : '▸') }}</span>
+              <span class="chapter-icon">
+                <ChevronDown v-if="openLessons.has(l.id)" :size="12" />
+                <Check v-else-if="isCompleted(l.id)" :size="12" />
+                <ChevronRight v-else :size="12" />
+              </span>
               <span class="chapter-title" :class="{ done: isCompleted(l.id) }">{{ l.title }}</span>
             </div>
 
@@ -272,7 +293,7 @@ const tools: { to?: string; href?: string; label: string; icon: string; external
       <!-- 底部功能入口：二级菜单，点击「工具」展开/收起 -->
       <div ref="toolsRef" class="tools">
         <button class="tools-toggle" :aria-expanded="toolsOpen" @click="toolsOpen = !toolsOpen">
-          工具 <span class="tools-arrow">{{ toolsOpen ? '▴' : '▾' }}</span>
+          工具 <span class="tools-arrow"><ChevronUp v-if="toolsOpen" :size="11" /><ChevronDown v-else :size="11" /></span>
         </button>
         <Transition name="tools-pop">
           <div v-if="toolsOpen" class="tools-popup">
@@ -286,11 +307,11 @@ const tools: { to?: string; href?: string; label: string; icon: string; external
                 :class="{ 'tool-desktop': t.external }"
                 @click="closeMenu"
               >
-                <span>{{ t.icon }}</span>
+                <component :is="t.icon" :size="15" />
                 <span>{{ t.label }}</span>
               </a>
               <RouterLink v-else :to="t.to!" class="tool-item" @click="closeMenu">
-                <span>{{ t.icon }}</span>
+                <component :is="t.icon" :size="15" />
                 <span>{{ t.label }}</span>
               </RouterLink>
             </template>
@@ -298,16 +319,6 @@ const tools: { to?: string; href?: string; label: string; icon: string; external
         </Transition>
       </div>
     </aside>
-
-    <!-- 桌面端深色模式切换（固定右上角，不放导航栏） -->
-    <button
-      class="theme-fab"
-      :title="theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'"
-      aria-label="切换深浅色模式"
-      @click="toggleTheme"
-    >
-      {{ theme === 'dark' ? '☀️' : '🌙' }}
-    </button>
 
     <!-- 右侧内容区（body 滚动，浏览器原生恢复滚动位置） -->
     <div class="main">
@@ -354,22 +365,6 @@ const tools: { to?: string; href?: string; label: string; icon: string; external
 }
 .theme-btn:active { background: var(--bg-hover); }
 
-/* 桌面端深色模式切换（固定右上角） */
-.theme-fab {
-  position: fixed;
-  top: 12px; right: 16px;
-  z-index: 45;
-  width: 36px; height: 36px;
-  border: 1px solid var(--border-strong);
-  border-radius: 50%;
-  background: var(--bg-card);
-  font-size: 16px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--shadow-md);
-}
-.theme-fab:hover { border-color: var(--primary); }
-
 .topbar-brand { display: flex; }
 .topbar-title {
   flex: 1;
@@ -394,12 +389,23 @@ const tools: { to?: string; href?: string; label: string; icon: string; external
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
 }
+/* 品牌行：品牌 + 桌面端主题切换按钮 */
+.brand-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding-right: 6px;
+}
 .brand {
+  flex: 1;
   display: flex; align-items: center; gap: 10px;
-  padding: 16px 20px; font-weight: 700; font-size: 16px;
-  color: var(--text-1); border-bottom: 1px solid var(--border);
+  padding: 16px 12px 16px 20px;
+  font-weight: 700; font-size: 16px;
+  color: var(--text-1);
+  min-width: 0;
 }
 .brand:hover { color: var(--text-1); }
+.brand-row .theme-btn { width: 32px; height: 32px; font-size: 14px; flex-shrink: 0; }
 .brand-mark {
   width: 30px; height: 30px; border-radius: 8px;
   background: var(--primary); color: #fff;
@@ -407,7 +413,8 @@ const tools: { to?: string; href?: string; label: string; icon: string; external
   font-size: 16px; font-weight: 700;
 }
 
-.toc-label { font-size: 12px; color: var(--text-3); font-weight: 600; padding: 12px 20px 6px; letter-spacing: 0.5px; }
+.toc-label { font-size: 12px; color: var(--text-3); font-weight: 600; padding: 12px 20px 6px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
+.toc-icon { flex-shrink: 0; }
 .toc-status { padding: 8px 20px; color: var(--text-3); font-size: 13px; }
 
 .toc-search { padding: 0 12px 8px; }
@@ -521,10 +528,7 @@ const tools: { to?: string; href?: string; label: string; icon: string; external
   .subsection { padding: 8px 10px; }
   .tool-item { padding: 9px 12px; }
 
-  /* 移动端隐藏指向 localhost 的外链工具（手机上无意义） */
+  /* 移动端隐藏指向 localhost 的外链工具（手机上无意义），侧边栏主题按钮也隐藏（顶栏已有） */
   .tool-desktop { display: none; }
-
-  /* 移动端隐藏右上角深色按钮（顶栏已有） */
-  .theme-fab { display: none; }
 }
 </style>

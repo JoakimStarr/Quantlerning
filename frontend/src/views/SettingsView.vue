@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { Check, Star, X } from 'lucide-vue-next'
 import { fetchAISettings, saveAISettings, testAISettings } from '@/api'
 import AppSpinner from '@/components/common/AppSpinner.vue'
 import AppError from '@/components/common/AppError.vue'
@@ -184,7 +185,7 @@ async function test() {
     <div v-else class="settings-stack">
       <!-- 当前默认模型状态 -->
       <div class="default-banner">
-        <span class="default-icon">★</span>
+        <span class="default-icon"><Star :size="14" /></span>
         <div class="default-info">
           <span class="default-label">当前默认模型</span>
           <span class="default-value">{{ model || '（未设置）' }}</span>
@@ -356,7 +357,7 @@ async function test() {
       <div v-if="error" class="msg-error">{{ error }}</div>
       <div v-if="notice" class="msg-notice">{{ notice }}</div>
       <div v-if="testResult" class="msg-test" :class="testResult.ok ? 'ok' : 'bad'">
-        <strong>{{ testResult.ok ? '✓' : '✗' }} {{ testResult.message }}</strong>
+        <strong class="test-mark"><Check v-if="testResult.ok" :size="14" /><X v-else :size="14" /> {{ testResult.message }}</strong>
         <div v-if="testResult.reply" class="test-reply">{{ testResult.reply }}</div>
       </div>
 

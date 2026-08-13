@@ -1,18 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import MarkdownIt from 'markdown-it'
-import mathPlugin from '../../utils/markdownMath'
+import { Image, RotateCcw } from 'lucide-vue-next'
+import { createMarkdown } from '../../utils/markdownIt'
 import { vizRegistry, type VizKey } from './vizRegistry'
 
 // 图注渲染器：支持 LaTeX（与正文同一套 markdown-it + katex）
-const captionMd = new MarkdownIt({
-  html: false,
-  linkify: true,
-  breaks: false,
-}).use(mathPlugin, {
-  throwOnError: false,
-  errorColor: '#dc2626',
-})
+const captionMd = createMarkdown({ breaks: false })
 
 const props = defineProps<{
   component: VizKey
@@ -50,7 +43,7 @@ const captionHtml = computed(() =>
 
       <!-- 未实现：插图占位 -->
       <div v-else class="viz-placeholder">
-        <span class="viz-icon">🖼️</span>
+        <span class="viz-icon"><Image :size="28" /></span>
         <div class="viz-text">
           <div class="viz-name">{{ title }}</div>
           <div class="viz-desc">{{ desc }}</div>
@@ -67,7 +60,7 @@ const captionHtml = computed(() =>
         aria-label="重置为初始设置"
         @click="reset"
       >
-        <span class="viz-reset-icon">↺</span>
+        <span class="viz-reset-icon"><RotateCcw :size="13" /></span>
         <span>重置</span>
       </button>
     </div>

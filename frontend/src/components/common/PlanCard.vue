@@ -2,16 +2,12 @@
 // AI 学习规划结果渲染（懒加载组件）：把 markdown-it + KaTeX 从 Home 首屏剥离，
 // 仅在用户生成规划后才加载。渲染逻辑与 AiAskPanel/ExerciseBlock 的 renderBubble 一致。
 import { computed } from 'vue'
-import MarkdownIt from 'markdown-it'
-import mathPlugin from '@/utils/markdownMath'
+import { createMarkdown } from '@/utils/markdownIt'
 import 'katex/dist/katex.min.css'
 
 const props = defineProps<{ plan: string }>()
 
-const md = new MarkdownIt({ html: false, linkify: true }).use(mathPlugin, {
-  throwOnError: false,
-  errorColor: '#dc2626',
-})
+const md = createMarkdown()
 
 const html = computed(() => {
   const normalized = props.plan

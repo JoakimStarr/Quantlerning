@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import MarkdownIt from 'markdown-it'
-import mathPlugin from '../../utils/markdownMath'
+import { createMarkdown } from '../../utils/markdownIt'
 import 'katex/dist/katex.min.css'
 import VizBlock from './VizBlock.vue'
 import QuizBlock from './QuizBlock.vue'
@@ -53,14 +52,7 @@ const emit = defineEmits<{
   (e: 'quiz-submitted', score: number, question: string): void
 }>()
 
-const md = new MarkdownIt({
-  html: false,
-  linkify: true,
-  breaks: false,
-}).use(mathPlugin, {
-  throwOnError: false,
-  errorColor: '#dc2626',
-})
+const md = createMarkdown({ breaks: false })
 
 // 渲染 Markdown；把表格包进横向滚动容器（移动端宽表可滑动，不撑破页面）
 function renderMd(text: string): string {

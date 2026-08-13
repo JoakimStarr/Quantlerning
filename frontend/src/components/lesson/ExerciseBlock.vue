@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import MarkdownIt from 'markdown-it'
-import mathPlugin from '../../utils/markdownMath'
+import { MessageCircle, RefreshCw } from 'lucide-vue-next'
+import { createMarkdown } from '../../utils/markdownIt'
 import { unwrapOuterFence } from '../../utils/aiOutput'
 import 'katex/dist/katex.min.css'
 import { judgeAnswer, streamGenExercise, streamJudgeFollowup } from '@/api'
@@ -24,10 +24,7 @@ const props = defineProps<{
   exerciseIndex?: number
 }>()
 
-const md = new MarkdownIt({ html: false, linkify: true }).use(mathPlugin, {
-  throwOnError: false,
-  errorColor: '#dc2626',
-})
+const md = createMarkdown()
 
 const render = (text: string) => md.render(text)
 
@@ -250,10 +247,10 @@ const variantParts = computed(() => {
 
     <div v-if="feedback" class="exercise-ai-tools">
       <button class="btn btn-ghost" :disabled="fuBusy" @click="fuOpen = !fuOpen">
-        {{ fuOpen ? '收起追问' : '💬 对批改有疑问？' }}
+        {{ fuOpen ? '收起追问' : '对批改有疑问？' }}<MessageCircle v-if="!fuOpen" :size="14" />
       </button>
       <button class="btn btn-ghost" :disabled="generating" @click="genVariant">
-        {{ generating ? '生成中…' : '🔁 生成同类练习题' }}
+        {{ generating ? '生成中…' : '生成同类练习题' }}<RefreshCw v-if="!generating" :size="14" />
       </button>
     </div>
 

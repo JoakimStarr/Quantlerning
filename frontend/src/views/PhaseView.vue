@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ArrowRight, Check } from 'lucide-vue-next'
 import { fetchCourses } from '@/api'
 import { isCompleted } from '@/stores/progress'
 import { chapterLabel } from '@/utils/chapter'
@@ -66,12 +67,15 @@ function goLesson(id: string) {
       <!-- 课程列表 -->
       <div class="lesson-list">
         <div v-for="(l, i) in phase.lessons" :key="l.id" class="lesson-item" :class="{ done: isCompleted(l.id) }" @click="goLesson(l.id)">
-          <span class="lesson-index" :class="{ done: isCompleted(l.id) }">{{ isCompleted(l.id) ? '✓' : i + 1 }}</span>
+          <span class="lesson-index" :class="{ done: isCompleted(l.id) }">
+            <Check v-if="isCompleted(l.id)" :size="13" />
+            <template v-else>{{ i + 1 }}</template>
+          </span>
           <div class="lesson-body">
             <div class="lesson-title">{{ l.title }}</div>
             <div class="faint lesson-concepts">{{ l.concepts.join(' · ') }}</div>
           </div>
-          <span class="faint lesson-arrow">→</span>
+          <span class="faint lesson-arrow"><ArrowRight :size="16" /></span>
         </div>
       </div>
     </template>

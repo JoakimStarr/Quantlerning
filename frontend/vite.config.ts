@@ -12,6 +12,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: true, // 监听所有网卡：局域网设备/手机可经本机 IP 访问
     port: 5173,
     strictPort: true, // 端口被占用时直接报错，避免静默换端口导致 CORS 失配
     allowedHosts: true, // 内网映射（cloudflared/花生壳）使用外部域名访问，放行任意 Host

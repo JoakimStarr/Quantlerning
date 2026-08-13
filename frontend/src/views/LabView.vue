@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { ChevronDown, ChevronRight } from 'lucide-vue-next'
 import { vizRegistry, type VizKey } from '@/components/lesson/vizRegistry'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 
@@ -128,7 +129,7 @@ function countOf(phase: number) {
               <div class="sim-name">{{ s.title }}</div>
               <div class="sim-desc">{{ s.desc }}</div>
             </div>
-            <span class="chevron">{{ openSet.has(s.key) ? '▾' : '▸' }}</span>
+            <span class="chevron"><ChevronDown v-if="openSet.has(s.key)" :size="15" /><ChevronRight v-else :size="15" /></span>
           </button>
 
           <div v-if="openSet.has(s.key)" class="sim-body">

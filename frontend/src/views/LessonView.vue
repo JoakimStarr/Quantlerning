@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ArrowUp, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { fetchLesson } from '@/api'
 import MarkdownRenderer from '@/components/lesson/MarkdownRenderer.vue'
 import AiAskPanel from '@/components/lesson/AiAskPanel.vue'
@@ -218,7 +219,7 @@ function onQuizSubmitted(score: number, question: string) {
 
   <template v-else-if="lesson">
     <!-- 回到顶部（放在课程块内，避免 v-if 打断 loading/error/lesson 的 v-else-if 链） -->
-    <button v-if="readingProgress > 0.04" class="back-top" title="回到顶部" @click="scrollMainTop">↑</button>
+    <button v-if="readingProgress > 0.04" class="back-top" title="回到顶部" @click="scrollMainTop"><ArrowUp :size="18" /></button>
 
     <!-- 面包屑 -->
     <div class="breadcrumb">
@@ -258,10 +259,10 @@ function onQuizSubmitted(score: number, question: string) {
       <!-- 翻页导航：上一章 / 下一章 -->
       <nav class="chapter-nav">
         <button class="btn nav-btn" :disabled="!lesson.prev" @click="lesson.prev && router.push(`/lesson/${lesson.prev.id}`)">
-          ← {{ lesson.prev?.title || '无上一章' }}
+          <ChevronLeft :size="16" /> {{ lesson.prev?.title || '无上一章' }}
         </button>
         <button class="btn nav-btn next" :disabled="!lesson.next" @click="lesson.next && router.push(`/lesson/${lesson.next.id}`)">
-          {{ lesson.next?.title || '无下一章' }} →
+          {{ lesson.next?.title || '无下一章' }} <ChevronRight :size="16" />
         </button>
       </nav>
     </article>

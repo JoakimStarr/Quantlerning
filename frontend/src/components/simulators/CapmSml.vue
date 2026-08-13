@@ -5,8 +5,7 @@ import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkPointComponent } from 'echarts/components'
-import MarkdownIt from 'markdown-it'
-import mathPlugin from '../../utils/markdownMath'
+import { createMarkdown } from '../../utils/markdownIt'
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkPointComponent])
 
@@ -15,10 +14,7 @@ use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent
 // 教学示意模型（非真实数据）
 
 // 公式渲染：katex（与正文同一套 markdown-it 数学插件）
-const md = new MarkdownIt({ html: false, linkify: true }).use(mathPlugin, {
-  throwOnError: false,
-  errorColor: '#dc2626',
-})
+const md = createMarkdown()
 const formulaHtml = md.renderInline('$E[R] = r_f + \\beta \\cdot (R_m - r_f)$')
 
 const props = defineProps<{

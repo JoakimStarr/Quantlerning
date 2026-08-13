@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { ArrowRight, PlayCircle } from 'lucide-vue-next'
 import { fetchCourses, streamPlan } from '@/api'
 import { getProgress, isCompleted, learningDays, sandboxRunCount, totalExercises } from '@/stores/progress'
 import { chapterLabel } from '@/utils/chapter'
@@ -149,10 +150,10 @@ const overall = computed(() => {
     <!-- 继续上次学习（显式入口，替代自动跳转） -->
     <div v-else-if="resume" class="resume-card" role="button" tabindex="0" @click="router.push(resume.path)" @keydown.enter="router.push(resume.path)">
       <div class="resume-info">
-        <div class="resume-label">▶ 继续上次学习</div>
+        <div class="resume-label"><PlayCircle :size="13" /> 继续上次学习</div>
         <div class="resume-title">{{ resume.title }}</div>
       </div>
-      <span class="resume-arrow">→</span>
+      <span class="resume-arrow"><ArrowRight :size="18" /></span>
     </div>
 
     <!-- 阶段列表 -->
