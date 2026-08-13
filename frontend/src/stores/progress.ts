@@ -79,13 +79,13 @@ export function recordLessonRead(lessonId: string) {
   markActivity()
 }
 
-/** 记录一次测验提交：passed=答对数，total=已提交题数；全部答对才置 completed */
+/** 记录一次测验提交：passed=答对数，total=已提交题数；全部答对也标记完成（只升不降，避免已读完的课被答错而降级） */
 export function recordQuizAttempt(lessonId: string, passed: number, total: number) {
   const cur = progress[lessonId] ?? ({} as LessonProgress)
   const allPass = total > 0 && passed === total
   progress[lessonId] = {
     ...cur,
-    completed: allPass,
+    completed: cur.completed || allPass,
     quizScore: passed,
     quizzesTotal: total,
     updatedAt: new Date().toISOString(),

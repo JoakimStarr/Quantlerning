@@ -13,11 +13,13 @@ import { useTheme } from '@/utils/theme'
 const route = useRoute()
 const router = useRouter()
 
-// 记忆最近访问的页面：路由变化时写入 localStorage，落地首页时自动跳回
+// 记忆最近访问的课程/页面：路由变化时写入 localStorage，落地首页时显示「继续上次学习」
+// 首页本身不写入，避免回首页后 lastPath 被覆盖成 '/' 导致 resume 卡片失效
 const LAST_PATH_KEY = 'ql:lastPath'
 watch(
   () => route.fullPath,
   (p) => {
+    if (!p || p === '/') return
     try {
       localStorage.setItem(LAST_PATH_KEY, p)
     } catch {

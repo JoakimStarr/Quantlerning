@@ -203,7 +203,7 @@ function onQuizSubmitted(score: number, question: string) {
   if (!lesson.value) return
   quizResults.value[question] = Math.max(quizResults.value[question] ?? 0, score)
   saveQuizResults()
-  // passed = 答对数（score===100 才算通过），completed 仅全部答对时置位
+  // passed = 答对数（score===100 才算通过），completed 只升不降（阅读即完成，测验全对也标记完成）
   const passed = Object.values(quizResults.value).filter((s) => s === 100).length
   const total = Object.keys(quizResults.value).length
   recordQuizAttempt(lesson.value.id, passed, total)

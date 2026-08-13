@@ -25,7 +25,7 @@ COURSES = [
         "phase": 1,
         "title": "金融市场基础 + 金融学 + 数据获取",
         "subtitle": "金融学理论 / 市场指标 / 数据获取（11 课）",
-        "status": "in_progress",
+        "status": "completed",
         "weeks": "3~4 周",
         "lessons": [
             # 数据获取：先明确主线数据从哪来、为什么用复权，后续课程都基于它
@@ -49,7 +49,7 @@ COURSES = [
         "phase": 2,
         "title": "量化策略入门 + 回测",
         "subtitle": "趋势 / 均值回归 / 动量 / 回测引擎（10 课）",
-        "status": "in_progress",
+        "status": "completed",
         "weeks": "3~4 周",
         "lessons": [
             {"id": "p2-l1", "title": "策略是什么", "concepts": ["信号", "持仓", "交易"]},
@@ -68,7 +68,7 @@ COURSES = [
         "phase": 3,
         "title": "因子投资与选股模型",
         "subtitle": "APT / 多因子 / 中性化 / IC-IR / Barra",
-        "status": "in_progress",
+        "status": "completed",
         "weeks": "4~5 周",
         "lessons": [
             {"id": "p3-l1", "title": "因子与 APT 模型", "concepts": ["因子 vs 策略", "多因子收益来源"]},
@@ -84,7 +84,7 @@ COURSES = [
         "phase": 4,
         "title": "衍生品定价与风险管理",
         "subtitle": "随机过程 / Black-Scholes / 蒙特卡洛 / Greeks / VaR",
-        "status": "in_progress",
+        "status": "completed",
         "weeks": "4~6 周",
         "lessons": [
             {"id": "p4-l1", "title": "随机过程与伊藤引理", "concepts": ["布朗运动", "几何布朗运动", "引理推导"]},
@@ -100,7 +100,7 @@ COURSES = [
         "phase": 5,
         "title": "机器学习量化",
         "subtitle": "特征工程 / XGBoost / LSTM / 过拟合 / 强化学习",
-        "status": "in_progress",
+        "status": "completed",
         "weeks": "6~8 周",
         "lessons": [
             {"id": "p5-l1", "title": "ML 概览", "concepts": ["监督", "无监督", "强化"]},
