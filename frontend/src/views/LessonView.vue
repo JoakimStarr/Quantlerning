@@ -296,7 +296,11 @@ function onQuizSubmitted(score: number, question: string) {
 .link-btn:hover { text-decoration: underline; }
 .sep { color: var(--text-3); }
 
-.book-page { max-width: 800px; margin: 0 auto; }
+.book-page {
+  max-width: 800px; margin: 0 auto;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 36px 44px; box-shadow: var(--shadow-sm);
+}
 
 .chapter-header { margin-bottom: 32px; }
 .chapter-title { font-size: 28px; margin-bottom: 12px; }
