@@ -27,6 +27,9 @@ cd frontend && npm run dev
 # 前端类型检查（改前端后必跑）
 cd frontend && npx vue-tsc --noEmit
 
+# 前端生产构建（含 vue-tsc 检查）
+cd frontend && npm run build
+
 # 后端 Python 语法检查
 cd backend && ../.venv/bin/python -c "import ast; ast.parse(open('app/services/content/xxx.py').read())"
 
@@ -34,9 +37,13 @@ cd backend && ../.venv/bin/python -c "import ast; ast.parse(open('app/services/c
 curl http://localhost:8100/api/v1/health
 ```
 
+> 本仓库无测试/lint 框架：质量验证 = 前端 `vue-tsc --noEmit` / 后端 ast 检查 / curl 探 API（沙箱执行、SSE 流式等交互依赖浏览器手测）。
+
 **端口规划**（避免冲突）：`5432` PostgreSQL | `8000` QuantLab 后端 | `8100` 本项目后端 | `5173` 前端（Vite strictPort）。
 
 **环境**：后端独立 venv（`.venv`，Python 3.11），前端 Vue3+Vite。后端依赖安装：`uv pip install -p .venv/bin/python -r backend/requirements.txt`。
+
+**AI 配置**：`backend/.env` 提供默认值（含 API key，勿提交）；设置页保存的自定义配置写入 `backend/data/ai_settings.json`（**优先于 .env**），api key 掩码存储不回显。`.env`/`ai_settings.json` 均已在 .gitignore 排除。
 
 ## 架构
 
@@ -77,8 +84,8 @@ summary: 一句话引言（渲染为蓝色引言框）
 正文 Markdown（支持 $LaTeX$、:::viz 块与 :::quiz 测验块）
 ```
 
-- `phase_loader.py`（`services/content/phase_loader.py`）：模块加载时扫描 `content/**/*.md`，解析 frontmatter + 按 `##` 拆 sections。**代码块（``` 围栏）内的 `##` 不会被误当标题**
-- 新增内容 = 直接放一个 `.md` 文件，无需注册；`courses.py` 通过 `ALL_CONTENT` 读取
+- `phase_loader.py`（`services/content/phase_loader.py`）：`load_all_content()` 扫描 `content/**/*.md` 解析 frontmatter + 按 `##` 拆 sections，带 mtime 缓存（`get_content()` 读缓存，md 变更自动重载）；**代码块（``` 围栏）内的 `##` 不会被误当标题**
+- 新增内容 = 直接放一个 `.md` 文件，无需注册；`courses.py` 只定义静态元数据 COURSES，课程内容经 `phase_loader.get_content()` 读取
 
 **数据一致性**：第一章贯穿主线数据是**贵州茅台 SH600519 2024 全年**（真实行情，复权口径）。关键数字必须保持一致：
 - 复利累计收益 -6.24%、年化 -6.51%、日波动 1.7353%、年化波动 27.55%
@@ -99,7 +106,7 @@ summary: 一句话引言（渲染为蓝色引言框）
 - 支持 `$...$` 行内、`$$...$$` 块级 LaTeX；公式根节点带 `data-latex` 属性（供「选中问 AI」还原源码）
 - 解析 `:::viz` 块与 `:::quiz` 测验块，切分 Markdown 片段与交互组件
 
-**VizBlock.vue**：可视化组件注册表（`components/lesson/vizRegistry.ts`，组件名 → 组件）。注册表已全量激活（74 个组件，含各章模拟器），未实现的显示带 caption 占位。新增组件在 `vizRegistry.ts` 注册并放入 `components/simulators/`；`component` prop 类型收窄为注册表键名，md 里写错组件名 `vue-tsc` 即报错。图注行右侧有「↺ 重置」按钮（递增 `:key` 重挂载组件）。
+**VizBlock.vue**：可视化组件注册表（`components/lesson/vizRegistry.ts`，组件名 → 组件）。**注册表 74 个键全部有真实实现**（无占位；占位分支仅兜底未注册名）。新增组件在 `vizRegistry.ts` 注册并放入 `components/simulators/`；`component` prop 类型收窄为注册表键名，md 里写错组件名 `vue-tsc` 即报错。图注行右侧有「↺ 重置」按钮（递增 `:key` 重挂载组件）。
 
 **viz 嵌入语法**（写在课程 body 中）：
 ```
@@ -107,37 +114,39 @@ summary: 一句话引言（渲染为蓝色引言框）
 :::
 ```
 
-**quiz 测验语法**：
+**quiz 测验语法**（answer 支持多选）：
 ```
 :::quiz
 Q: 问题文本
 - 选项1
 - 选项2
-A: 正确选项序号（1-based）
+A: 正确选项序号（1-based；多选用空格/逗号分隔，如 `A: 1,3`）
 E: 解析
 :::
 ```
 
-**exercise 应用题语法**（`ExerciseBlock.vue`，提交后调 `POST /api/v1/chat/judge` AI 批改）：
+**exercise 应用题语法**（`ExerciseBlock.vue`，提交后调 `POST /api/v1/chat/judge` AI 批改；字段为 `T:`/`H:`，均支持多行续行——空行分段、非空续行并入同段）：
 ```
 :::exercise
-T: 题目标题
-Q: 题目正文（Markdown/LaTeX）
+T: 题目正文（Markdown/LaTeX）
+H: 提示（可选）
 :::
 ```
 
-**目录同步**：`App.vue` 左侧目录从课程 API 动态生成。子节 id 必须与 `LessonView.vue` 的 section id 对齐——两者都用 `sec-${i}`（0-based）。点击章节展开/再点收起。
+**目录同步**：`App.vue` 侧边栏目录（桌面固定左侧 / 移动端 ≤900px 抽屉式）从课程 API 动态生成。子节 id 必须与 `LessonView.vue` 的 section id 对齐——两者都用 `sec-${i}`（0-based）。点击章节展开/再点收起。
 
 ### 交互功能（2026-08-12 起陆续加入）
 
 - **AI 追问**（`components/lesson/AiAskPanel.vue` + 后端 `POST /api/v1/chat/stream`）：课程页右下角悬浮面板，围绕当前小节多轮对话、SSE 流式。对话按「课程+小节」存 localStorage（`aiask:v1:{lesson}:{section}`），重开/刷新自动恢复；AI 回答渲染 Markdown/LaTeX（归一化 `$$`/`\(`/`\[` 分隔符）
 - **选中问 AI**（`LessonView.vue` + `utils/selectionToMarkdown.ts`）：选中正文文字弹「问 AI」按钮，katex 公式靠 `data-latex` 还原成 `$...$` 源码随问题发给 AI
 - **阅读位置记忆**：`App.vue` 存 `ql:lastPath`（首页「继续学习」回到上次课程页）；页内滚动位置靠浏览器原生恢复（`main.ts` 设 `history.scrollRestoration='auto'`，body 滚动）。`LessonView.vue` 的滚动监听只用于**当前小节跟踪**（阅读进度条 + AI 追问上下文），不持久化
-- **函数表达式解析**（`utils/mathExpr.ts`）：安全解析器（非 eval），支持 `x/y`、`+ - * / ^`、括号、隐式乘法（`2x`、`x(x+1)`、`2|x|`）、函数 sin/cos/tan/sqrt/log/ln/exp/abs、`|x|` 绝对值；含**符号微分** `differentiate(AST)`（泰勒系数/凹凸拐点用，比数值差分精确）与 `exprToLatex`（AST→LaTeX 公式展示）
+- **函数表达式解析**（`utils/mathExpr.ts`）：**基于 mathjs 的安全解析器**（非 eval），支持 `x/y`、`+ - * / ^`、括号、隐式乘法（`2x`、`x(x+1)`、`2|x|`）、函数 sin/cos/tan/sqrt/log/ln/exp/abs、`|x|` 绝对值；含**符号微分** `differentiate`（泰勒系数/凹凸拐点用，比数值差分精确）与 `exprToLatex`（AST→LaTeX 公式展示）。**mathjs 坑**：无 `ln` 函数（`log` 即自然对数，需预处理 `ln`→`log`）、无 `|x|` 语法（预处理成 `abs(...)`）
 - **主题跟随系统**（`App.vue` + `main.ts`）：`ql:theme` 未手动设置时跟随 `prefers-color-scheme`（matchMedia 监听）；手动切换后固定。`main.ts` 挂载前按「手动选择 > 系统偏好」初始化防闪烁
 - **辅助页面包屑**（`components/common/PageBreadcrumb.vue`）：Lab/Cheatsheet/DataBrowser/Factors/Stats/Settings 六页顶部「学习地图 / 当前页」，解决工具页无返回入口
 - **日线缓存统一**（`api/index.ts::fetchStockDaily`）：缓存下沉到 API 层（模块级 Map，key 用 code 小写归一化），`useStockDaily` / `usePortfolioDaily` / 各模拟器共享同一份，同股票不再重复请求
 - **可视化重置**（`VizBlock.vue`）：图注行右侧「↺ 重置」按钮，点击递增 `:key` 强制重挂载模拟器组件回到初始值（不遮挡图表内容）
+- **加载/错误组件**（`components/common/AppSpinner.vue` / `AppError.vue`）：视图加载态 spinner 与错误重试（emit retry），接入 Home/Lesson/Phase/Factors/Settings 等
+- **学习进度单一真源**（`stores/progress.ts`）：阅读（recordLessonRead）/测验（recordQuizAttempt，全对才 completed）/应用题/沙箱运行统一记到前端 localStorage 并埋点活跃日期；后端不存进度，StatsView 的「学习天数/练习提交数」由此计算
 
 ## 关键约定
 
@@ -152,10 +161,12 @@ Q: 题目正文（Markdown/LaTeX）
 
 | 端点 | 说明 |
 |---|---|
-| `GET /api/v1/courses` | 课程地图（阶段+课程+进度） |
+| `GET /api/v1/courses` | 课程地图（阶段+课程；学习进度在前端 localStorage，后端不存） |
 | `GET /api/v1/courses/{id}` | 课程详情（summary+sections+prev/next） |
 | `GET /api/v1/data/search?q=` | 个股搜索（代码/名称，如 600519/茅台） |
 | `GET /api/v1/data/stock/{code}/daily` | 个股日线（code 大小写不敏感，如 sh600519；前端有模块级缓存） |
+| `GET /api/v1/data/stock/{code}/valuation` | 个股估值序列（PE/PB 等） |
+| `GET /api/v1/data/index/{code}/daily` | 指数/ETF 日线行情 |
 | `GET /api/v1/data/indices` | 指数元数据清单 |
 | `GET /api/v1/data/macro/indicators` | 宏观指标列表 |
 | `GET /api/v1/data/macro/{indicator}` | 宏观指标序列 |
@@ -170,11 +181,15 @@ Q: 题目正文（Markdown/LaTeX）
 | `POST /api/v1/exec/run` | 练习沙箱：AST 白名单过滤 + 子进程隔离（python -I + 资源限制）执行，白名单库 + `get_daily` 只读真实行情（实现：`services/sandbox/`） |
 | `POST /api/v1/chat/stream` | AI 追问（SSE 流式，围绕课程小节） |
 | `POST /api/v1/chat/judge` | AI 批改应用题（SSE 流式） |
+| `POST /api/v1/chat/judge-followup` | 批改后追问：结合题目/学生答案/上轮批改回答疑问（SSE 流式） |
+| `POST /api/v1/chat/gen-exercise` | 生成变式应用题：同知识点、相近难度（SSE 流式） |
+| `POST /api/v1/chat/plan` | 学习路径规划：基于前端汇总的进度输出复习重点与建议（SSE 流式） |
 | `GET/PUT /api/v1/settings/ai` | AI 模型配置（base_url/model/api_key，密钥掩码存储） |
+| `POST /api/v1/settings/ai/test` | 测试 AI 连接是否可用 |
 
 ## 里程碑
 
-> 实际进度（2026-08 验证）：内容分布 phase0=6 / phase1=11 / phase2=10 / phase3=7 / phase4=7 / phase5=8 / phase6=6 课；simulators 目录 74 个组件，vizRegistry 基本全量激活。
+> 实际进度（2026-08 验证）：内容分布 phase0=6 / phase1=11 / phase2=10 / phase3=7 / phase4=7 / phase5=8 / phase6=6 课（共 55 课）；simulators 目录 74 个组件全部注册实现，vizRegistry 全量激活。
 
 - M0 ✅ 骨架：前后端、课程地图、内容填充（前言+第一章）
 - M1 ✅ 交互组件批量实现（sharpe/mdd/macd/rsi/capm 等）
