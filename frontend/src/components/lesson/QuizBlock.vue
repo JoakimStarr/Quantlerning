@@ -164,8 +164,8 @@ function stateClass(i: number): string {
 }
 .quiz-opt:hover:not(.submitted) { border-color: var(--primary); }
 .quiz-opt.selected { border-color: var(--primary); background: var(--primary-soft); }
-.quiz-opt.correct { border-color: #16a34a; background: rgba(22,163,74,.08); }
-.quiz-opt.wrong { border-color: #dc2626; background: rgba(220,38,38,.08); }
+.quiz-opt.correct { border-color: var(--success, #16a34a); background: color-mix(in srgb, var(--success) 8%, transparent); }
+.quiz-opt.wrong { border-color: var(--danger, #dc2626); background: color-mix(in srgb, var(--danger) 8%, transparent); }
 
 .opt-idx {
   width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
@@ -173,18 +173,18 @@ function stateClass(i: number): string {
   display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;
 }
 .quiz-opt.selected .opt-idx { background: var(--primary); color: #fff; }
-.quiz-opt.correct .opt-idx { background: #16a34a; color: #fff; }
-.quiz-opt.wrong .opt-idx { background: #dc2626; color: #fff; }
+.quiz-opt.correct .opt-idx { background: var(--success, #16a34a); color: #fff; }
+.quiz-opt.wrong .opt-idx { background: var(--danger, #dc2626); color: #fff; }
 
 .opt-text { flex: 1; }
 .opt-mark { font-weight: 700; }
-.quiz-opt.correct .opt-mark { color: #16a34a; }
-.quiz-opt.wrong .opt-mark { color: #dc2626; }
+.quiz-opt.correct .opt-mark { color: var(--success, #16a34a); }
+.quiz-opt.wrong .opt-mark { color: var(--danger, #dc2626); }
 
 .quiz-actions { display: flex; align-items: center; gap: 14px; }
 .quiz-score { font-size: 14px; font-weight: 600; }
-.quiz-score.pass { color: #16a34a; }
-.quiz-score.fail { color: #dc2626; }
+.quiz-score.pass { color: var(--success, #16a34a); }
+.quiz-score.fail { color: var(--danger, #dc2626); }
 
 .btn { font-size: 13px; padding: 6px 16px; border-radius: var(--radius-sm); cursor: pointer; border: none; }
 .btn-primary { background: var(--primary); color: #fff; }

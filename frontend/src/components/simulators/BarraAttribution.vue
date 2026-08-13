@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart } from 'echarts/charts'
@@ -55,9 +56,9 @@ const barOption = computed(() => ({
       type: 'bar',
       barMaxWidth: 64,
       data: [
-        { value: +industry.value.toFixed(1), itemStyle: { color: '#2563eb' } },
-        { value: +style.value.toFixed(1), itemStyle: { color: '#0891b2' } },
-        { value: +alpha.value.toFixed(1), itemStyle: { color: '#d97706' } },
+        { value: +industry.value.toFixed(1), itemStyle: { color: C.value.primary } },
+        { value: +style.value.toFixed(1), itemStyle: { color: C.value.cyan } },
+        { value: +alpha.value.toFixed(1), itemStyle: { color: C.value.warning } },
       ],
       label: { show: true, position: 'top', fontSize: 11, formatter: (p: any) => `${p.value.toFixed(1)}%` },
     },
@@ -84,7 +85,7 @@ const shareOption = computed(() => {
         type: 'bar',
         stack: 's',
         data: [+factShare.toFixed(1)],
-        itemStyle: { color: '#2563eb' },
+        itemStyle: { color: C.value.primary },
         label: { show: true, fontSize: 11, formatter: `${factShare.toFixed(0)}%` },
       },
       {
@@ -92,7 +93,7 @@ const shareOption = computed(() => {
         type: 'bar',
         stack: 's',
         data: [+alpShare.toFixed(1)],
-        itemStyle: { color: '#d97706' },
+        itemStyle: { color: C.value.warning },
         label: { show: true, fontSize: 11, formatter: `${alpShare.toFixed(0)}%` },
       },
     ],
@@ -125,8 +126,8 @@ const shareOption = computed(() => {
       </div>
     </div>
 
-    <VChart class="chart" :option="barOption" autoresize />
-    <VChart class="chart" :option="shareOption" autoresize />
+    <ThemedChart class="chart" :option="barOption" autoresize />
+    <ThemedChart class="chart" :option="shareOption" autoresize />
 
     <div class="controls">
       <div class="control-row">
@@ -170,10 +171,10 @@ const shareOption = computed(() => {
 }
 .muted { font-size: 12px; color: var(--text-3); }
 .res-main { font-size: 18px; font-weight: 700; color: var(--primary); }
-.res-main.neg { color: #dc2626; }
-.res-main.warn { color: #d97706; }
+.res-main.neg { color: var(--danger, #dc2626); }
+.res-main.warn { color: var(--warning, #d97706); }
 .res-sub { font-size: 13px; color: var(--text-2); }
-.res-err { font-size: 12px; color: #dc2626; }
+.res-err { font-size: 12px; color: var(--danger, #dc2626); }
 .controls { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .control-row { display: flex; align-items: center; gap: 12px; }
 .control-label { width: 88px; font-size: 13px; color: var(--text-2); flex-shrink: 0; }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -74,9 +75,9 @@ const option = computed(() => {
     xAxis: { type: 'category', data: series.value.dates, axisLabel: { fontSize: 10, hideOverlap: true } },
     yAxis: { type: 'value', name: '累计净值（起=100）', nameLocation: 'middle', nameGap: 42, scale: true, axisLabel: { fontSize: 10 } },
     series: [
-      { name: '复权累计（主线口径）', type: 'line', data: series.value.adjCum, symbol: 'none', lineStyle: { width: 2.5, color: '#2563eb' } },
-      { name: '未复权累计', type: 'line', data: series.value.rawCum, symbol: 'none', lineStyle: { width: 1.5, color: '#dc2626', opacity: 0.8 } },
-      { name: '对数收益累计', type: 'line', data: series.value.logCum, symbol: 'none', lineStyle: { width: 1.5, color: '#d97706', opacity: 0.8 } },
+      { name: '复权累计（主线口径）', type: 'line', data: series.value.adjCum, symbol: 'none', lineStyle: { width: 2.5, color: C.value.primary } },
+      { name: '未复权累计', type: 'line', data: series.value.rawCum, symbol: 'none', lineStyle: { width: 1.5, color: C.value.danger, opacity: 0.8 } },
+      { name: '对数收益累计', type: 'line', data: series.value.logCum, symbol: 'none', lineStyle: { width: 1.5, color: C.value.warning, opacity: 0.8 } },
     ],
   }
 })
@@ -101,7 +102,7 @@ const option = computed(() => {
           <strong class="result-value warn">{{ ((sums.log / 100 - 1) * 100).toFixed(2) }}%</strong>
         </div>
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="tip">
         复权与未复权差异来自 6 月分红除权（未复权价在除权日「凭空下跌」）；算术与对数在日频几乎重合，但在更长周期或更大波动下会明显分离。
       </div>
@@ -118,7 +119,7 @@ const option = computed(() => {
 .result-label { font-size: 12px; color: var(--text-3); }
 .result-value { font-size: 18px; font-weight: 700; }
 .result-value.primary { color: var(--primary); }
-.result-value.red { color: #dc2626; }
-.result-value.warn { color: #d97706; }
+.result-value.red { color: var(--danger, #dc2626); }
+.result-value.warn { color: var(--warning, #d97706); }
 .tip { margin-top: 12px; font-size: 12.5px; color: var(--text-3); line-height: 1.7; }
 </style>

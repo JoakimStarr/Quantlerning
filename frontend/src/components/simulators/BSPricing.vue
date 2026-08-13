@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -61,13 +62,13 @@ const option = computed(() => {
         data: c.x.map((x, i) => [x, +c.call[i].toFixed(2)]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 2, color: '#2563eb' },
+        lineStyle: { width: 2, color: C.value.primary },
         markLine: {
           silent: true,
           symbol: 'none',
           data: [
-            { xAxis: K.value, label: { formatter: 'K', position: 'insideEndTop' }, lineStyle: { color: '#94a3b8', type: 'dashed' } },
-            { xAxis: S.value, label: { formatter: `S=${S.value}`, position: 'end' }, lineStyle: { color: '#dc2626', type: 'dotted' } },
+            { xAxis: K.value, label: { formatter: 'K', position: 'insideEndTop' }, lineStyle: { color: C.value.slate, type: 'dashed' } },
+            { xAxis: S.value, label: { formatter: `S=${S.value}`, position: 'end' }, lineStyle: { color: C.value.danger, type: 'dotted' } },
           ],
         },
       },
@@ -77,7 +78,7 @@ const option = computed(() => {
         data: c.x.map((x, i) => [x, +c.put[i].toFixed(2)]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 2, color: '#dc2626' },
+        lineStyle: { width: 2, color: C.value.danger },
       },
     ],
   }
@@ -98,7 +99,7 @@ const option = computed(() => {
       <span class="chip">看跌 Put = <strong>{{ put.toFixed(2) }}</strong></span>
       <span class="chip">内在价值 (S−K) = <strong>{{ (S - K).toFixed(2) }}</strong></span>
     </div>
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
     <p class="note">BS 公式（示意参数，非真实期权）：$C=S N(d_1)-K e^{-rT}N(d_2)$。拖动滑块观察：价格-标的价格曲线凸性、内在价值与时间价值的关系。真实锚点：无风险利率可参考 LPR 1Y 3.0%（2026-07 快照）。</p>
   </div>
 </template>

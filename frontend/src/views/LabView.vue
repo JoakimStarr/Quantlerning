@@ -146,7 +146,7 @@ function countOf(phase: number) {
 </template>
 
 <style scoped>
-.page { max-width: 1000px; margin: 0 auto; }
+.page { max-width: 960px; margin: 0 auto; }
 .page-head { margin-bottom: 20px; }
 .page-head h1 { font-size: 24px; margin-bottom: 4px; }
 

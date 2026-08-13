@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -178,7 +179,7 @@ const option = computed(() => {
           type: 'bar',
           data: c.bars,
           barWidth: '60%',
-          itemStyle: { color: 'rgba(37, 99, 235, 0.55)', borderRadius: [2, 2, 0, 0] },
+          itemStyle: { color: withAlpha(C.value.primary, 0.55), borderRadius: [2, 2, 0, 0] },
         },
         ...(c.normalCurve.length
           ? [
@@ -188,8 +189,8 @@ const option = computed(() => {
                 smooth: true,
                 symbol: 'none',
                 data: c.normalCurve,
-                lineStyle: { width: 2.5, color: '#d97706' },
-                itemStyle: { color: '#d97706' },
+                lineStyle: { width: 2.5, color: C.value.warning },
+                itemStyle: { color: C.value.warning },
               },
             ]
           : []),
@@ -201,9 +202,9 @@ const option = computed(() => {
           smooth: true,
           symbol: 'none',
           data: c.line,
-          lineStyle: { width: 2.5, color: '#2563eb' },
-          itemStyle: { color: '#2563eb' },
-          areaStyle: { color: 'rgba(37, 99, 235, 0.12)' },
+          lineStyle: { width: 2.5, color: C.value.primary },
+          itemStyle: { color: C.value.primary },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
         },
       ]
 
@@ -275,7 +276,7 @@ const fmt2 = (v: number) => `${Number(v.toFixed(2))}`
       <div class="pmf-pdf" v-html="formulaHtml"></div>
     </div>
 
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <!-- 参数滑块（随分布变化） -->
     <div class="controls">

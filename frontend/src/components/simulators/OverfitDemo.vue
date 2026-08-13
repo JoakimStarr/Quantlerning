@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, ScatterChart, BarChart } from 'echarts/charts'
@@ -101,25 +102,25 @@ const fitOption = computed(() => {
         type: 'scatter',
         data: xi.map((_, i) => [i, +yi[i].toFixed(2)]),
         symbolSize: 4,
-        itemStyle: { color: '#2563eb', opacity: 0.7 },
+        itemStyle: { color: C.value.primary, opacity: 0.7 },
       },
       {
         name: '验证样本',
         type: 'scatter',
         data: xv.map((_, i) => [i + cut, +yv[i].toFixed(2)]),
         symbolSize: 4,
-        itemStyle: { color: '#d97706', opacity: 0.7 },
+        itemStyle: { color: C.value.warning, opacity: 0.7 },
       },
       {
         name: `${degree.value} 阶拟合`,
         type: 'line',
         data: curvePts.value.map((v, i) => [i / 120 * (raw.value.length - 1), v]),
         symbol: 'none',
-        lineStyle: { color: '#dc2626', width: 2 },
+        lineStyle: { color: C.value.danger, width: 2 },
         markLine: {
           silent: true,
           symbol: 'none',
-          data: [{ xAxis: cut, label: { formatter: '训练 | 验证', position: 'insideEndTop' }, lineStyle: { color: '#64748b', type: 'dashed' } }],
+          data: [{ xAxis: cut, label: { formatter: '训练 | 验证', position: 'insideEndTop' }, lineStyle: { color: C.value.slateStrong, type: 'dashed' } }],
         },
       },
     ],
@@ -142,12 +143,12 @@ const errOption = computed(() => {
         data: ec.trainErr,
         symbol: 'circle',
         symbolSize: 6,
-        lineStyle: { color: '#2563eb', width: 2 },
-        itemStyle: { color: '#2563eb' },
+        lineStyle: { color: C.value.primary, width: 2 },
+        itemStyle: { color: C.value.primary },
         markLine: {
           silent: true,
           symbol: 'none',
-          data: [{ xAxis: degree.value, lineStyle: { color: '#dc2626', type: 'dashed' }, label: { formatter: `当前 ${degree.value} 阶`, position: 'end' } }],
+          data: [{ xAxis: degree.value, lineStyle: { color: C.value.danger, type: 'dashed' }, label: { formatter: `当前 ${degree.value} 阶`, position: 'end' } }],
         },
       },
       {
@@ -156,8 +157,8 @@ const errOption = computed(() => {
         data: ec.valErr,
         symbol: 'circle',
         symbolSize: 6,
-        lineStyle: { color: '#d97706', width: 2 },
-        itemStyle: { color: '#d97706' },
+        lineStyle: { color: C.value.warning, width: 2 },
+        itemStyle: { color: C.value.warning },
       },
     ],
   }
@@ -182,9 +183,9 @@ const gap = computed(() => (valMse.value - trainMse.value) / (valMse.value || 1)
         <span class="chip note">{{ degree >= 8 ? '⚠ 高方差（过拟合）' : degree <= 3 ? '高偏差（欠拟合）' : '偏差-方差平衡' }}</span>
       </div>
       <p class="sub">拟合曲线（真实茅台净值，蓝=训练样本，橙=验证样本，红=多项式拟合）</p>
-      <VChart class="chart" :option="fitOption" autoresize />
+      <ThemedChart class="chart" :option="fitOption" autoresize />
       <p class="sub">训练/验证误差 vs 阶数（虚线=当前阶数；曲线交汇最低点即最优复杂度）</p>
-      <VChart class="chart" :option="errOption" autoresize />
+      <ThemedChart class="chart" :option="errOption" autoresize />
       <p class="note">真实锚点：贵州茅台 SH600519 2024 复权净值（起点 100）。教学点：阶数低→欠拟合（验证误差高），阶数高→完美记忆训练集但验证误差回升——这就是过拟合的经典信号，交叉验证正是为此而生。</p>
     </template>
   </div>

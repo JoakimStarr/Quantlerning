@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -127,13 +128,13 @@ const option = computed(() => {
   const marks: any[] = []
   if (lo !== undefined && hi !== undefined) {
     marks.push(
-      { xAxis: lo, label: { formatter: '下界', position: 'insideEndTop' }, lineStyle: { color: '#dc2626', type: 'dashed' } },
-      { xAxis: hi, label: { formatter: '上界', position: 'insideEndTop' }, lineStyle: { color: '#dc2626', type: 'dashed' } },
+      { xAxis: lo, label: { formatter: '下界', position: 'insideEndTop' }, lineStyle: { color: C.value.danger, type: 'dashed' } },
+      { xAxis: hi, label: { formatter: '上界', position: 'insideEndTop' }, lineStyle: { color: C.value.danger, type: 'dashed' } },
     )
   }
   if (isZ) {
     ;[-3, -2, -1, 1, 2, 3].forEach((v) =>
-      marks.push({ xAxis: v, label: { formatter: `${v}σ`, position: 'insideEndTop' }, lineStyle: { color: '#9ca3af', type: 'dotted' } }),
+      marks.push({ xAxis: v, label: { formatter: `${v}σ`, position: 'insideEndTop' }, lineStyle: { color: C.value.slate, type: 'dotted' } }),
     )
   }
   return {
@@ -168,14 +169,14 @@ const option = computed(() => {
         type: 'bar',
         barWidth: '90%',
         data: h.centers.map((c, i) => [c, h.counts[i]]),
-        itemStyle: { color: '#2563eb', opacity: 0.55 },
+        itemStyle: { color: C.value.primary, opacity: 0.55 },
       },
       {
         name: '正态参考',
         type: 'line',
         data: h.centers.map((c, i) => [c, pdf[i]]),
         symbol: 'none',
-        lineStyle: { width: 2, color: '#d97706' },
+        lineStyle: { width: 2, color: C.value.warning },
         markLine: marks.length
           ? { silent: true, symbol: 'none', data: marks }
           : undefined,
@@ -205,7 +206,7 @@ const option = computed(() => {
         <span class="chip note">{{ current.note }}</span>
       </div>
 
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
     </template>
   </div>
 </template>

@@ -21,3 +21,11 @@ export function chapterLabel(phase: number | string): string {
   // 第一章从 Phase 1 开始
   return `第${cnNum(num)}章`
 }
+
+// 卷(Phase)状态 → 徽章文案与样式（各页面共用，避免三处重复）
+export const PHASE_STATUS: Record<string, { label: string; cls: string }> = {
+  prereq: { label: '前置知识', cls: 'badge' },
+  completed: { label: '已完成', cls: 'badge badge-success' },
+  in_progress: { label: '进行中', cls: 'badge badge-primary' },
+  planned: { label: '计划中', cls: 'badge' },
+}

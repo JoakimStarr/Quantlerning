@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -85,7 +86,7 @@ const option = computed(() => ({
       type: 'line',
       data: curve.value,
       symbol: 'none',
-      lineStyle: { width: 2.5, color: '#2563eb' },
+      lineStyle: { width: 2.5, color: C.value.primary },
       markPoint: {
         symbolSize: 48,
         label: { fontSize: 10 },
@@ -93,7 +94,7 @@ const option = computed(() => ({
           {
             coord: [yieldRate.value, +curPrice.value.toFixed(2)],
             value: `y=${yieldRate.value}%`,
-            itemStyle: { color: '#d97706' },
+            itemStyle: { color: C.value.warning },
           },
         ],
       },
@@ -123,7 +124,7 @@ const option = computed(() => ({
       </div>
     </div>
 
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">
@@ -156,7 +157,7 @@ const option = computed(() => ({
 .result-label { font-size: 12px; color: var(--text-3); }
 .result-value { font-size: 18px; font-weight: 700; }
 .result-value.primary { color: var(--primary); }
-.result-value.red { font-size: 14px; color: #dc2626; }
+.result-value.red { font-size: 14px; color: var(--danger, #dc2626); }
 .controls { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
 .control-row { display: flex; align-items: center; gap: 12px; }
 .control-label { width: 72px; font-size: 13px; color: var(--text-2); flex-shrink: 0; }

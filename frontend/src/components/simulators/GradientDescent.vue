@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 
 // 经典梯度下降图（3D 曲面版）：
 // 把 f(x,y)=x²+a·y² 的碗状曲面用 canvas 透视投影画出来（蓝低、红高），
@@ -212,7 +213,7 @@ function draw() {
 
   // ---------- 底面（z=0）：网格 + 等高线椭圆 ----------
   c.lineWidth = 1
-  c.strokeStyle = 'rgba(148, 163, 184, 0.35)'
+  c.strokeStyle = withAlpha(C.value.slate, 0.35)
   for (let i = 0; i <= N; i++) {
     const x = -DOMAIN + (2 * DOMAIN * i) / N
     const a0 = toXY(project(x, -DOMAIN, 0))
@@ -229,7 +230,7 @@ function draw() {
   // 底面等高线（椭圆），虚线
   const maxF = 9 * (1 + aCoeff.value)
   c.setLineDash([3, 3])
-  c.strokeStyle = 'rgba(15, 23, 42, 0.35)'
+  c.strokeStyle = withAlpha(C.value.ink, 0.35)
   const levels = [0.04, 0.09, 0.16, 0.25, 0.38, 0.55, 0.78, 1.0].map((t) => t * maxF)
   for (const L of levels) {
     const rx = Math.sqrt(L)
@@ -295,7 +296,7 @@ function draw() {
           c.closePath()
           c.fillStyle = rgb(col)
           c.fill()
-          c.strokeStyle = 'rgba(15, 23, 42, 0.10)'
+          c.strokeStyle = withAlpha(C.value.ink, 0.10)
           c.stroke()
         },
       })
@@ -306,7 +307,7 @@ function draw() {
 
   // ---------- 曲面上的等高线环 ----------
   c.lineWidth = 1
-  c.strokeStyle = 'rgba(15, 23, 42, 0.4)'
+  c.strokeStyle = withAlpha(C.value.ink, 0.4)
   for (const L of levels) {
     const rx = Math.sqrt(L)
     const ry = Math.sqrt(L / aCoeff.value)
@@ -326,7 +327,7 @@ function draw() {
   if (pathPts.length >= 2) {
     // 地面投影（虚线）
     c.setLineDash([4, 4])
-    c.strokeStyle = 'rgba(220, 38, 38, 0.35)'
+    c.strokeStyle = withAlpha(C.value.danger, 0.35)
     c.lineWidth = 1.2
     c.beginPath()
     pathPts.forEach(([x, y], i) => {
@@ -337,7 +338,7 @@ function draw() {
     c.stroke()
     c.setLineDash([])
     // 曲面上路径
-    c.strokeStyle = '#dc2626'
+    c.strokeStyle = C.value.danger
     c.lineWidth = 2.4
     c.beginPath()
     pathPts.forEach(([x, y], i) => {
@@ -351,7 +352,7 @@ function draw() {
       const [sx, sy] = toXY(project(x, y, f(x, y) * zk))
       c.beginPath()
       c.arc(sx, sy, 2.6, 0, Math.PI * 2)
-      c.fillStyle = '#dc2626'
+      c.fillStyle = C.value.danger
       c.fill()
     }
   }
@@ -367,16 +368,16 @@ function draw() {
     c.strokeStyle = '#fff'
     c.stroke()
   }
-  marker(x0.value, y0.value, '#d97706') // 起点
-  marker(0, 0, '#16a34a', 0) // 极小点
+  marker(x0.value, y0.value, C.value.warning) // 起点
+  marker(0, 0, C.value.success, 0) // 极小点
   if (pathPts.length > 0) {
     const [cx, cy] = pathPts[pathPts.length - 1]
-    marker(cx, cy, '#dc2626') // 当前位置
+    marker(cx, cy, C.value.danger) // 当前位置
   }
 
   // ---------- 坐标轴 ----------
   c.font = '11px system-ui, sans-serif'
-  c.fillStyle = 'rgba(15, 23, 42, 0.7)'
+  c.fillStyle = withAlpha(C.value.ink, 0.7)
   const xl = toXY(project(DOMAIN + 0.4, 0, 0))
   const yl = toXY(project(0, DOMAIN + 0.4, 0))
   c.fillText('x', xl[0], xl[1])
@@ -477,8 +478,8 @@ const fmt2 = (v: number) => (Number.isFinite(v) ? v.toFixed(2) : '—')
   font-size: 13px; font-weight: 600; text-align: center; padding: 6px 10px;
   border-radius: var(--radius-sm);
 }
-.status.ok { color: #16a34a; background: rgba(22, 163, 74, 0.1); }
-.status.bad { color: #dc2626; background: rgba(220, 38, 38, 0.1); }
+.status.ok { color: var(--success, #16a34a); background: color-mix(in srgb, var(--success) 10%, transparent); }
+.status.bad { color: var(--danger, #dc2626); background: color-mix(in srgb, var(--danger) 10%, transparent); }
 .result-row { display: flex; gap: 8px; }
 .result-box { flex: 1; padding: 8px 6px; border-radius: var(--radius-sm); background: var(--bg-hover); text-align: center; display: flex; flex-direction: column; gap: 2px; }
 .result-box strong { font-size: 13px; }

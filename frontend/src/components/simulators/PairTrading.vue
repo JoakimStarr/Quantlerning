@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, ScatterChart, BarChart } from 'echarts/charts'
@@ -69,20 +70,20 @@ const spreadOption = computed(() => {
         type: 'line',
         data: a.zscore.map((z) => +z.toFixed(2)),
         symbol: 'none',
-        lineStyle: { color: '#2563eb', width: 1.4 },
+        lineStyle: { color: C.value.primary, width: 1.4 },
         markLine: {
           silent: true,
           symbol: 'none',
           data: [
-            { yAxis: entry.value, label: { formatter: `+${entry.value}σ 开仓`, position: 'insideEndTop' }, lineStyle: { color: '#dc2626', type: 'dashed' } },
-            { yAxis: -entry.value, label: { formatter: `-${entry.value}σ 开仓`, position: 'insideEndTop' }, lineStyle: { color: '#16a34a', type: 'dashed' } },
-            { yAxis: exit.value, lineStyle: { color: '#94a3b8', type: 'dotted' } },
-            { yAxis: -exit.value, lineStyle: { color: '#94a3b8', type: 'dotted' } },
+            { yAxis: entry.value, label: { formatter: `+${entry.value}σ 开仓`, position: 'insideEndTop' }, lineStyle: { color: C.value.danger, type: 'dashed' } },
+            { yAxis: -entry.value, label: { formatter: `-${entry.value}σ 开仓`, position: 'insideEndTop' }, lineStyle: { color: C.value.success, type: 'dashed' } },
+            { yAxis: exit.value, lineStyle: { color: C.value.slate, type: 'dotted' } },
+            { yAxis: -exit.value, lineStyle: { color: C.value.slate, type: 'dotted' } },
           ],
         },
       },
-      { name: '做多价差开仓', type: 'scatter', data: longOpen, symbolSize: 10, itemStyle: { color: '#16a34a' } },
-      { name: '做空价差开仓', type: 'scatter', data: shortOpen, symbolSize: 10, itemStyle: { color: '#dc2626' } },
+      { name: '做多价差开仓', type: 'scatter', data: longOpen, symbolSize: 10, itemStyle: { color: C.value.success } },
+      { name: '做空价差开仓', type: 'scatter', data: shortOpen, symbolSize: 10, itemStyle: { color: C.value.danger } },
     ],
   }
 })
@@ -98,8 +99,8 @@ const navOption = computed(() => {
     xAxis: { type: 'category', data: a.dates.map((d) => d.slice(5)), axisLabel: { fontSize: 9, hideOverlap: true } },
     yAxis: { type: 'value', name: '净值', nameLocation: 'middle', nameGap: 40, scale: true, axisLabel: { fontSize: 10 } },
     series: [
-      { name: '价差策略', type: 'line', data: a.nav, symbol: 'none', lineStyle: { color: '#2563eb', width: 2 } },
-      { name: '价差买入持有', type: 'line', data: a.bhNav, symbol: 'none', lineStyle: { color: '#94a3b8', width: 1.3, type: 'dashed' } },
+      { name: '价差策略', type: 'line', data: a.nav, symbol: 'none', lineStyle: { color: C.value.primary, width: 2 } },
+      { name: '价差买入持有', type: 'line', data: a.bhNav, symbol: 'none', lineStyle: { color: C.value.slate, width: 1.3, type: 'dashed' } },
     ],
   }
 })
@@ -127,9 +128,9 @@ const navOption = computed(() => {
         <span class="chip">夏普 <strong>{{ analysis.stats.sharpe.toFixed(2) }}</strong></span>
       </div>
       <p class="sub">标准化价差（回归残差）+ 阈值开仓信号</p>
-      <VChart class="chart" :option="spreadOption" autoresize />
+      <ThemedChart class="chart" :option="spreadOption" autoresize />
       <p class="sub">价差策略净值（做多/做空价差，信号次日生效）vs 买入持有价差</p>
-      <VChart class="chart" :option="navOption" autoresize />
+      <ThemedChart class="chart" :option="navOption" autoresize />
       <p class="note">真实锚点：招商银行-兴业银行（协整）、贵州茅台-泸州老窖（协整）、贵州茅台-五粮液（不协整对照）2023-2024 日线。教学点：配对交易前提是协整（价差平稳，均值回归），不协整的配对会让价差漂移，策略失效。ADF 检验是第一步。</p>
     </template>
   </div>

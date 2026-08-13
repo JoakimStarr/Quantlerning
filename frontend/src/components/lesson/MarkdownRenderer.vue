@@ -340,5 +340,5 @@ function parseParams(raw: string): Record<string, unknown> {
 
 /* 代码块滚动条 */
 .md-fragment :deep(pre::-webkit-scrollbar) { height: 6px; }
-.md-fragment :deep(pre::-webkit-scrollbar-thumb) { background: #3a4a6b; border-radius: 3px; }
+.md-fragment :deep(pre::-webkit-scrollbar-thumb) { background: var(--slateStrong, #3a4a6b); border-radius: 3px; }
 </style>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, HeatmapChart } from 'echarts/charts'
@@ -42,9 +43,9 @@ const strats = computed<Strat[] | null>(() => {
   if (!data.value) return null
   const arr = backtestArrays(data.value)
   const specs: { name: string; color: string; sig: number[] }[] = [
-    { name: '均线 MA20/60', color: '#d97706', sig: maCrossSignal(arr.closes, 20, 60) },
-    { name: 'z-score 回归', color: '#16a34a', sig: bollingerZSignal(arr.closes, 20, 2) },
-    { name: '时序动量', color: '#7c3aed', sig: momentumSignal(arr.closes, 20) },
+    { name: '均线 MA20/60', color: C.value.warning, sig: maCrossSignal(arr.closes, 20, 60) },
+    { name: 'z-score 回归', color: C.value.success, sig: bollingerZSignal(arr.closes, 20, 2) },
+    { name: '时序动量', color: C.value.violet, sig: momentumSignal(arr.closes, 20) },
   ]
   return specs.map((s) => {
     const pos = shiftPosition(s.sig)
@@ -141,7 +142,7 @@ const heatmapOption = computed(() => {
       orient: 'horizontal',
       left: 'center',
       bottom: 0,
-      inRange: { color: ['#dc2626', '#f8fafc', '#2563eb'] },
+      inRange: { color: [C.value.danger, '#f8fafc', C.value.primary] },
       textStyle: { fontSize: 10 },
     },
     series: [
@@ -173,7 +174,7 @@ const navOption = computed(() => {
       data: combo.value.nav.map((v) => +v.toFixed(1)),
       smooth: true,
       symbol: 'none',
-      lineStyle: { width: 3, color: '#2563eb' },
+      lineStyle: { width: 3, color: C.value.primary },
     },
   ]
   return {
@@ -200,8 +201,8 @@ const navOption = computed(() => {
         <span class="chip chip-main" v-if="combo">等权组合 Sharpe <strong>{{ combo.st.sharpe.toFixed(2) }}</strong></span>
       </div>
 
-      <VChart class="chart heat" :option="heatmapOption" autoresize />
-      <VChart class="chart nav" :option="navOption" autoresize />
+      <ThemedChart class="chart heat" :option="heatmapOption" autoresize />
+      <ThemedChart class="chart nav" :option="navOption" autoresize />
 
       <div class="tip">
         左图：三策略日收益的相关矩阵（红=负相关、蓝=正相关）。均线与动量同属顺势、相关性偏高；z-score 回归逆势，

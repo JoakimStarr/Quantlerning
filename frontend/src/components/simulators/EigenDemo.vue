@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, ScatterChart } from 'echarts/charts'
@@ -90,8 +91,8 @@ const option = computed(() => {
       data: unitCircle.value,
       smooth: true,
       symbol: 'none',
-      lineStyle: { width: 1.2, color: '#94a3b8', type: 'dashed' },
-      itemStyle: { color: '#94a3b8' },
+      lineStyle: { width: 1.2, color: C.value.slate, type: 'dashed' },
+      itemStyle: { color: C.value.slate },
     },
     {
       name: 'A·单位圆',
@@ -99,8 +100,8 @@ const option = computed(() => {
       data: ellipse.value,
       smooth: true,
       symbol: 'none',
-      lineStyle: { width: 2, color: '#2563eb' },
-      itemStyle: { color: '#2563eb' },
+      lineStyle: { width: 2, color: C.value.primary },
+      itemStyle: { color: C.value.primary },
     },
   ]
   // 特征方向线（A 作用下方向不变，只缩放）
@@ -119,9 +120,9 @@ const option = computed(() => {
           [u.x * Math.abs(lambda), u.y * Math.abs(lambda)],
         ],
         symbol: 'none',
-        lineStyle: { width: 2, color: k === 0 ? '#d97706' : '#dc2626', type: 'dashed' },
-        itemStyle: { color: k === 0 ? '#d97706' : '#dc2626' },
-        label: { show: true, fontSize: 10, color: k === 0 ? '#d97706' : '#dc2626', formatter: `λ = ${lambda.toFixed(2)}` },
+        lineStyle: { width: 2, color: k === 0 ? C.value.warning : C.value.danger, type: 'dashed' },
+        itemStyle: { color: k === 0 ? C.value.warning : C.value.danger },
+        label: { show: true, fontSize: 10, color: k === 0 ? C.value.warning : C.value.danger, formatter: `λ = ${lambda.toFixed(2)}` },
       })
     }
   }
@@ -130,7 +131,7 @@ const option = computed(() => {
     type: 'scatter',
     data: [[1, 0]],
     symbolSize: 6,
-    itemStyle: { color: '#64748b' },
+    itemStyle: { color: C.value.slateStrong },
   })
   return {
     animation: true,
@@ -149,7 +150,7 @@ const option = computed(() => {
 
 <template>
   <div class="eigen-sim">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

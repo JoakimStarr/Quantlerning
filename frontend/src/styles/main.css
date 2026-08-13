@@ -27,6 +27,15 @@
   --danger: #dc2626;
   --danger-soft: #fee2e2;
 
+  /* 图表辅助色（模拟器/图表专用，深浅色自适应） */
+  --violet: #7c3aed;
+  --cyan: #0891b2;
+  --teal: #0d9488;
+  --slate: #94a3b8;
+  --slate-strong: #64748b;
+  --primary-deep: #1e3a8a;
+  --ink: #1a1f2b;
+
   /* 布局 */
   --sidebar-w: 230px;
   --topbar-h: 56px;
@@ -68,6 +77,15 @@
   --warning-soft: #342a10;
   --danger: #f87171;
   --danger-soft: #3a1e1e;
+
+  /* 图表辅助色（深浅色自适应） */
+  --violet: #a78bfa;
+  --cyan: #22d3ee;
+  --teal: #2dd4bf;
+  --slate: #8f9db3;
+  --slate-strong: #7d8899;
+  --primary-deep: #172554;
+  --ink: #e7eaf1;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);

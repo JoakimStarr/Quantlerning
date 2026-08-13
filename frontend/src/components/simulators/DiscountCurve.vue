@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -91,9 +92,9 @@ const option = computed(() => ({
       smooth: true,
       symbol: 'none',
       data: mainCurve.value,
-      lineStyle: { width: 3, color: '#2563eb' },
-      itemStyle: { color: '#2563eb' },
-      areaStyle: { color: 'rgba(37, 99, 235, 0.08)' },
+      lineStyle: { width: 3, color: C.value.primary },
+      itemStyle: { color: C.value.primary },
+      areaStyle: { color: withAlpha(C.value.primary, 0.08) },
       // 标记当前期数的现值点（value 必须显式给定，否则 ECharts 在 formatter 里拿到 undefined 会抛错）
       markPoint: {
         symbolSize: 46,
@@ -115,7 +116,7 @@ const option = computed(() => ({
 <template>
   <div class="discount-curve">
     <!-- 图表 -->
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <!-- 控制面板 -->
     <div class="controls">

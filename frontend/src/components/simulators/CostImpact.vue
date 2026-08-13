@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -72,7 +73,7 @@ const option = computed(() => {
         data: c.zeroNav.map((v) => +v.toFixed(1)),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.4, color: '#94a3b8', type: 'dashed' },
+        lineStyle: { width: 1.4, color: C.value.slate, type: 'dashed' },
       },
       {
         name: '含成本',
@@ -80,7 +81,7 @@ const option = computed(() => {
         data: c.nav.map((v) => +v.toFixed(1)),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 2, color: '#d97706' },
+        lineStyle: { width: 2, color: C.value.warning },
       },
     ],
   }
@@ -99,18 +100,18 @@ const option = computed(() => {
         </div>
         <div class="result-item">
           <span class="result-label">含 {{ bp }}bp 累计</span>
-          <strong class="result-value" :style="{ color: com.st.cum >= 0 ? '#16a34a' : '#dc2626' }">{{ (com.st.cum * 100).toFixed(1) }}%</strong>
+          <strong class="result-value" :style="{ color: com.st.cum >= 0 ? 'var(--success, #16a34a)' : 'var(--danger, #dc2626)' }">{{ (com.st.cum * 100).toFixed(1) }}%</strong>
         </div>
         <div class="result-item">
           <span class="result-label">侵蚀</span>
-          <strong class="result-value" style="color: #dc2626">{{ ((com.zeroSt.cum - com.st.cum) * 100).toFixed(1) }}%</strong>
+          <strong class="result-value" style="color: var(--danger, #dc2626)">{{ ((com.zeroSt.cum - com.st.cum) * 100).toFixed(1) }}%</strong>
         </div>
         <div class="result-item">
           <span class="result-label">信号次数</span>
           <strong class="result-value">{{ com.zeroSt.switches }}</strong>
         </div>
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="controls">
         <div class="control-row">
           <span class="control-label">单边成本</span>

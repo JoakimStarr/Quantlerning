@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, BarChart } from 'echarts/charts'
@@ -89,12 +90,12 @@ const option = computed(() => {
         data: closes.value.map((v, i) => [dates.value[i], v]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.5, color: '#2563eb' },
-        itemStyle: { color: '#2563eb' },
+        lineStyle: { width: 1.5, color: C.value.primary },
+        itemStyle: { color: C.value.primary },
         markLine: {
           silent: true,
           symbol: 'none',
-          lineStyle: { color: '#64748b', type: 'dotted', width: 1 },
+          lineStyle: { color: C.value.slateStrong, type: 'dotted', width: 1 },
           label: { show: false },
           data: lowDate.value ? [{ xAxis: lowDate.value }] : [],
         },
@@ -107,8 +108,8 @@ const option = computed(() => {
         data: pad(ind.value.dif).map((v, i) => [dates.value[i], v]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.5, color: '#d97706' },
-        itemStyle: { color: '#d97706' },
+        lineStyle: { width: 1.5, color: C.value.warning },
+        itemStyle: { color: C.value.warning },
       },
       {
         name: 'DEA',
@@ -118,8 +119,8 @@ const option = computed(() => {
         data: pad(ind.value.dea).map((v, i) => [dates.value[i], v]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.5, color: '#0891b2' },
-        itemStyle: { color: '#0891b2' },
+        lineStyle: { width: 1.5, color: C.value.cyan },
+        itemStyle: { color: C.value.cyan },
       },
       {
         name: 'MACD',
@@ -128,7 +129,7 @@ const option = computed(() => {
         yAxisIndex: 1,
         data: ind.value.hist.map((v) => ({
           value: v === null ? null : +v.toFixed(3),
-          itemStyle: { color: v !== null && v >= 0 ? '#dc2626' : '#16a34a' },
+          itemStyle: { color: v !== null && v >= 0 ? C.value.danger : C.value.success },
         })),
         barWidth: '60%',
       },
@@ -142,7 +143,7 @@ const option = computed(() => {
     <div v-if="loading" class="status">数据加载中…</div>
     <div v-else-if="error" class="status">数据不可用</div>
     <template v-else>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
 
       <div class="controls">
         <div class="control-row">
@@ -179,5 +180,5 @@ const option = computed(() => {
 .slider { flex: 1; accent-color: var(--primary); cursor: pointer; }
 .control-value { width: 40px; font-size: 13px; font-weight: 600; color: var(--primary); text-align: right; flex-shrink: 0; }
 .hint { margin-top: 10px; font-size: 12px; color: var(--text-3); line-height: 1.7; }
-.warn { color: #d97706; }
+.warn { color: var(--warning, #d97706); }
 </style>

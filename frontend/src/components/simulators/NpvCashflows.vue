@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, BarChart } from 'echarts/charts'
@@ -76,14 +77,14 @@ const curveOption = computed(() => ({
       smooth: true,
       symbol: 'none',
       data: curveData.value,
-      lineStyle: { width: 2.5, color: '#2563eb' },
-      areaStyle: { color: 'rgba(37, 99, 235, 0.06)' },
+      lineStyle: { width: 2.5, color: C.value.primary },
+      areaStyle: { color: withAlpha(C.value.primary, 0.06) },
       markLine: {
         silent: true,
         symbol: 'none',
-        label: { fontSize: 11, color: '#dc2626', formatter: 'IRR = {c}%' },
+        label: { fontSize: 11, color: C.value.danger, formatter: 'IRR = {c}%' },
         data: internalRate.value != null ? [{ xAxis: +(internalRate.value * 100).toFixed(2) }] : [],
-        lineStyle: { color: '#dc2626', type: 'dashed' },
+        lineStyle: { color: C.value.danger, type: 'dashed' },
       },
       markPoint: {
         symbolSize: 44,
@@ -110,7 +111,7 @@ const barOption = computed(() => ({
     {
       name: '现金流现值',
       type: 'bar',
-      data: pvSeries.value.map((v, i) => ({ value: v, itemStyle: { color: i === 0 ? '#dc2626' : '#2563eb' } })),
+      data: pvSeries.value.map((v, i) => ({ value: v, itemStyle: { color: i === 0 ? C.value.danger : C.value.primary } })),
       barMaxWidth: 44,
       label: { show: true, position: 'top', fontSize: 11, formatter: (p: any) => p.value.toFixed(1) },
     },
@@ -136,8 +137,8 @@ const barOption = computed(() => ({
       </div>
     </div>
 
-    <VChart class="chart" :option="curveOption" autoresize />
-    <VChart class="chart" :option="barOption" autoresize />
+    <ThemedChart class="chart" :option="curveOption" autoresize />
+    <ThemedChart class="chart" :option="barOption" autoresize />
 
     <div class="controls">
       <div class="control-row">
@@ -163,7 +164,7 @@ const barOption = computed(() => ({
 }
 .muted { font-size: 12px; color: var(--text-3); }
 .result-primary { font-size: 18px; font-weight: 700; color: var(--primary); }
-.result-primary.neg { color: #dc2626; }
+.result-primary.neg { color: var(--danger, #dc2626); }
 .controls { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .control-row { display: flex; align-items: center; gap: 12px; }
 .control-label { width: 88px; font-size: 13px; color: var(--text-2); flex-shrink: 0; }

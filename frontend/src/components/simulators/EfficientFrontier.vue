@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { ScatterChart, LineChart, BarChart } from 'echarts/charts'
@@ -72,15 +73,15 @@ const scatterOption = computed(() => {
         type: 'line',
         data: frontierPts,
         symbol: 'none',
-        lineStyle: { color: '#2563eb', width: 2 },
-        areaStyle: { color: 'rgba(37,99,235,0.06)' },
+        lineStyle: { color: C.value.primary, width: 2 },
+        areaStyle: { color: withAlpha(C.value.primary, 0.06) },
       },
       {
         name: '个股',
         type: 'scatter',
         data: single,
         symbolSize: 10,
-        itemStyle: { color: '#64748b' },
+        itemStyle: { color: C.value.slateStrong },
         label: { show: true, position: 'top', fontSize: 10, formatter: (p: any) => names.value[p.dataIndex] },
       },
       {
@@ -88,21 +89,21 @@ const scatterOption = computed(() => {
         type: 'scatter',
         data: [mvPt.map((v) => +v.toFixed(2))],
         symbolSize: 12,
-        itemStyle: { color: '#16a34a' },
+        itemStyle: { color: C.value.success },
       },
       {
         name: '最大夏普',
         type: 'scatter',
         data: [msPt.map((v) => +v.toFixed(2))],
         symbolSize: 12,
-        itemStyle: { color: '#d97706' },
+        itemStyle: { color: C.value.warning },
       },
       {
         name: '当前组合',
         type: 'scatter',
         data: curPort.value ? [[+(curPort.value.vol * 100).toFixed(2), +(curPort.value.ret * 100).toFixed(2)]] : [],
         symbolSize: 14,
-        itemStyle: { color: '#dc2626', borderColor: '#fff', borderWidth: 2 },
+        itemStyle: { color: C.value.danger, borderColor: '#fff', borderWidth: 2 },
       },
     ],
   }
@@ -118,7 +119,7 @@ const weightOption = computed(() => ({
     {
       type: 'bar',
       data: weights.value.map((w) => +w.toFixed(3)),
-      itemStyle: { color: '#2563eb', opacity: 0.75 },
+      itemStyle: { color: C.value.primary, opacity: 0.75 },
       label: { show: true, position: 'top', fontSize: 10, formatter: (p: any) => `${(p.value * 100).toFixed(0)}%` },
     },
   ],
@@ -141,9 +142,9 @@ const weightOption = computed(() => ({
         <span class="chip">夏普 <strong>{{ curPort.sharpe.toFixed(2) }}</strong></span>
       </div>
       <p class="sub">有效前沿（真实 5 股 2024 收益）：蓝线 = 前沿，红点 = 当前组合，绿 = 最小方差，橙 = 最大夏普</p>
-      <VChart class="chart" :option="scatterOption" autoresize />
+      <ThemedChart class="chart" :option="scatterOption" autoresize />
       <p class="sub">当前权重</p>
-      <VChart class="chart small" :option="weightOption" autoresize />
+      <ThemedChart class="chart small" :option="weightOption" autoresize />
       <p class="note">真实锚点：贵州茅台 / 五粮液 / 宁德时代 / 招商银行 / 中国平安 2024 全年日收益（242 交易日）。教学点：前沿左上沿优于所有个股——分散化是「免费午餐」；拖动权重看组合沿前沿移动。</p>
     </template>
   </div>

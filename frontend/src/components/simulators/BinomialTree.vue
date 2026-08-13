@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, ScatterChart } from 'echarts/charts'
@@ -91,7 +92,7 @@ const treeOption = computed(() => ({
       type: 'scatter',
       data: treeData.value,
       symbolSize: 6,
-      itemStyle: { color: '#2563eb', opacity: 0.7 },
+      itemStyle: { color: C.value.primary, opacity: 0.7 },
     },
   ],
 }))
@@ -113,14 +114,14 @@ const convOption = computed(() => {
         smooth: true,
         symbol: 'circle',
         symbolSize: 4,
-        lineStyle: { width: 1.6, color: '#2563eb' },
+        lineStyle: { width: 1.6, color: C.value.primary },
       },
       {
         name: 'BS 收敛值',
         type: 'line',
         data: c.x.map(() => +c.bs.toFixed(2)),
         symbol: 'none',
-        lineStyle: { width: 1.5, color: '#dc2626', type: 'dashed' },
+        lineStyle: { width: 1.5, color: C.value.danger, type: 'dashed' },
       },
     ],
   }
@@ -141,9 +142,9 @@ const convOption = computed(() => {
       <span class="chip">BS 价格 = <strong>{{ bsRef.toFixed(2) }}</strong></span>
       <span class="chip" :class="{ pos: Math.abs(call - bsRef) < 0.1 }">误差 <strong>{{ Math.abs(call - bsRef).toFixed(2) }}</strong></span>
     </div>
-    <VChart class="chart tree" :option="treeOption" autoresize />
+    <ThemedChart class="chart tree" :option="treeOption" autoresize />
     <p class="note">左图：N=5 的二叉树节点；右图：步数 N 从 1 到 30，二叉树价格（蓝）逐步收敛到 BS 价格（红虚线）。真实锚点：r 参考 LPR 1Y 3.0%（示意）。</p>
-    <VChart class="chart conv" :option="convOption" autoresize />
+    <ThemedChart class="chart conv" :option="convOption" autoresize />
   </div>
 </template>
 

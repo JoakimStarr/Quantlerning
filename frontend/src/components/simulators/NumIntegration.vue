@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -66,7 +67,7 @@ const sign = computed(() => (a.value <= b.value ? 1 : -1))
 // 三种方法：中点矩形 / 梯形 / 辛普森
 type Method = 'mid' | 'trap' | 'simp'
 const METHOD_LABELS: Record<Method, string> = { mid: '中点矩形', trap: '梯形法', simp: '辛普森法' }
-const METHOD_COLORS: Record<Method, string> = { mid: '#0891b2', trap: '#d97706', simp: '#7c3aed' }
+const METHOD_COLORS = computed<Record<Method, string>>(() => ({ mid: C.value.cyan, trap: C.value.warning, simp: C.value.violet }))
 const METHODS: Method[] = ['mid', 'trap', 'simp']
 
 // 当前高亮的方法（主图显示它的形状）
@@ -215,7 +216,7 @@ function boundaryFor(m: Method): [number, number | null][] {
 }
 
 const mainOption = computed(() => {
-  const color = METHOD_COLORS[focus.value]
+  const color = METHOD_COLORS.value[focus.value]
   return {
     animation: false,
     grid: { left: 52, right: 20, top: 30, bottom: 36 },
@@ -250,14 +251,14 @@ const mainOption = computed(() => {
         data: curve.value,
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 2.5, color: '#2563eb' },
-        itemStyle: { color: '#2563eb' },
+        lineStyle: { width: 2.5, color: C.value.primary },
+        itemStyle: { color: C.value.primary },
         markLine: {
           silent: true,
           symbol: 'none',
           data: [
-            { xAxis: a.value, name: 'a', lineStyle: { color: '#dc2626', type: 'dashed', width: 1.2 }, label: { formatter: 'a', position: 'insideEndTop', fontSize: 10, color: '#dc2626' } },
-            { xAxis: b.value, name: 'b', lineStyle: { color: '#dc2626', type: 'dashed', width: 1.2 }, label: { formatter: 'b', position: 'insideEndTop', fontSize: 10, color: '#dc2626' } },
+            { xAxis: a.value, name: 'a', lineStyle: { color: C.value.danger, type: 'dashed', width: 1.2 }, label: { formatter: 'a', position: 'insideEndTop', fontSize: 10, color: C.value.danger } },
+            { xAxis: b.value, name: 'b', lineStyle: { color: C.value.danger, type: 'dashed', width: 1.2 }, label: { formatter: 'b', position: 'insideEndTop', fontSize: 10, color: C.value.danger } },
           ],
         },
         z: 3,
@@ -326,8 +327,8 @@ const convergeOption = computed(() => ({
     data,
     symbol: 'circle',
     symbolSize: 4,
-    lineStyle: { width: 2, color: METHOD_COLORS[m] },
-    itemStyle: { color: METHOD_COLORS[m] },
+    lineStyle: { width: 2, color: METHOD_COLORS.value[m] },
+    itemStyle: { color: METHOD_COLORS.value[m] },
     z: 3,
   })),
 }))
@@ -364,7 +365,7 @@ const orderHtml = computed(() =>
     </div>
 
     <!-- 主图：当前方法的形状贴曲线多紧 -->
-    <VChart class="chart main-chart" :option="mainOption" autoresize />
+    <ThemedChart class="chart main-chart" :option="mainOption" autoresize />
 
     <!-- 同一 n 下三种方法对比 -->
     <div class="compare-row">
@@ -381,7 +382,7 @@ const orderHtml = computed(() =>
       <span class="converge-title">误差随 n 增大如何下降（对数坐标）</span>
       <span class="order-html" v-html="orderHtml"></span>
     </div>
-    <VChart class="chart converge-chart" :option="convergeOption" autoresize />
+    <ThemedChart class="chart converge-chart" :option="convergeOption" autoresize />
 
     <div class="controls">
       <div class="control-row">
@@ -447,7 +448,7 @@ const orderHtml = computed(() =>
   text-align: center; display: flex; flex-direction: column; gap: 2px; border: 1px solid transparent;
 }
 .compare-box.focus { border-color: var(--primary); }
-.compare-box.best { box-shadow: 0 0 0 1px #16a34a inset; }
+.compare-box.best { box-shadow: 0 0 0 1px var(--success, #16a34a) inset; }
 .compare-label { font-size: 12px; font-weight: 600; }
 .compare-sum { font-size: 14px; color: var(--text-1); }
 .compare-err { font-size: 11px; color: var(--danger, #dc2626); }

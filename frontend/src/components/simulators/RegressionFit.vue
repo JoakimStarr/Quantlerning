@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, ScatterChart, LinesChart } from 'echarts/charts'
@@ -114,7 +115,7 @@ const option = computed(() => ({
       type: 'scatter',
       data: points.value.map((p) => [p.x, p.y]),
       symbolSize: 6,
-      itemStyle: { color: '#94a3b8' },
+      itemStyle: { color: C.value.slate },
     },
     {
       name: '残差',
@@ -122,7 +123,7 @@ const option = computed(() => ({
       coordinateSystem: 'cartesian2d',
       data: residuals.value,
       symbol: ['none', 'none'],
-      lineStyle: { width: 1, color: '#dc2626', opacity: 0.4 },
+      lineStyle: { width: 1, color: C.value.danger, opacity: 0.4 },
       tooltip: { show: false },
       zlevel: 1,
     },
@@ -131,8 +132,8 @@ const option = computed(() => ({
       type: 'line',
       data: fittedLine.value,
       symbol: 'none',
-      lineStyle: { width: 2.5, color: '#2563eb' },
-      itemStyle: { color: '#2563eb' },
+      lineStyle: { width: 2.5, color: C.value.primary },
+      itemStyle: { color: C.value.primary },
     },
   ],
 }))
@@ -140,7 +141,7 @@ const option = computed(() => ({
 
 <template>
   <div class="reg-sim">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

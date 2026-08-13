@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { ScatterChart, LinesChart } from 'echarts/charts'
@@ -217,7 +218,7 @@ const option = computed(() => ({
     min: bgRange.value.min,
     max: bgRange.value.max,
     dimension: 2,
-    inRange: { color: ['#1e3a8a', '#3b82f6', '#f59e0b', '#ef4444'] },
+    inRange: { color: [C.value.primaryDeep, C.value.primary, C.value.warning, C.value.danger] },
     right: 6,
     top: 'middle',
     text: ['高', '低'],
@@ -239,7 +240,7 @@ const option = computed(() => ({
       name: '等高线',
       data: contours.value.map((c) => ({ coords: c })),
       coordinateSystem: 'cartesian2d',
-      lineStyle: { color: 'rgba(15, 23, 42, 0.45)', width: 1 },
+      lineStyle: { color: withAlpha(C.value.ink, 0.45), width: 1 },
       silent: true,
       z: 2,
     },
@@ -252,7 +253,7 @@ const option = computed(() => ({
         symbolSize: a.size,
       })),
       symbol: 'arrow',
-      itemStyle: { color: 'rgba(15, 23, 42, 0.6)' },
+      itemStyle: { color: withAlpha(C.value.ink, 0.6) },
       z: 3,
       silent: true,
     },
@@ -262,8 +263,8 @@ const option = computed(() => ({
       data: descentPath.value,
       symbol: 'circle',
       symbolSize: 4,
-      lineStyle: { color: '#dc2626', width: 2 },
-      itemStyle: { color: '#dc2626' },
+      lineStyle: { color: C.value.danger, width: 2 },
+      itemStyle: { color: C.value.danger },
       z: 6,
     },
     {
@@ -271,7 +272,7 @@ const option = computed(() => ({
       name: '当前点',
       data: [[px.value, py.value, Number.isFinite(curValue.value) ? Number(curValue.value.toFixed(3)) : null]],
       symbolSize: 10,
-      itemStyle: { color: '#dc2626', borderColor: '#fff', borderWidth: 1.5 },
+      itemStyle: { color: C.value.danger, borderColor: '#fff', borderWidth: 1.5 },
       z: 5,
     },
     {
@@ -279,7 +280,7 @@ const option = computed(() => ({
       name: '当前梯度',
       data: [{ value: [px.value, py.value], symbolRotate: curRotate.value, symbolSize: 13 }],
       symbol: 'arrow',
-      itemStyle: { color: '#dc2626' },
+      itemStyle: { color: C.value.danger },
       z: 4,
       silent: true,
     },
@@ -311,7 +312,7 @@ const option = computed(() => ({
     <!-- 当前二元函数公式（katex 渲染） -->
     <div v-if="formulaHtml" class="formula-bar" v-html="formulaHtml"></div>
 
-    <VChart class="chart" :option="option" autoresize @click="onChartClick" />
+    <ThemedChart class="chart" :option="option" autoresize @click="onChartClick" />
 
     <div class="controls">
       <div class="control-row">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -101,7 +102,7 @@ const option = computed(() => ({
       name: '真实价格曲线',
       type: 'line', symbol: 'none',
       data: curve.value,
-      lineStyle: { width: 3, color: '#2563eb' },
+      lineStyle: { width: 3, color: C.value.primary },
       markPoint: {
         symbolSize: 44,
         label: { fontSize: 10, formatter: (p: any) => `${Number(p.value).toFixed(1)}` },
@@ -110,7 +111,7 @@ const option = computed(() => ({
       markLine: {
         silent: true,
         symbol: 'none',
-        lineStyle: { color: '#94a3b8', type: 'dotted' },
+        lineStyle: { color: C.value.slate, type: 'dotted' },
         label: { fontSize: 11, formatter: `Δy=${dy.value > 0 ? '+' : ''}${dy.value.toFixed(1)}%` },
         data: [{ xAxis: target.value }],
       },
@@ -119,13 +120,13 @@ const option = computed(() => ({
       name: '久期近似（一阶）',
       type: 'line', symbol: 'none',
       data: lineApprox.value,
-      lineStyle: { width: 2, color: '#dc2626', type: 'dashed' },
+      lineStyle: { width: 2, color: C.value.danger, type: 'dashed' },
     },
     {
       name: '凸性修正（二阶）',
       type: 'line', symbol: 'none',
       data: quadApprox.value,
-      lineStyle: { width: 2, color: '#16a34a', type: 'dashed' },
+      lineStyle: { width: 2, color: C.value.success, type: 'dashed' },
     },
   ],
 }))
@@ -150,7 +151,7 @@ const option = computed(() => ({
       </div>
     </div>
 
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">
@@ -180,9 +181,9 @@ const option = computed(() => ({
 }
 .muted { font-size: 12px; color: var(--text-3); }
 .result-box strong { font-size: 17px; }
-.res-actual { color: #2563eb; }
-.res-first { color: #dc2626; }
-.res-second { color: #16a34a; }
+.res-actual { color: var(--primary, #2563eb); }
+.res-first { color: var(--danger, #dc2626); }
+.res-second { color: var(--success, #16a34a); }
 .err { font-size: 11px; color: var(--text-3); }
 .controls { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .control-row { display: flex; align-items: center; gap: 12px; }

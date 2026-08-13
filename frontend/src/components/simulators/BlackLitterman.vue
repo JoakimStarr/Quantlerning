@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart } from 'echarts/charts'
@@ -59,13 +60,13 @@ const weightOption = computed(() => {
         name: '均衡权重',
         type: 'bar',
         data: r.eqWeights.map((w) => +w.toFixed(3)),
-        itemStyle: { color: '#94a3b8', opacity: 0.5 },
+        itemStyle: { color: C.value.slate, opacity: 0.5 },
       },
       {
         name: 'BL 后验',
         type: 'bar',
         data: r.bl.weights.map((w) => +w.toFixed(3)),
-        itemStyle: { color: '#2563eb', opacity: 0.8 },
+        itemStyle: { color: C.value.primary, opacity: 0.8 },
         label: { show: true, position: 'top', fontSize: 10, formatter: (p: any) => `${(p.value * 100).toFixed(0)}%` },
       },
     ],
@@ -87,13 +88,13 @@ const muOption = computed(() => {
         name: '隐含均衡超额',
         type: 'bar',
         data: r.bl.implied.map((v) => +(v * 100).toFixed(1)),
-        itemStyle: { color: '#94a3b8', opacity: 0.5 },
+        itemStyle: { color: C.value.slate, opacity: 0.5 },
       },
       {
         name: 'BL 后验超额',
         type: 'bar',
         data: r.bl.mu.map((v) => +(v * 100).toFixed(1)),
-        itemStyle: { color: '#d97706', opacity: 0.8 },
+        itemStyle: { color: C.value.warning, opacity: 0.8 },
       },
     ],
   }
@@ -120,9 +121,9 @@ const muOption = computed(() => {
         <span class="chip note">置信度越高 → 后验权重越偏离均衡</span>
       </div>
       <p class="sub">权重：均衡 vs BL 后验（观点资产随置信度上移/下移）</p>
-      <VChart class="chart" :option="weightOption" autoresize />
+      <ThemedChart class="chart" :option="weightOption" autoresize />
       <p class="sub">隐含均衡超额收益 vs BL 后验超额收益</p>
-      <VChart class="chart small" :option="muOption" autoresize />
+      <ThemedChart class="chart small" :option="muOption" autoresize />
       <p class="note">真实锚点：贵州茅台 / 五粮液 / 宁德时代 / 招商银行 / 中国平安 2024 全年日收益（协方差矩阵来自真实数据）。教学点：BL = 市场均衡（隐含） + 主观观点加权；观点乐观且置信度高 → 权重上调，反之下调。示意性模型，用于理解观点融合机制。</p>
     </template>
   </div>

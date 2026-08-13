@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, ScatterChart } from 'echarts/charts'
@@ -76,8 +77,8 @@ const option = computed(() => {
       data: unitCircle.value,
       smooth: true,
       symbol: 'none',
-      lineStyle: { width: 1, color: '#94a3b8', type: 'dashed' },
-      itemStyle: { color: '#94a3b8' },
+      lineStyle: { width: 1, color: C.value.slate, type: 'dashed' },
+      itemStyle: { color: C.value.slate },
     },
     {
       name: 'A·单位圆',
@@ -85,8 +86,8 @@ const option = computed(() => {
       data: imageCircle.value,
       smooth: true,
       symbol: 'none',
-      lineStyle: { width: 1.5, color: '#2563eb', type: 'dashed' },
-      itemStyle: { color: '#2563eb' },
+      lineStyle: { width: 1.5, color: C.value.primary, type: 'dashed' },
+      itemStyle: { color: C.value.primary },
     },
     {
       name: '单位方格',
@@ -94,8 +95,8 @@ const option = computed(() => {
       data: unitCorners,
       smooth: false,
       symbol: 'none',
-      lineStyle: { width: 1, color: '#64748b', type: 'dotted' },
-      itemStyle: { color: '#64748b' },
+      lineStyle: { width: 1, color: C.value.slateStrong, type: 'dotted' },
+      itemStyle: { color: C.value.slateStrong },
     },
     {
       name: 'A·单位方格',
@@ -103,9 +104,9 @@ const option = computed(() => {
       data: imageCorners.value,
       smooth: false,
       symbol: 'none',
-      lineStyle: { width: 2, color: '#dc2626' },
-      itemStyle: { color: '#dc2626' },
-      areaStyle: { color: 'rgba(220, 38, 38, 0.08)' },
+      lineStyle: { width: 2, color: C.value.danger },
+      itemStyle: { color: C.value.danger },
+      areaStyle: { color: withAlpha(C.value.danger, 0.08) },
     },
     {
       name: '基向量 e₁ 的像',
@@ -115,8 +116,8 @@ const option = computed(() => {
         col1.value,
       ],
       symbol: 'none',
-      lineStyle: { width: 2, color: '#d97706' },
-      itemStyle: { color: '#d97706' },
+      lineStyle: { width: 2, color: C.value.warning },
+      itemStyle: { color: C.value.warning },
     },
     {
       name: '基向量 e₂ 的像',
@@ -126,15 +127,15 @@ const option = computed(() => {
         col2.value,
       ],
       symbol: 'none',
-      lineStyle: { width: 2, color: '#16a34a' },
-      itemStyle: { color: '#16a34a' },
+      lineStyle: { width: 2, color: C.value.success },
+      itemStyle: { color: C.value.success },
     },
     {
       name: '输入向量 v',
       type: 'scatter',
       data: [[vx.value, vy.value]],
       symbolSize: 8,
-      itemStyle: { color: '#f59e0b' },
+      itemStyle: { color: C.value.warning },
     },
     {
       name: 'A·v',
@@ -142,7 +143,7 @@ const option = computed(() => {
       data: [vImage.value],
       symbolSize: 9,
       symbol: 'pin',
-      itemStyle: { color: '#7c3aed' },
+      itemStyle: { color: C.value.violet },
     },
   ]
   return {
@@ -159,7 +160,7 @@ const option = computed(() => {
 
 <template>
   <div class="matrix-sim">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">
@@ -225,9 +226,9 @@ const option = computed(() => {
 .result-row { display: flex; gap: 10px; margin-top: 8px; }
 .result-box { flex: 1; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--bg-hover); text-align: center; display: flex; flex-direction: column; gap: 2px; }
 .result-box strong { font-size: 14px; }
-.num-purple { color: #7c3aed; }
-.num-green { color: #16a34a; }
-.num-red { color: #dc2626; }
+.num-purple { color: var(--violet, #7c3aed); }
+.num-green { color: var(--success, #16a34a); }
+.num-red { color: var(--danger, #dc2626); }
 .muted { font-size: 12px; color: var(--text-3); }
 .hint { margin-top: 8px; font-size: 12px; color: var(--text-3); line-height: 1.7; }
 </style>

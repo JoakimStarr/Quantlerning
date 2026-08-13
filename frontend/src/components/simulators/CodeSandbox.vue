@@ -311,17 +311,17 @@ const highlightedHtml = computed(() => highlightPython(code.value))
 .code-sandbox {
   padding: 16px;
   /* 语法高亮配色：浅色/深色两套（跟随主题） */
-  --tok-k: #7c3aed;
+  --tok-k: var(--violet, #7c3aed);
   --tok-s: #15803d;
-  --tok-c: #94a3b8;
-  --tok-n: #b45309;
-  --tok-b: #1d4ed8;
+  --tok-c: var(--slate, #94a3b8);
+  --tok-n: var(--warning, #b45309);
+  --tok-b: var(--primaryHover, #1d4ed8);
   --tok-d: #9d174d;
 }
 [data-theme="dark"] .code-sandbox {
   --tok-k: #c792ea;
   --tok-s: #98c379;
-  --tok-c: #6d7688;
+  --tok-c: var(--slateStrong, #6d7688);
   --tok-n: #d19a66;
   --tok-b: #61afef;
   --tok-d: #e5c07b;

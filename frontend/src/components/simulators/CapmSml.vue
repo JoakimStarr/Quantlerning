@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -59,12 +60,12 @@ const option = computed(() => ({
       type: 'line',
       data: linePoints.value,
       symbol: 'none',
-      lineStyle: { width: 2.5, color: '#2563eb' },
+      lineStyle: { width: 2.5, color: C.value.primary },
       markLine: {
         silent: true,
         symbol: 'none',
-        lineStyle: { type: 'dashed', color: '#9ca3af' },
-        label: { fontSize: 10, color: '#6b7280', formatter: 'β = 1' },
+        lineStyle: { type: 'dashed', color: C.value.slate },
+        label: { fontSize: 10, color: C.value.slateStrong, formatter: 'β = 1' },
         data: [{ xAxis: 1 }],
       },
       markPoint: {
@@ -74,7 +75,7 @@ const option = computed(() => ({
           {
             coord: [+beta.value.toFixed(2), +expRet.value.toFixed(2)],
             value: '本资产',
-            itemStyle: { color: '#d97706' },
+            itemStyle: { color: C.value.warning },
           },
         ],
       },
@@ -100,7 +101,7 @@ const option = computed(() => ({
       </div>
     </div>
 
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

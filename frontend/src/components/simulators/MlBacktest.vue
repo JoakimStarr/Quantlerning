@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -111,9 +112,9 @@ const navOption = computed(() => {
     xAxis: { type: 'category', data: r.testDates.map((d) => d.slice(5)), axisLabel: { fontSize: 9, hideOverlap: true } },
     yAxis: { type: 'value', name: '净值', nameLocation: 'middle', nameGap: 40, scale: true, axisLabel: { fontSize: 10 } },
     series: [
-      { name: 'ML 逻辑回归', type: 'line', data: r.mlNav, symbol: 'none', lineStyle: { color: '#2563eb', width: 2 } },
-      { name: '传统双均线', type: 'line', data: r.maNav, symbol: 'none', lineStyle: { color: '#d97706', width: 2 } },
-      { name: '买入持有', type: 'line', data: r.bhNav, symbol: 'none', lineStyle: { color: '#64748b', width: 1.5, type: 'dashed' } },
+      { name: 'ML 逻辑回归', type: 'line', data: r.mlNav, symbol: 'none', lineStyle: { color: C.value.primary, width: 2 } },
+      { name: '传统双均线', type: 'line', data: r.maNav, symbol: 'none', lineStyle: { color: C.value.warning, width: 2 } },
+      { name: '买入持有', type: 'line', data: r.bhNav, symbol: 'none', lineStyle: { color: C.value.slateStrong, width: 1.5, type: 'dashed' } },
     ],
   }
 })
@@ -129,15 +130,15 @@ const posOption = computed(() => {
     xAxis: { type: 'category', data: r.testDates.map((d) => d.slice(5)), axisLabel: { fontSize: 9, hideOverlap: true } },
     yAxis: { type: 'value', name: '仓位', nameLocation: 'middle', nameGap: 36, min: 0, max: 1, axisLabel: { fontSize: 10 } },
     series: [
-      { name: 'ML 仓位', type: 'line', data: r.testPos.map((p) => +p.toFixed(2)), symbol: 'none', lineStyle: { color: '#16a34a', width: 1.5 } },
-      { name: '概率预测', type: 'line', data: r.probs.map((p) => (p == null ? null : +p)), symbol: 'none', lineStyle: { color: '#94a3b8', width: 1, type: 'dotted' }, connectNulls: false },
+      { name: 'ML 仓位', type: 'line', data: r.testPos.map((p) => +p.toFixed(2)), symbol: 'none', lineStyle: { color: C.value.success, width: 1.5 } },
+      { name: '概率预测', type: 'line', data: r.probs.map((p) => (p == null ? null : +p)), symbol: 'none', lineStyle: { color: C.value.slate, width: 1, type: 'dotted' }, connectNulls: false },
       {
         name: `阈值 ${threshold.value}`,
         type: 'line',
         data: r.probs.map(() => threshold.value),
         symbol: 'none',
-        lineStyle: { color: '#dc2626', width: 1, type: 'dashed' },
-        markLine: { silent: true, symbol: 'none', data: [{ yAxis: threshold.value, lineStyle: { color: '#dc2626', type: 'dashed' }, label: { formatter: '阈值', position: 'insideEndTop' } }] },
+        lineStyle: { color: C.value.danger, width: 1, type: 'dashed' },
+        markLine: { silent: true, symbol: 'none', data: [{ yAxis: threshold.value, lineStyle: { color: C.value.danger, type: 'dashed' }, label: { formatter: '阈值', position: 'insideEndTop' } }] },
       },
     ],
   }
@@ -162,9 +163,9 @@ const fmt = (v: number, suffix = '%') => `${(v * 100).toFixed(2)}${suffix}`
         </label>
       </div>
       <p class="sub">测试段净值：ML（逻辑回归） vs 传统双均线 vs 买入持有（茅台真实数据，{{ result.nTest }} 个交易日）</p>
-      <VChart class="chart" :option="navOption" autoresize />
+      <ThemedChart class="chart" :option="navOption" autoresize />
       <p class="sub">ML 概率预测与仓位（虚线=阈值）</p>
-      <VChart class="chart small" :option="posOption" autoresize />
+      <ThemedChart class="chart small" :option="posOption" autoresize />
       <div class="table-wrap">
         <table class="perf">
           <thead>

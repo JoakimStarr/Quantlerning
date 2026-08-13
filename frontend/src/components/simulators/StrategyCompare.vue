@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -44,11 +45,11 @@ const rows = computed<Row[] | null>(() => {
   const arr = backtestArrays(data.value)
   const ones = arr.closes.map(() => 1)
   const specs: { name: string; color: string; width: number; dash?: boolean; sig: number[] }[] = [
-    { name: '买入持有', color: '#94a3b8', width: 1.2, dash: true, sig: ones },
-    { name: '均线 MA20/60', color: '#d97706', width: 1.6, sig: maCrossSignal(arr.closes, 20, 60) },
-    { name: 'z-score 回归', color: '#16a34a', width: 1.6, sig: bollingerZSignal(arr.closes, 20, 2) },
-    { name: '时序动量', color: '#7c3aed', width: 1.6, sig: momentumSignal(arr.closes, 20) },
-    { name: '唐奇安 20/10', color: '#0891b2', width: 1.8, sig: donchianSignal(arr.highs, arr.lows, 20, 10) },
+    { name: '买入持有', color: C.value.slate, width: 1.2, dash: true, sig: ones },
+    { name: '均线 MA20/60', color: C.value.warning, width: 1.6, sig: maCrossSignal(arr.closes, 20, 60) },
+    { name: 'z-score 回归', color: C.value.success, width: 1.6, sig: bollingerZSignal(arr.closes, 20, 2) },
+    { name: '时序动量', color: C.value.violet, width: 1.6, sig: momentumSignal(arr.closes, 20) },
+    { name: '唐奇安 20/10', color: C.value.cyan, width: 1.8, sig: donchianSignal(arr.highs, arr.lows, 20, 10) },
   ]
   return specs.map((s) => {
     const pos = shiftPosition(s.sig)
@@ -112,7 +113,7 @@ const table = computed(() => {
     <div v-else-if="error" class="status">数据不可用</div>
     <template v-else-if="rows">
       <div class="chart-wrap">
-        <VChart class="chart" :option="option" autoresize />
+        <ThemedChart class="chart" :option="option" autoresize />
       </div>
       <table class="tbl">
         <thead>

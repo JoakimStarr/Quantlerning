@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -139,13 +140,13 @@ const option = computed(() => ({
       data: fCurve.value,
       smooth: true,
       symbol: 'none',
-      lineStyle: { width: 2.5, color: '#2563eb' },
-      itemStyle: { color: '#2563eb' },
+      lineStyle: { width: 2.5, color: C.value.primary },
+      itemStyle: { color: C.value.primary },
       markPoint: {
         symbol: 'pin',
         symbolSize: 26,
         label: { fontSize: 9, formatter: '展开点' },
-        data: [{ coord: [a.value, compiled.value(a.value)], itemStyle: { color: '#d97706' } }],
+        data: [{ coord: [a.value, compiled.value(a.value)], itemStyle: { color: C.value.warning } }],
       },
     },
     {
@@ -154,8 +155,8 @@ const option = computed(() => ({
       data: polyCurve.value,
       smooth: true,
       symbol: 'none',
-      lineStyle: { width: 2, color: '#d97706', type: 'dashed' },
-      itemStyle: { color: '#d97706' },
+      lineStyle: { width: 2, color: C.value.warning, type: 'dashed' },
+      itemStyle: { color: C.value.warning },
     },
   ],
 }))
@@ -178,7 +179,7 @@ const option = computed(() => ({
 
     <div class="formula-bar" v-html="polyHtml"></div>
 
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

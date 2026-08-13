@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -97,8 +98,8 @@ const concavityAreas = computed<any[]>(() => {
   const green = signIntervals(f2, xMin, xMax, true)
   const red = signIntervals(f2, xMin, xMax, false)
   return [
-    ...green.map(([lo, hi]) => [{ xAxis: lo, itemStyle: { color: 'rgba(22, 163, 74, 0.14)' } }, { xAxis: hi }]),
-    ...red.map(([lo, hi]) => [{ xAxis: lo, itemStyle: { color: 'rgba(220, 38, 38, 0.10)' } }, { xAxis: hi }]),
+    ...green.map(([lo, hi]) => [{ xAxis: lo, itemStyle: { color: withAlpha(C.value.success, 0.14) } }, { xAxis: hi }]),
+    ...red.map(([lo, hi]) => [{ xAxis: lo, itemStyle: { color: withAlpha(C.value.danger, 0.10) } }, { xAxis: hi }]),
   ]
 })
 
@@ -142,8 +143,8 @@ const extrema = computed(() => (f1Ast.value ? findRoots(f1, xMin, xMax) : []))
 const inflections = computed(() => (f2Ast.value ? findRoots(f2, xMin, xMax) : []))
 
 const markPointData = computed(() => [
-  ...extrema.value.map((x) => ({ coord: [Number(x.toFixed(3)), Number(f(x).toFixed(4))], itemStyle: { color: '#d97706' } })),
-  ...inflections.value.map((x) => ({ coord: [Number(x.toFixed(3)), Number(f(x).toFixed(4))], itemStyle: { color: '#7c3aed' } })),
+  ...extrema.value.map((x) => ({ coord: [Number(x.toFixed(3)), Number(f(x).toFixed(4))], itemStyle: { color: C.value.warning } })),
+  ...inflections.value.map((x) => ({ coord: [Number(x.toFixed(3)), Number(f(x).toFixed(4))], itemStyle: { color: C.value.violet } })),
 ])
 
 // 当前点读数与判定
@@ -189,8 +190,8 @@ const option = computed(() => ({
       data: fCurve.value,
       smooth: true,
       symbol: 'none',
-      lineStyle: { width: 2.5, color: '#2563eb' },
-      itemStyle: { color: '#2563eb' },
+      lineStyle: { width: 2.5, color: C.value.primary },
+      itemStyle: { color: C.value.primary },
       yAxisIndex: 0,
       z: 3,
       markArea: { data: concavityAreas.value, silent: true },
@@ -202,8 +203,8 @@ const option = computed(() => ({
       data: f2Curve.value,
       smooth: true,
       symbol: 'none',
-      lineStyle: { width: 1.8, color: '#94a3b8', type: 'dashed' },
-      itemStyle: { color: '#94a3b8' },
+      lineStyle: { width: 1.8, color: C.value.slate, type: 'dashed' },
+      itemStyle: { color: C.value.slate },
       yAxisIndex: 1,
       z: 2,
     },
@@ -230,7 +231,7 @@ const fmt2 = (v: number) => (Number.isFinite(v) ? v.toFixed(3) : '—')
 
     <div class="formula-bar" v-html="formulaHtml"></div>
 
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -65,7 +66,7 @@ const option = computed(() => {
         data: c.compliantNav.map((v) => +v.toFixed(1)),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.8, color: '#16a34a' },
+        lineStyle: { width: 1.8, color: C.value.success },
       },
       {
         name: '✗ 前视（当日成交）',
@@ -73,7 +74,7 @@ const option = computed(() => {
         data: c.lookaheadNav.map((v) => +v.toFixed(1)),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.8, color: '#dc2626' },
+        lineStyle: { width: 1.8, color: C.value.danger },
       },
     ],
   }
@@ -88,18 +89,18 @@ const option = computed(() => {
       <div class="result">
         <div class="result-item">
           <span class="result-label">✓ 合规累计</span>
-          <strong class="result-value" style="color: #16a34a">{{ (((com.compliantNav[com.compliantNav.length - 1] / 100 - 1) * 100)).toFixed(1) }}%</strong>
+          <strong class="result-value" style="color: var(--success, #16a34a)">{{ (((com.compliantNav[com.compliantNav.length - 1] / 100 - 1) * 100)).toFixed(1) }}%</strong>
         </div>
         <div class="result-item">
           <span class="result-label">✗ 前视累计</span>
-          <strong class="result-value" style="color: #dc2626">{{ (((com.lookaheadNav[com.lookaheadNav.length - 1] / 100 - 1) * 100)).toFixed(1) }}%</strong>
+          <strong class="result-value" style="color: var(--danger, #dc2626)">{{ (((com.lookaheadNav[com.lookaheadNav.length - 1] / 100 - 1) * 100)).toFixed(1) }}%</strong>
         </div>
         <div class="result-item">
           <span class="result-label">虚假超额</span>
-          <strong class="result-value" style="color: #d97706">{{ com.diff.toFixed(1) }} 点</strong>
+          <strong class="result-value" style="color: var(--warning, #d97706)">{{ com.diff.toFixed(1) }} 点</strong>
         </div>
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="controls">
         <div class="control-row">
           <span class="control-label">快线 MA</span>

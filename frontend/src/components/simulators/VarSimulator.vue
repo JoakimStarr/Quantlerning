@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -114,9 +115,9 @@ const histOption = computed(() => {
   }
   const centers = counts.map((_, i) => Number((lo + w * (i + 0.5)).toFixed(2)))
   const markData: any[] = [
-    { xAxis: a.paramDaily, label: { formatter: `参数法 ${a.paramDaily.toFixed(1)}%`, position: 'insideEndTop' }, lineStyle: { color: '#dc2626', type: 'dashed' } },
-    { xAxis: a.histDaily, label: { formatter: `历史法 ${a.histDaily.toFixed(1)}%`, position: 'insideEndBottom' }, lineStyle: { color: '#d97706', type: 'dashed' } },
-    { xAxis: a.mcDaily, label: { formatter: `MC ${a.mcDaily.toFixed(1)}%`, position: 'insideEndTop' }, lineStyle: { color: '#7c3aed', type: 'dashed' } },
+    { xAxis: a.paramDaily, label: { formatter: `参数法 ${a.paramDaily.toFixed(1)}%`, position: 'insideEndTop' }, lineStyle: { color: C.value.danger, type: 'dashed' } },
+    { xAxis: a.histDaily, label: { formatter: `历史法 ${a.histDaily.toFixed(1)}%`, position: 'insideEndBottom' }, lineStyle: { color: C.value.warning, type: 'dashed' } },
+    { xAxis: a.mcDaily, label: { formatter: `MC ${a.mcDaily.toFixed(1)}%`, position: 'insideEndTop' }, lineStyle: { color: C.value.violet, type: 'dashed' } },
   ]
   return {
     animation: false,
@@ -131,7 +132,7 @@ const histOption = computed(() => {
         type: 'bar',
         barWidth: '90%',
         data: centers.map((c, i) => [c, counts[i]]),
-        itemStyle: { color: '#2563eb', opacity: 0.55 },
+        itemStyle: { color: C.value.primary, opacity: 0.55 },
         markLine: { silent: true, symbol: 'none', data: markData },
       },
     ],
@@ -153,7 +154,7 @@ function fmt(x: number | null): string {
         <label>组合金额 <input type="range" v-model.number="amount" min="10" max="500" step="10" /> {{ amount }} 万</label>
       </div>
       <p class="note">真实数据：茅台 2024 全年 {{ analysis.hist.vals.length }} 个日收益（quantlab 库，复权口径）。三种 VaR 算法在同一置信度下给出不同结果——尾部分布假设不同。</p>
-      <VChart class="chart" :option="histOption" autoresize />
+      <ThemedChart class="chart" :option="histOption" autoresize />
       <div class="table-wrap">
         <table class="tbl">
           <thead>

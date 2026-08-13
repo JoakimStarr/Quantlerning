@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -117,7 +118,7 @@ const option = computed(() => ({
       type: 'bar',
       data: pmf.value,
       barWidth: '60%',
-      itemStyle: { color: 'rgba(37, 99, 235, 0.55)', borderRadius: [2, 2, 0, 0] },
+      itemStyle: { color: withAlpha(C.value.primary, 0.55), borderRadius: [2, 2, 0, 0] },
     },
     ...(showNormal.value && normalCurve.value.length
       ? [
@@ -127,8 +128,8 @@ const option = computed(() => ({
             smooth: true,
             symbol: 'none',
             data: normalCurve.value,
-            lineStyle: { width: 2.5, color: '#d97706' },
-            itemStyle: { color: '#d97706' },
+            lineStyle: { width: 2.5, color: C.value.warning },
+            itemStyle: { color: C.value.warning },
           },
         ]
       : []),
@@ -138,7 +139,7 @@ const option = computed(() => ({
 
 <template>
   <div class="binomial-dist">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

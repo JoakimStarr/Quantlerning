@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -25,11 +26,11 @@ function normalDensity(x: number, m: number, s: number) {
 }
 
 // 分段区域：每个 σ 区间一组 (多个 [lo,hi] 段 + 填充色)，用不同色相区分
-const sigmaZones: Array<{ label: string; ranges: [number, number][]; color: string; fill: string }> = [
-  { label: '±1σ', ranges: [[-1, 1]], color: '#2563eb', fill: 'rgba(37, 99, 235, 0.32)' },
-  { label: '±2σ', ranges: [[-2, -1], [1, 2]], color: '#0d9488', fill: 'rgba(13, 148, 136, 0.24)' },
-  { label: '±3σ', ranges: [[-3, -2], [2, 3]], color: '#d97706', fill: 'rgba(217, 119, 6, 0.18)' },
-]
+const sigmaZones = computed<Array<{ label: string; ranges: [number, number][]; color: string; fill: string }>>(() => [
+  { label: '±1σ', ranges: [[-1, 1]], color: C.value.primary, fill: withAlpha(C.value.primary, 0.32) },
+  { label: '±2σ', ranges: [[-2, -1], [1, 2]], color: C.value.teal, fill: withAlpha(C.value.teal, 0.24) },
+  { label: '±3σ', ranges: [[-3, -2], [2, 3]], color: C.value.warning, fill: withAlpha(C.value.warning, 0.18) },
+])
 
 const xMin = computed(() => mu.value - 4 * sigma.value)
 const xMax = computed(() => mu.value + 4 * sigma.value)
@@ -46,7 +47,7 @@ const density = computed<[number, number][]>(() => {
 
 // 每个 σ 区间生成一条分段 area 数据（区间内填值，区间外 null）
 const zoneSeries = computed(() =>
-  sigmaZones.map((z) => {
+  sigmaZones.value.map((z) => {
     const data: [number, number | null][] = []
     for (let i = 0; i <= N; i++) {
       const x = xMin.value + ((xMax.value - xMin.value) * i) / N
@@ -59,11 +60,11 @@ const zoneSeries = computed(() =>
 )
 
 // 经验法则常数（正态分布的数学性质），颜色与图上区间一致
-const rule = [
-  { label: '±1σ', pct: '68.3%', color: '#2563eb' },
-  { label: '±2σ', pct: '95.4%', color: '#0d9488' },
-  { label: '±3σ', pct: '99.7%', color: '#d97706' },
-]
+const rule = computed(() => [
+  { label: '±1σ', pct: '68.3%', color: C.value.primary },
+  { label: '±2σ', pct: '95.4%', color: C.value.teal },
+  { label: '±3σ', pct: '99.7%', color: C.value.warning },
+])
 
 const option = computed(() => ({
   animation: true,
@@ -101,8 +102,8 @@ const option = computed(() => ({
       smooth: true,
       symbol: 'none',
       data: density.value,
-      lineStyle: { width: 3, color: '#2563eb' },
-      itemStyle: { color: '#2563eb' },
+      lineStyle: { width: 3, color: C.value.primary },
+      itemStyle: { color: C.value.primary },
       z: 5,
     },
     ...zoneSeries.value.map((zs) => ({
@@ -122,7 +123,7 @@ const option = computed(() => ({
 
 <template>
   <div class="normal-dist">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

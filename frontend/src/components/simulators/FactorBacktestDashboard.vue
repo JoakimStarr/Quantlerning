@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -66,7 +67,7 @@ const option = computed(() => {
         data: nav.benchmark,
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1, type: 'dashed' as const, color: '#94a3b8' },
+        lineStyle: { width: 1, type: 'dashed' as const, color: C.value.slate },
       },
     ]
   })
@@ -112,7 +113,7 @@ const table = computed(() =>
           @click="toggle(x.id)"
         >#{{ x.id }} {{ x.combination_method }} top{{ x.topk }}</button>
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="table-wrap">
         <table class="tbl">
           <thead>

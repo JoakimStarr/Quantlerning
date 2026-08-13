@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, BarChart, ScatterChart } from 'echarts/charts'
@@ -124,18 +125,18 @@ const distOption = computed(() => {
         type: 'bar',
         barWidth: '90%',
         data: centers.map((c, i) => [c, counts[i]]),
-        itemStyle: { color: '#2563eb', opacity: 0.6 },
+        itemStyle: { color: C.value.primary, opacity: 0.6 },
       },
       {
         name: `K=${K.value}`,
         type: 'line',
         data: [[K.value, 0], [K.value, Math.max(...counts)]],
         symbol: 'none',
-        lineStyle: { color: '#dc2626', type: 'dashed' },
+        lineStyle: { color: C.value.danger, type: 'dashed' },
         markLine: {
           silent: true,
           symbol: 'none',
-          data: [{ xAxis: K.value, label: { formatter: 'K', position: 'insideEndTop' }, lineStyle: { color: '#dc2626', type: 'dashed' } }],
+          data: [{ xAxis: K.value, label: { formatter: 'K', position: 'insideEndTop' }, lineStyle: { color: C.value.danger, type: 'dashed' } }],
         },
       },
     ],
@@ -160,11 +161,11 @@ const distOption = computed(() => {
     <div class="two-col">
       <div>
         <p class="sub">8 条抽样路径</p>
-        <VChart class="chart half" :option="pathOption" autoresize />
+        <ThemedChart class="chart half" :option="pathOption" autoresize />
       </div>
       <div>
         <p class="sub">到期价格分布（{{ nPaths }} 条，红线 = 执行价 K）</p>
-        <VChart class="chart half" :option="distOption" autoresize />
+        <ThemedChart class="chart half" :option="distOption" autoresize />
       </div>
     </div>
     <p class="note">教学点：路径数越多，MC 价格越接近 BS（大数定律）。真实锚点：σ 取茅台 2024 真实波动率时，MC 定价即模拟「茅台风格的期权」。示意数据。</p>

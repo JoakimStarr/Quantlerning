@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart } from 'echarts/charts'
@@ -57,13 +58,13 @@ const option = computed(() => {
         type: 'bar',
         barWidth: '80%',
         data: d.bins.map((b) => [b.center, b.count]),
-        itemStyle: { color: '#2563eb', opacity: 0.6 },
+        itemStyle: { color: C.value.primary, opacity: 0.6 },
         markLine: {
           silent: true,
           symbol: 'none',
           data: [
-            { xAxis: 0, label: { formatter: '0（无关）', position: 'insideEndTop' }, lineStyle: { color: '#dc2626', type: 'dashed' } },
-            { xAxis: d.mean, label: { formatter: `均值 ${d.mean.toFixed(4)}`, position: 'insideEndBottom' }, lineStyle: { color: '#d97706', type: 'dotted' } },
+            { xAxis: 0, label: { formatter: '0（无关）', position: 'insideEndTop' }, lineStyle: { color: C.value.danger, type: 'dashed' } },
+            { xAxis: d.mean, label: { formatter: `均值 ${d.mean.toFixed(4)}`, position: 'insideEndBottom' }, lineStyle: { color: C.value.warning, type: 'dotted' } },
           ],
         },
       },
@@ -83,7 +84,7 @@ const option = computed(() => {
         <span class="chip">IC 均值 <strong>{{ data.mean.toFixed(4) }}</strong></span>
         <span class="chip">IC 90 分位 <strong>{{ data.p90.toFixed(4) }}</strong></span>
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
     </template>
   </div>
 </template>

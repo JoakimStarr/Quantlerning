@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { HeatmapChart } from 'echarts/charts'
@@ -84,7 +85,7 @@ const option = computed(() => {
       top: 'center',
       text: ['高', '低'],
       calculable: false,
-      inRange: { color: ['#dc2626', '#f59e0b', '#16a34a'] },
+      inRange: { color: [C.value.danger, C.value.warning, C.value.success] },
       textStyle: { fontSize: 10 },
     },
     series: [
@@ -115,7 +116,7 @@ const best = computed(() => com.value?.best)
         本窗口最优 <strong>MA{{ best.f }}/{{ best.s }}</strong>，年化 {{ (best.v * 100).toFixed(1) }}% ——
         但它只是「这 6 年数据上的局部亮点」，换个窗口可能完全不成立（p2-l7 的过拟合）。
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
     </template>
   </div>
 </template>
@@ -125,5 +126,5 @@ const best = computed(() => com.value?.best)
 .status { height: 360px; display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 14px; }
 .chart { height: 340px; }
 .result { margin-bottom: 12px; padding: 10px 14px; background: var(--primary-soft); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-2); line-height: 1.7; }
-.result strong { color: #d97706; }
+.result strong { color: var(--warning, #d97706); }
 </style>

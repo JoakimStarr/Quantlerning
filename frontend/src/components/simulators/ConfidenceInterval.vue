@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, ScatterChart } from 'echarts/charts'
@@ -72,7 +73,7 @@ const intervalSeries = computed(() =>
       [s.lo, i + 1],
       [s.hi, i + 1],
     ],
-    lineStyle: { width: 3, color: s.covers ? '#16a34a' : '#dc2626' },
+    lineStyle: { width: 3, color: s.covers ? C.value.success : C.value.danger },
   })),
 )
 
@@ -83,7 +84,7 @@ const meanSeries = computed(() => ({
   yAxisIndex: 0,
   symbolSize: 5,
   data: samples.value.map((s, i) => [s.lo + (s.hi - s.lo) / 2, i + 1]),
-  itemStyle: { color: '#2563eb' },
+  itemStyle: { color: C.value.primary },
 }))
 
 const option = computed(() => {
@@ -132,8 +133,8 @@ const option = computed(() => {
         markLine: {
           silent: true,
           symbol: 'none',
-          label: { show: true, fontSize: 11, color: '#d97706', formatter: `μ = ${mu.value.toFixed(2)}` },
-          lineStyle: { color: '#d97706', type: 'dashed', width: 1.5 },
+          label: { show: true, fontSize: 11, color: C.value.warning, formatter: `μ = ${mu.value.toFixed(2)}` },
+          lineStyle: { color: C.value.warning, type: 'dashed', width: 1.5 },
           data: [{ xAxis: mu.value }],
         },
       },
@@ -144,7 +145,7 @@ const option = computed(() => {
 
 <template>
   <div class="ci-sim">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">
@@ -198,7 +199,7 @@ const option = computed(() => {
 .result-box { flex: 1; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--bg-hover); text-align: center; display: flex; flex-direction: column; gap: 2px; }
 .result-box strong { font-size: 16px; }
 .result-box strong.green { color: var(--success, #16a34a); }
-.result-box strong.red { color: #dc2626; }
+.result-box strong.red { color: var(--danger, #dc2626); }
 .btn {
   padding: 5px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
   background: var(--bg-card); color: var(--text-1); font-size: 13px; cursor: pointer;

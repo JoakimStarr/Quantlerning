@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -63,8 +64,8 @@ const com = computed(() => {
 const option = computed(() => {
   if (!com.value) return {}
   const c = com.value
-  const buyp = c.buyIdx.map((i) => ({ coord: [c.dates[i], c.closes[i]], value: '买', itemStyle: { color: '#16a34a' } }))
-  const sellp = c.sellIdx.map((i) => ({ coord: [c.dates[i], c.closes[i]], value: '卖', itemStyle: { color: '#dc2626' } }))
+  const buyp = c.buyIdx.map((i) => ({ coord: [c.dates[i], c.closes[i]], value: '买', itemStyle: { color: C.value.success } }))
+  const sellp = c.sellIdx.map((i) => ({ coord: [c.dates[i], c.closes[i]], value: '卖', itemStyle: { color: C.value.danger } }))
   return {
     animation: true,
     axisPointer: { link: [{ xAxisIndex: 'all' }] },
@@ -106,8 +107,8 @@ const option = computed(() => {
         data: c.closes.map((v, i) => [c.dates[i], v]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.5, color: '#2563eb' },
-        itemStyle: { color: '#2563eb' },
+        lineStyle: { width: 1.5, color: C.value.primary },
+        itemStyle: { color: C.value.primary },
         markPoint: { symbolSize: 42, label: { fontSize: 10, color: '#fff' }, data: [...buyp, ...sellp] },
       },
 ...(strategy.value === 'donchian'
@@ -121,8 +122,8 @@ const option = computed(() => {
               data: c.f!.map((v, i) => [c.dates[i], v]),
               smooth: true,
               symbol: 'none',
-              lineStyle: { width: 1, color: '#d97706', opacity: 0.9 },
-              itemStyle: { color: '#d97706' },
+              lineStyle: { width: 1, color: C.value.warning, opacity: 0.9 },
+              itemStyle: { color: C.value.warning },
             },
             {
               name: `MA${slow.value}`,
@@ -132,8 +133,8 @@ const option = computed(() => {
               data: c.s!.map((v, i) => [c.dates[i], v]),
               smooth: true,
               symbol: 'none',
-              lineStyle: { width: 1, color: '#dc2626', opacity: 0.9 },
-              itemStyle: { color: '#dc2626' },
+              lineStyle: { width: 1, color: C.value.danger, opacity: 0.9 },
+              itemStyle: { color: C.value.danger },
             },
           ]),
       {
@@ -144,8 +145,8 @@ const option = computed(() => {
         data: c.nav.map((v, i) => [c.dates[i], +v.toFixed(1)]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 2, color: '#d97706' },
-        itemStyle: { color: '#d97706' },
+        lineStyle: { width: 2, color: C.value.warning },
+        itemStyle: { color: C.value.warning },
       },
       {
         name: '买入持有',
@@ -155,8 +156,8 @@ const option = computed(() => {
         data: c.buyNav.map((v, i) => [c.dates[i], +v.toFixed(1)]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.5, color: '#64748b', type: 'dashed' },
-        itemStyle: { color: '#64748b' },
+        lineStyle: { width: 1.5, color: C.value.slateStrong, type: 'dashed' },
+        itemStyle: { color: C.value.slateStrong },
       },
     ],
   }
@@ -179,7 +180,7 @@ const option = computed(() => {
       <div class="result">
         <div class="result-item">
           <span class="result-label">累计收益</span>
-          <strong class="result-value" :style="{ color: com.st.cum >= 0 ? '#16a34a' : '#dc2626' }">{{ (com.st.cum * 100).toFixed(1) }}%</strong>
+          <strong class="result-value" :style="{ color: com.st.cum >= 0 ? 'var(--success, #16a34a)' : 'var(--danger, #dc2626)' }">{{ (com.st.cum * 100).toFixed(1) }}%</strong>
         </div>
         <div class="result-item">
           <span class="result-label">年化收益</span>
@@ -187,7 +188,7 @@ const option = computed(() => {
         </div>
         <div class="result-item">
           <span class="result-label">最大回撤</span>
-          <strong class="result-value" style="color: #dc2626">{{ (com.st.mdd * 100).toFixed(1) }}%</strong>
+          <strong class="result-value" style="color: var(--danger, #dc2626)">{{ (com.st.mdd * 100).toFixed(1) }}%</strong>
         </div>
         <div class="result-item">
           <span class="result-label">Sharpe(rf 2%)</span>
@@ -198,7 +199,7 @@ const option = computed(() => {
           <strong class="result-value">{{ (com.st.posMean * 100).toFixed(1) }}%</strong>
         </div>
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="controls">
         <template v-if="strategy === 'donchian'">
           <div class="control-row">

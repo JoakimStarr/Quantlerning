@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -145,8 +146,8 @@ const option = computed(() => {
       data: curve.value,
       smooth: true,
       symbol: 'none',
-      lineStyle: { width: 2.5, color: '#2563eb' },
-      itemStyle: { color: '#2563eb' },
+      lineStyle: { width: 2.5, color: C.value.primary },
+      itemStyle: { color: C.value.primary },
       z: 2,
     },
   ]
@@ -156,8 +157,8 @@ const option = computed(() => {
       type: 'line',
       data: tangent.value,
       symbol: 'none',
-      lineStyle: { width: 1.8, color: '#d97706', type: 'dashed' },
-      itemStyle: { color: '#d97706' },
+      lineStyle: { width: 1.8, color: C.value.warning, type: 'dashed' },
+      itemStyle: { color: C.value.warning },
       z: 3,
     })
   }
@@ -167,8 +168,8 @@ const option = computed(() => {
       type: 'line',
       data: baseHoriz.value,
       symbol: 'none',
-      lineStyle: { width: 1.5, color: '#94a3b8', type: 'dotted' },
-      itemStyle: { color: '#94a3b8' },
+      lineStyle: { width: 1.5, color: C.value.slate, type: 'dotted' },
+      itemStyle: { color: C.value.slate },
       z: 2,
     })
   }
@@ -178,8 +179,8 @@ const option = computed(() => {
       type: 'line',
       data: dyTrueSeg.value,
       symbol: 'none',
-      lineStyle: { width: 3, color: dyTrue.value >= 0 ? '#16a34a' : '#dc2626' },
-      itemStyle: { color: dyTrue.value >= 0 ? '#16a34a' : '#dc2626' },
+      lineStyle: { width: 3, color: dyTrue.value >= 0 ? C.value.success : C.value.danger },
+      itemStyle: { color: dyTrue.value >= 0 ? C.value.success : C.value.danger },
       z: 5,
     })
   }
@@ -189,8 +190,8 @@ const option = computed(() => {
       type: 'line',
       data: dySeg.value,
       symbol: 'none',
-      lineStyle: { width: 3, color: '#2563eb' },
-      itemStyle: { color: '#2563eb' },
+      lineStyle: { width: 3, color: C.value.primary },
+      itemStyle: { color: C.value.primary },
       z: 4,
     })
   }
@@ -234,7 +235,7 @@ const fmt2 = (v: number) => (Number.isFinite(v) ? v.toFixed(3) : '—')
 
     <div class="formula-bar" v-html="formulaHtml"></div>
 
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

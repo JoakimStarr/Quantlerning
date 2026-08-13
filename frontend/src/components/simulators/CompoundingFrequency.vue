@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -73,26 +74,26 @@ const option = computed(() => ({
       name: '按年复利',
       type: 'line', smooth: true, symbol: 'none',
       data: seriesData.value.find((s) => s.key === 'yearly')!.data,
-      lineStyle: { width: 2, color: '#64748b', type: 'dashed' },
+      lineStyle: { width: 2, color: C.value.slateStrong, type: 'dashed' },
     },
     {
       name: '按月复利',
       type: 'line', smooth: true, symbol: 'none',
       data: seriesData.value.find((s) => s.key === 'monthly')!.data,
-      lineStyle: { width: 2, color: '#d97706' },
+      lineStyle: { width: 2, color: C.value.warning },
     },
     {
       name: '按日复利',
       type: 'line', smooth: true, symbol: 'none',
       data: seriesData.value.find((s) => s.key === 'daily')!.data,
-      lineStyle: { width: 2, color: '#0891b2' },
+      lineStyle: { width: 2, color: C.value.cyan },
     },
     {
       name: '连续复利',
       type: 'line', smooth: true, symbol: 'none',
       data: seriesData.value.find((s) => s.key === 'continuous')!.data,
-      lineStyle: { width: 3, color: '#2563eb' },
-      areaStyle: { color: 'rgba(37, 99, 235, 0.05)' },
+      lineStyle: { width: 3, color: C.value.primary },
+      areaStyle: { color: withAlpha(C.value.primary, 0.05) },
     },
   ],
 }))
@@ -100,7 +101,7 @@ const option = computed(() => ({
 
 <template>
   <div class="compounding-frequency">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

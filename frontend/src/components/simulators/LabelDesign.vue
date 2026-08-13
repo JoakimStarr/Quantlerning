@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart, ScatterChart } from 'echarts/charts'
@@ -97,7 +98,7 @@ const histOption = computed(() => {
         barWidth: '90%',
         data: h.centers.map((c, i) => [+(c * 100).toFixed(2), h.counts[i]]),
         itemStyle: {
-          color: (p: any) => (p.value[0] > threshold.value ? '#16a34a' : '#94a3b8'),
+          color: (p: any) => (p.value[0] > threshold.value ? C.value.success : C.value.slate),
           opacity: 0.6,
         },
         markLine: {
@@ -107,7 +108,7 @@ const histOption = computed(() => {
             {
               xAxis: t * 100,
               label: { formatter: `阈值 ${threshold.value}%`, position: 'insideEndTop' },
-              lineStyle: { color: '#dc2626', type: 'dashed' },
+              lineStyle: { color: C.value.danger, type: 'dashed' },
             },
           ],
         },
@@ -146,21 +147,21 @@ const seriesOption = computed(() => {
         type: 'line',
         data: nav.value.map((v) => +v.toFixed(2)),
         symbol: 'none',
-        lineStyle: { color: '#2563eb', width: 1.6 },
+        lineStyle: { color: C.value.primary, width: 1.6 },
       },
       {
         name: '看多标签',
         type: 'scatter',
         symbolSize: 5,
         data: lbl.map((v, i) => (v ? [i, nav.value[i]] : null)).filter(Boolean) as any,
-        itemStyle: { color: '#16a34a', opacity: 0.5 },
+        itemStyle: { color: C.value.success, opacity: 0.5 },
       },
       {
         name: '看空标签',
         type: 'scatter',
         symbolSize: 4,
         data: lbl.map((v, i) => (!v ? [i, nav.value[i]] : null)).filter(Boolean) as any,
-        itemStyle: { color: '#dc2626', opacity: 0.35 },
+        itemStyle: { color: C.value.danger, opacity: 0.35 },
       },
     ],
   }
@@ -180,14 +181,14 @@ const pUp = computed(() => (dist.value.n ? (dist.value.pUp * 100).toFixed(1) : '
       </div>
       <div class="stats">
         <span class="chip">样本 n = <strong>{{ dist.n }}</strong></span>
-        <span class="chip">上涨标签 <strong style="color:#16a34a">{{ dist.up }}</strong>（{{ pUp }}%）</span>
-        <span class="chip">下跌标签 <strong style="color:#dc2626">{{ dist.dn }}</strong>（{{ (100 - +pUp).toFixed(1) }}%）</span>
+        <span class="chip">上涨标签 <strong style="color: var(--success, #16a34a)">{{ dist.up }}</strong>（{{ pUp }}%）</span>
+        <span class="chip">下跌标签 <strong style="color: var(--danger, #dc2626)">{{ dist.dn }}</strong>（{{ (100 - +pUp).toFixed(1) }}%）</span>
         <span class="chip">平均前瞻收益 <strong>{{ (dist.meanFwd * 100).toFixed(2) }}%</strong></span>
       </div>
       <p class="sub">前瞻 N 日收益分布（绿=>阈值，红/灰=<阈值）</p>
-      <VChart class="chart" :option="histOption" autoresize />
+      <ThemedChart class="chart" :option="histOption" autoresize />
       <p class="sub">标签叠加在真实净曲线上（绿点=看多标签，红点=看空标签）</p>
-      <VChart class="chart" :option="seriesOption" autoresize />
+      <ThemedChart class="chart" :option="seriesOption" autoresize />
       <p class="note">真实锚点：贵州茅台 SH600519 2024 全年复权日收益。教学点：阈值/周期改变正负样本比例（类别不平衡），也改变标签「可用性」——超前 20 日标签波动更大，噪音更多。</p>
     </template>
   </div>

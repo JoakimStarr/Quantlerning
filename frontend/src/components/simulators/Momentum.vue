@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -76,8 +77,8 @@ const option = computed(() => {
         data: c.arr.closes.map((v, i) => [c.arr.dates[i], v]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.3, color: '#2563eb' },
-        itemStyle: { color: '#2563eb' },
+        lineStyle: { width: 1.3, color: C.value.primary },
+        itemStyle: { color: C.value.primary },
         markArea: {
           silent: true,
           data: (() => {
@@ -87,7 +88,7 @@ const option = computed(() => {
               if (c.pos[i] === 1) {
                 const s = i
                 while (i < c.pos.length && c.pos[i] === 1) i++
-                segs.push({ name: '持', itemStyle: { color: 'rgba(22, 163, 74, 0.08)' }, data: [{ xAxis: c.arr.dates[s] }, { xAxis: c.arr.dates[i - 1] }] })
+                segs.push({ name: '持', itemStyle: { color: withAlpha(C.value.success, 0.08) }, data: [{ xAxis: c.arr.dates[s] }, { xAxis: c.arr.dates[i - 1] }] })
               } else {
                 i++
               }
@@ -104,8 +105,8 @@ const option = computed(() => {
         data: c.nav.map((v, i) => [c.arr.dates[i], +v.toFixed(1)]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 2, color: '#d97706' },
-        itemStyle: { color: '#d97706' },
+        lineStyle: { width: 2, color: C.value.warning },
+        itemStyle: { color: C.value.warning },
       },
       {
         name: '买入持有',
@@ -115,8 +116,8 @@ const option = computed(() => {
         data: c.buyNav.map((v, i) => [c.arr.dates[i], +v.toFixed(1)]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.2, color: '#64748b', type: 'dashed' },
-        itemStyle: { color: '#64748b' },
+        lineStyle: { width: 1.2, color: C.value.slateStrong, type: 'dashed' },
+        itemStyle: { color: C.value.slateStrong },
       },
       {
         name: '过去收益',
@@ -126,8 +127,8 @@ const option = computed(() => {
         data: c.pastRet.map((v, i) => [c.arr.dates[i], v === null ? '-' : v]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1, color: '#7c3aed', opacity: 0.7 },
-        itemStyle: { color: '#7c3aed' },
+        lineStyle: { width: 1, color: C.value.violet, opacity: 0.7 },
+        itemStyle: { color: C.value.violet },
       },
     ],
   }
@@ -145,11 +146,11 @@ const st = computed(() => com.value?.st)
       <div class="result">
         <div class="result-item">
           <span class="result-label">累计收益</span>
-          <strong class="result-value" :style="{ color: st.cum >= 0 ? '#16a34a' : '#dc2626' }">{{ (st.cum * 100).toFixed(1) }}%</strong>
+          <strong class="result-value" :style="{ color: st.cum >= 0 ? 'var(--success, #16a34a)' : 'var(--danger, #dc2626)' }">{{ (st.cum * 100).toFixed(1) }}%</strong>
         </div>
         <div class="result-item">
           <span class="result-label">最大回撤</span>
-          <strong class="result-value" style="color: #dc2626">{{ (st.mdd * 100).toFixed(1) }}%</strong>
+          <strong class="result-value" style="color: var(--danger, #dc2626)">{{ (st.mdd * 100).toFixed(1) }}%</strong>
         </div>
         <div class="result-item">
           <span class="result-label">持仓占比</span>
@@ -160,7 +161,7 @@ const st = computed(() => com.value?.st)
           <strong class="result-value">{{ st.switches }}</strong>
         </div>
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="controls">
         <div class="control-row">
           <span class="control-label">回看 N</span>

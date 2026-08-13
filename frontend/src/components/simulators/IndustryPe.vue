@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -58,7 +59,7 @@ const option = computed(() => {
         name: 'PE 中位数',
         type: 'bar',
         data: inds.map((i) => (i.median ?? null)),
-        itemStyle: { color: '#2563eb', opacity: 0.75 },
+        itemStyle: { color: C.value.primary, opacity: 0.75 },
         markLine: {
           silent: true,
           symbol: 'none',
@@ -66,7 +67,7 @@ const option = computed(() => {
             {
               xAxis: 20,
               label: { formatter: 'PE 20（市场常识分界）', position: 'insideEndTop' },
-              lineStyle: { color: '#dc2626', type: 'dashed' },
+              lineStyle: { color: C.value.danger, type: 'dashed' },
             },
           ],
         },
@@ -82,7 +83,7 @@ const option = computed(() => {
     <div v-else-if="error" class="status">数据不可用</div>
     <template v-else-if="data">
       <p class="note">真实数据：{{ data.date }} 全市场 {{ data.count }} 个申万一级行业的 PE(TTM) 中位数。货币金融 5.4、地产 9.3，而成长行业动辄 30+——跨行业直接比 PE 会得出「银行便宜」的错误结论。</p>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
     </template>
   </div>
 </template>

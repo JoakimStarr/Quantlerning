@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -119,7 +120,7 @@ const option = computed(() => ({
       smooth: true,
       symbol: 'none',
       data: density.value,
-      lineStyle: { width: 3, color: '#2563eb' },
+      lineStyle: { width: 3, color: C.value.primary },
       z: 3,
     },
     {
@@ -129,7 +130,7 @@ const option = computed(() => ({
       symbol: 'none',
       data: shadeSeries.value.data,
       lineStyle: { width: 0, color: 'transparent' },
-      areaStyle: { color: 'rgba(220, 38, 38, 0.55)' },
+      areaStyle: { color: withAlpha(C.value.danger, 0.55) },
       silent: true,
       z: 1,
     },
@@ -141,8 +142,8 @@ const option = computed(() => ({
       markLine: {
         silent: true,
         symbol: 'none',
-        label: { fontSize: 11, color: '#dc2626', formatter: `z = ${zObs.value.toFixed(2)}` },
-        lineStyle: { color: '#dc2626', width: 2.5 },
+        label: { fontSize: 11, color: C.value.danger, formatter: `z = ${zObs.value.toFixed(2)}` },
+        lineStyle: { color: C.value.danger, width: 2.5 },
         data: [{ xAxis: zObs.value }],
       },
     },
@@ -154,8 +155,8 @@ const option = computed(() => ({
       markLine: {
         silent: true,
         symbol: 'none',
-        label: { fontSize: 11, color: '#d97706', formatter: `±z${(alpha.value * 100).toFixed(0)}% = ±${zCrit.value.toFixed(2)}` },
-        lineStyle: { color: '#d97706', type: 'dashed', width: 1.5 },
+        label: { fontSize: 11, color: C.value.warning, formatter: `±z${(alpha.value * 100).toFixed(0)}% = ±${zCrit.value.toFixed(2)}` },
+        lineStyle: { color: C.value.warning, type: 'dashed', width: 1.5 },
         data: [{ xAxis: -zCrit.value }, { xAxis: zCrit.value }],
       },
     },
@@ -165,7 +166,7 @@ const option = computed(() => ({
 
 <template>
   <div class="pvalue">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">
@@ -211,8 +212,8 @@ const option = computed(() => ({
 .result-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
 .result-box { flex: 1; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--bg-hover); text-align: center; display: flex; flex-direction: column; gap: 2px; }
 .result-box strong { font-size: 15px; }
-.result-box.green strong { color: #16a34a; }
-.result-box.red strong { color: #dc2626; }
+.result-box.green strong { color: var(--success, #16a34a); }
+.result-box.red strong { color: var(--danger, #dc2626); }
 .muted { font-size: 12px; color: var(--text-3); }
 .hint { margin-top: 8px; font-size: 12px; color: var(--text-3); line-height: 1.7; }
 </style>

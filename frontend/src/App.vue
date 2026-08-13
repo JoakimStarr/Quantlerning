@@ -7,7 +7,8 @@ import {
 } from 'lucide-vue-next'
 import { fetchCourses, fetchLesson } from '@/api'
 import { isCompleted } from '@/stores/progress'
-import { chapterLabel } from '@/utils/chapter'
+import { chapterLabel, PHASE_STATUS as phaseStatus } from '@/utils/chapter'
+import { useTheme } from '@/utils/theme'
 
 const route = useRoute()
 const router = useRouter()
@@ -91,42 +92,7 @@ watch(
 )
 
 // ---------- 深色模式 ----------
-const theme = ref<'light' | 'dark'>(
-  document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light',
-)
-
-// 未手动设置过主题时，跟随系统偏好（用户一旦手动切换即固定）
-let mql: MediaQueryList | null = null
-let followSystem = false
-try {
-  followSystem = !localStorage.getItem('ql:theme')
-} catch {
-  followSystem = true
-}
-function applySystemTheme(e?: MediaQueryListEvent) {
-  if (!followSystem) return
-  theme.value = e ? (e.matches ? 'dark' : 'light') : (mql?.matches ? 'dark' : 'light')
-  document.documentElement.setAttribute('data-theme', theme.value)
-}
-if (followSystem && typeof window.matchMedia === 'function') {
-  mql = window.matchMedia('(prefers-color-scheme: dark)')
-  applySystemTheme() // 与 main.ts 初始化保持一致（如系统在挂载后变化）
-  mql.addEventListener('change', applySystemTheme)
-}
-
-function toggleTheme() {
-  // 手动选择后固定，不再跟随系统
-  followSystem = false
-  mql?.removeEventListener('change', applySystemTheme)
-  mql = null
-  theme.value = theme.value === 'dark' ? 'light' : 'dark'
-  document.documentElement.setAttribute('data-theme', theme.value)
-  try {
-    localStorage.setItem('ql:theme', theme.value)
-  } catch {
-    // 存储不可用：忽略
-  }
-}
+const { theme, toggleTheme } = useTheme()
 
 // 顶栏当前课程名（移动端显示）
 const currentLessonTitle = computed(() => {
@@ -175,6 +141,20 @@ function toggleLesson(lesson: any) {
   }
 }
 
+// 点击卷头：跳转该卷首页
+function goVolume(v: any) {
+  if (v.lessons.length) {
+    closeMenu()
+    router.push(`/phase/${v.phase}`)
+  }
+}
+
+// 键盘激活（Enter/空格触发），保证目录可用 Tab 操作
+function keyActivate(e: KeyboardEvent, fn: () => void) {
+  e.preventDefault()
+  fn()
+}
+
 // 点击概念子节 → 跳转课程页并滚动到对应区块
 function goToSection(lessonId: string, sectionId: string) {
   closeMenu() // 移动端：点击后收起抽屉
@@ -183,13 +163,6 @@ function goToSection(lessonId: string, sectionId: string) {
   } else {
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' })
   }
-}
-
-const phaseStatus: Record<string, { label: string; cls: string }> = {
-  prereq: { label: '前置', cls: 'badge' },
-  completed: { label: '✓ 完成', cls: 'badge badge-success' },
-  in_progress: { label: '进行中', cls: 'badge badge-primary' },
-  planned: { label: '计划', cls: 'badge' },
 }
 
 // 底部功能入口
@@ -252,7 +225,15 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
         <div v-else-if="filteredVolumes.length === 0" class="toc-status">无匹配课程</div>
         <div v-for="v in filteredVolumes" :key="v.phase" class="volume">
           <!-- 卷头 -->
-          <div class="volume-head" @click="v.lessons.length && (closeMenu(), router.push(`/phase/${v.phase}`))">
+          <div
+            class="volume-head"
+            role="button"
+            tabindex="0"
+            :aria-expanded="v.lessons.length > 0"
+            @click="goVolume(v)"
+            @keydown.enter="keyActivate($event, () => goVolume(v))"
+            @keydown.space.prevent="keyActivate($event, () => goVolume(v))"
+          >
             <span class="volume-title">{{ chapterLabel(v.phase) }}</span>
             <span class="volume-name">{{ v.title }}</span>
             <span v-if="v.status !== 'planned' || v.lessons.length" :class="phaseStatus[v.status]?.cls || 'badge'">{{ phaseStatus[v.status]?.label || v.status }}</span>
@@ -263,7 +244,12 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
             <div
               class="chapter-head"
               :class="{ active: currentLessonId === l.id }"
+              role="button"
+              tabindex="0"
+              :aria-expanded="openLessons.has(l.id)"
               @click="toggleLesson(l)"
+              @keydown.enter="keyActivate($event, () => toggleLesson(l))"
+              @keydown.space.prevent="keyActivate($event, () => toggleLesson(l))"
             >
               <span class="chapter-icon">
                 <ChevronDown v-if="openLessons.has(l.id)" :size="12" />
@@ -281,7 +267,11 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
                   :key="s.id"
                   class="subsection"
                   :class="{ active: currentLessonId === l.id }"
+                  role="link"
+                  tabindex="0"
                   @click="goToSection(l.id, s.id)"
+                  @keydown.enter="keyActivate($event, () => goToSection(l.id, s.id))"
+                  @keydown.space.prevent="keyActivate($event, () => goToSection(l.id, s.id))"
                 >{{ s.title }}</div>
               </div>
               <div v-else class="subsection loading">加载中...</div>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, BarChart } from 'echarts/charts'
@@ -75,7 +76,7 @@ const stressOption = computed(() => {
         type: 'bar',
         data: r.map((s) => +(s.portLoss * 100).toFixed(1)),
         itemStyle: {
-          color: (p: any) => (p.value >= 0 ? '#16a34a' : '#dc2626'),
+          color: (p: any) => (p.value >= 0 ? C.value.success : C.value.danger),
           opacity: 0.8,
         },
         label: { show: true, position: 'top', fontSize: 11, formatter: (p: any) => `${p.value}%` },
@@ -120,8 +121,8 @@ const stopOption = computed(() => {
     xAxis: { type: 'category', data: dates.value.map((d) => d.slice(5)), axisLabel: { fontSize: 9, hideOverlap: true } },
     yAxis: { type: 'value', name: '净值', nameLocation: 'middle', nameGap: 40, scale: true, axisLabel: { fontSize: 10 } },
     series: [
-      { name: '不止损', type: 'line', data: r.navNo, symbol: 'none', lineStyle: { color: '#94a3b8', width: 1.3, type: 'dashed' } },
-      { name: `止损 ${(stopLoss.value * 100).toFixed(0)}%`, type: 'line', data: r.navStop, symbol: 'none', lineStyle: { color: '#dc2626', width: 2 } },
+      { name: '不止损', type: 'line', data: r.navNo, symbol: 'none', lineStyle: { color: C.value.slate, width: 1.3, type: 'dashed' } },
+      { name: `止损 ${(stopLoss.value * 100).toFixed(0)}%`, type: 'line', data: r.navStop, symbol: 'none', lineStyle: { color: C.value.danger, width: 2 } },
     ],
   }
 })
@@ -139,9 +140,9 @@ const stopOption = computed(() => {
         <label>止损阈值 <input type="range" v-model.number="stopLoss" min="0.05" max="0.3" step="0.01" /> {{ (stopLoss * 100).toFixed(0) }}%</label>
       </div>
       <p class="sub">压力测试：极端情景下组合预计损益（示意，按组合年化收益等比例外推）</p>
-      <VChart class="chart small" :option="stressOption" autoresize />
+      <ThemedChart class="chart small" :option="stressOption" autoresize />
       <p class="sub">止损演示：真实 5 股等权组合净值，回撤达阈值清仓（真实历史净值）</p>
-      <VChart class="chart" :option="stopOption" autoresize />
+      <ThemedChart class="chart" :option="stopOption" autoresize />
       <p class="note">真实锚点：贵州茅台 / 五粮液 / 宁德时代 / 招商银行 / 中国平安 2024 全年日收益（组合净值真实计算）。压力情景幅度为教学示意（2008 腰斩等），需明确标注；止损阈值用真实历史回撤演示「止损降低尾部风险但也会在波动中被震出」。</p>
     </template>
   </div>

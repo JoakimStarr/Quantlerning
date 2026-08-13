@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -143,8 +144,8 @@ const option = computed(() => {
         symbol: 'circle',
         symbolSize: 8,
         data: curvePoints.value,
-        lineStyle: { width: 3, color: '#2563eb' },
-        itemStyle: { color: '#2563eb' },
+        lineStyle: { width: 3, color: C.value.primary },
+        itemStyle: { color: C.value.primary },
         label: { show: true, position: 'top', fontSize: 11, formatter: (p: any) => `${p.value[1].toFixed(2)}%` },
         connectNulls: true,
       },
@@ -165,7 +166,7 @@ const option = computed(() => {
         <span class="chip">隐含远期 f(2→5) <strong v-if="impliedForward != null">{{ impliedForward.toFixed(2) }}%</strong></span>
       </div>
 
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
 
       <div class="controls">
         <div class="control-row">

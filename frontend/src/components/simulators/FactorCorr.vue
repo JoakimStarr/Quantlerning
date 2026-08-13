@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { HeatmapChart } from 'echarts/charts'
@@ -51,7 +52,7 @@ const option = computed(() => ({
     orient: 'horizontal',
     left: 'center',
     bottom: 4,
-    inRange: { color: ['#f8fafc', '#93c5fd', '#2563eb', '#1e3a8a'] },
+    inRange: { color: ['#f8fafc', '#93c5fd', C.value.primary, C.value.primaryDeep] },
     textStyle: { fontSize: 10 },
   },
   series: [
@@ -84,7 +85,7 @@ const redundant = computed(() => {
       <span class="chip" v-if="redundant.length">冗余对（&gt;{{ threshold.toFixed(1) }}）：{{ redundant.join('，') }}</span>
     </div>
 
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

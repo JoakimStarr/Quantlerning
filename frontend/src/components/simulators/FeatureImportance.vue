@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -82,7 +83,7 @@ const importOption = computed(() => ({
       type: 'bar',
       data: importance.value.map((i) => +i.abs.toFixed(3)).reverse(),
       itemStyle: {
-        color: (p: any) => (importance.value[importance.value.length - 1 - p.dataIndex].w > 0 ? '#2563eb' : '#dc2626'),
+        color: (p: any) => (importance.value[importance.value.length - 1 - p.dataIndex].w > 0 ? C.value.primary : C.value.danger),
         opacity: 0.8,
       },
       label: { show: true, position: 'right', fontSize: 10, formatter: (p: any) => (importance.value[importance.value.length - 1 - p.dataIndex].w > 0 ? `+${p.value}` : p.value) },
@@ -100,7 +101,7 @@ const lossOption = computed(() => {
     xAxis: { type: 'category', data: r.model.lossHistory.map((_, i) => i * 10), axisLabel: { fontSize: 9 } },
     yAxis: { type: 'value', name: '交叉熵损失', nameLocation: 'middle', nameGap: 40, axisLabel: { fontSize: 10 } },
     series: [
-      { name: '训练损失', type: 'line', data: r.model.lossHistory.map((v) => +v.toFixed(3)), symbol: 'none', lineStyle: { color: '#2563eb', width: 2 } },
+      { name: '训练损失', type: 'line', data: r.model.lossHistory.map((v) => +v.toFixed(3)), symbol: 'none', lineStyle: { color: C.value.primary, width: 2 } },
     ],
   }
 })
@@ -122,9 +123,9 @@ const lossOption = computed(() => {
         <span class="chip note">时间顺序切分（防前视）</span>
       </div>
       <p class="sub">特征重要度（逻辑回归标准化权重 |w|，红色=负向，蓝色=正向）</p>
-      <VChart class="chart" :option="importOption" autoresize />
+      <ThemedChart class="chart" :option="importOption" autoresize />
       <p class="sub">训练损失随梯度下降收敛（交叉熵）</p>
-      <VChart class="chart small" :option="lossOption" autoresize />
+      <ThemedChart class="chart small" :option="lossOption" autoresize />
       <p class="note">真实锚点：贵州茅台 SH600519 2024，8 个真实技术特征（动量/波动/RSI/MACD/均线偏离/换手）预测次日涨跌。教学点：特征重要度帮助挑选/排除特征；正负号反映方向（如 RSI 高位→次日更可能回调）。示意性模型，不代表可实盘。</p>
     </template>
   </div>

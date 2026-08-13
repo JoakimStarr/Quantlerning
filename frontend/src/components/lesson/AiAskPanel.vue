@@ -272,7 +272,7 @@ watch(
   cursor: pointer;
   background: var(--primary);
   color: #fff;
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 35%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -466,7 +466,7 @@ watch(
   position: absolute;
   top: 6px; right: 6px;
   border: none; background: rgba(255, 255, 255, 0.08);
-  color: #9aa3af;
+  color: var(--textWeak, #9aa3af);
   font-size: 12px; line-height: 1;
   padding: 4px 7px; border-radius: 4px;
   cursor: pointer;

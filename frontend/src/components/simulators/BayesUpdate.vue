@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -105,8 +106,8 @@ const option = computed(() => ({
       smooth: true,
       symbol: 'none',
       data: prior.value,
-      lineStyle: { width: 2, color: '#64748b', type: 'dashed' },
-      itemStyle: { color: '#64748b' },
+      lineStyle: { width: 2, color: C.value.slateStrong, type: 'dashed' },
+      itemStyle: { color: C.value.slateStrong },
       areaStyle: { color: 'rgba(100, 116, 139, 0.10)' },
     },
     {
@@ -115,9 +116,9 @@ const option = computed(() => ({
       smooth: true,
       symbol: 'none',
       data: posterior.value,
-      lineStyle: { width: 3, color: '#2563eb' },
-      itemStyle: { color: '#2563eb' },
-      areaStyle: { color: 'rgba(37, 99, 235, 0.12)' },
+      lineStyle: { width: 3, color: C.value.primary },
+      itemStyle: { color: C.value.primary },
+      areaStyle: { color: withAlpha(C.value.primary, 0.12) },
     },
   ],
 }))
@@ -125,7 +126,7 @@ const option = computed(() => ({
 
 <template>
   <div class="bayes-update">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

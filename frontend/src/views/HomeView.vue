@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { ArrowRight, PlayCircle } from 'lucide-vue-next'
 import { fetchCourses, streamPlan } from '@/api'
 import { getProgress, isCompleted, learningDays, sandboxRunCount, totalExercises } from '@/stores/progress'
-import { chapterLabel } from '@/utils/chapter'
+import { chapterLabel, PHASE_STATUS as phaseStatus } from '@/utils/chapter'
 import AppSpinner from '@/components/common/AppSpinner.vue'
 import AppError from '@/components/common/AppError.vue'
 
@@ -95,13 +95,6 @@ const resume = computed(() => {
   return null
 })
 
-const phaseStatus: Record<string, { label: string; cls: string }> = {
-  prereq: { label: '前置知识', cls: 'badge' },
-  completed: { label: '已完成', cls: 'badge badge-success' },
-  in_progress: { label: '进行中', cls: 'badge badge-primary' },
-  planned: { label: '计划中', cls: 'badge' },
-}
-
 function phaseProgress(p: any): { done: number; total: number } {
   const total = p.lessons.length
   const done = p.lessons.filter((l: any) => isCompleted(l.id)).length
@@ -147,17 +140,18 @@ const overall = computed(() => {
     <AppSpinner v-if="loading" text="加载课程…" />
     <AppError v-else-if="error" :message="error" @retry="load" />
 
-    <!-- 继续上次学习（显式入口，替代自动跳转） -->
-    <div v-else-if="resume" class="resume-card" role="button" tabindex="0" @click="router.push(resume.path)" @keydown.enter="router.push(resume.path)">
-      <div class="resume-info">
-        <div class="resume-label"><PlayCircle :size="13" /> 继续上次学习</div>
-        <div class="resume-title">{{ resume.title }}</div>
+    <template v-else>
+      <!-- 继续上次学习（显式入口，置于阶段列表上方，不遮挡全局进度） -->
+      <div v-if="resume" class="resume-card" role="button" tabindex="0" @click="router.push(resume.path)" @keydown.enter="router.push(resume.path)" @keydown.space.prevent="router.push(resume.path)">
+        <div class="resume-info">
+          <div class="resume-label"><PlayCircle :size="13" /> 继续上次学习</div>
+          <div class="resume-title">{{ resume.title }}</div>
+        </div>
+        <span class="resume-arrow"><ArrowRight :size="18" /></span>
       </div>
-      <span class="resume-arrow"><ArrowRight :size="18" /></span>
-    </div>
 
-    <!-- 阶段列表 -->
-    <div v-else class="phase-list">
+      <!-- 阶段列表 -->
+      <div class="phase-list">
       <!-- AI 学习规划 -->
       <div class="plan-card">
         <div class="plan-head">
@@ -194,7 +188,8 @@ const overall = computed(() => {
           </span>
         </div>
       </div>
-    </div>
+      </div>
+    </template>
   </div>
 </template>
 

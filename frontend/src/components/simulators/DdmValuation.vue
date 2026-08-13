@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -50,12 +51,12 @@ const option = computed(() => ({
       type: 'line',
       data: curve.value,
       symbol: 'none',
-      lineStyle: { width: 2.5, color: '#2563eb' },
+      lineStyle: { width: 2.5, color: C.value.primary },
       markLine: {
         silent: true,
         symbol: 'none',
-        lineStyle: { type: 'dashed', color: '#dc2626' },
-        label: { fontSize: 11, color: '#dc2626', formatter: `g = r = ${r.value}%` },
+        lineStyle: { type: 'dashed', color: C.value.danger },
+        label: { fontSize: 11, color: C.value.danger, formatter: `g = r = ${r.value}%` },
         data: [{ xAxis: r.value }],
       },
     },
@@ -77,7 +78,7 @@ const option = computed(() => ({
       </div>
     </div>
 
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">
@@ -110,7 +111,7 @@ const option = computed(() => ({
 .result-label { font-size: 12px; color: var(--text-3); }
 .result-value { font-size: 20px; font-weight: 700; }
 .result-value.primary { color: var(--primary); }
-.result-value.red { font-size: 16px; color: #dc2626; }
+.result-value.red { font-size: 16px; color: var(--danger, #dc2626); }
 .result-value.formula { font-size: 15px; color: var(--text-2); font-family: var(--font-mono); }
 .controls { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
 .control-row { display: flex; align-items: center; gap: 12px; }

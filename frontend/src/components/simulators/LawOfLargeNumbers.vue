@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -92,13 +93,13 @@ const option = computed(() => ({
       type: 'line',
       showSymbol: false,
       data: meanCurve.value,
-      lineStyle: { width: 2.5, color: '#2563eb' },
-      itemStyle: { color: '#2563eb' },
+      lineStyle: { width: 2.5, color: C.value.primary },
+      itemStyle: { color: C.value.primary },
       markLine: {
         silent: true,
         symbol: 'none',
-        lineStyle: { type: 'dashed', color: '#d97706' },
-        label: { fontSize: 11, color: '#d97706', formatter: `p = ${(p.value * 100).toFixed(0)}%` },
+        lineStyle: { type: 'dashed', color: C.value.warning },
+        label: { fontSize: 11, color: C.value.warning, formatter: `p = ${(p.value * 100).toFixed(0)}%` },
         data: [{ yAxis: p.value }],
       },
     },
@@ -108,7 +109,7 @@ const option = computed(() => ({
 
 <template>
   <div class="lln">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

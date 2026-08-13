@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, ScatterChart } from 'echarts/charts'
@@ -56,10 +57,10 @@ const sharpe = computed(() => {
 })
 
 function sharpeColor(s: number | null) {
-  if (s === null) return '#94a3b8'
-  if (s < 0) return '#dc2626'
-  if (s < 1) return '#d97706'
-  return '#16a34a'
+  if (s === null) return C.value.slate
+  if (s < 0) return C.value.danger
+  if (s < 1) return C.value.warning
+  return C.value.success
 }
 
 // 等夏普参考线：μ = rf + s·σ
@@ -113,7 +114,7 @@ const option = computed(() => {
         data: isoSharpeLine(0.5),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1, type: 'dashed', color: '#94a3b8', opacity: 0.7 },
+        lineStyle: { width: 1, type: 'dashed', color: C.value.slate, opacity: 0.7 },
       },
       {
         name: '等夏普 1.0',
@@ -121,7 +122,7 @@ const option = computed(() => {
         data: isoSharpeLine(1),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1, type: 'dashed', color: '#94a3b8', opacity: 0.7 },
+        lineStyle: { width: 1, type: 'dashed', color: C.value.slate, opacity: 0.7 },
       },
       {
         name: '等夏普 2.0',
@@ -129,7 +130,7 @@ const option = computed(() => {
         data: isoSharpeLine(2),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1, type: 'dashed', color: '#94a3b8', opacity: 0.7 },
+        lineStyle: { width: 1, type: 'dashed', color: C.value.slate, opacity: 0.7 },
       },
       {
         name: '当前组合',
@@ -140,7 +141,7 @@ const option = computed(() => {
         markLine: {
           silent: true,
           symbol: 'none',
-          label: { fontSize: 11, color: '#94a3b8', formatter: 'μ = Rf + S·σ' },
+          label: { fontSize: 11, color: C.value.slate, formatter: 'μ = Rf + S·σ' },
           lineStyle: { type: 'dotted', color: sharpeColor(s), width: 1.5 },
           data: [{ xAxis: sigmaPct.value }],
         },
@@ -150,12 +151,12 @@ const option = computed(() => {
         type: 'scatter',
         data: maotaiPoint.value ? [maotaiPoint.value] : [],
         symbolSize: 10,
-        itemStyle: { color: '#7c3aed' },
+        itemStyle: { color: C.value.violet },
         label: {
           show: !!maotaiSharpe.value,
           position: 'top',
           fontSize: 10,
-          color: '#7c3aed',
+          color: C.value.violet,
           formatter: `夏普 ${maotaiSharpe.value?.toFixed(2)}`,
         },
       },
@@ -174,7 +175,7 @@ const option = computed(() => {
       </span>
     </div>
 
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { ScatterChart, LineChart } from 'echarts/charts'
@@ -136,18 +137,18 @@ const option = computed(() => ({
       type: 'scatter',
       data: points.value.map((p) => [+p[0].toFixed(3), +p[1].toFixed(3)]),
       symbolSize: 4,
-      itemStyle: { color: 'rgba(37, 99, 235, 0.5)' },
+      itemStyle: { color: withAlpha(C.value.primary, 0.5) },
     },
     {
       name: stats.value ? `回归线 β=${stats.value.beta.toFixed(2)}` : '回归线',
       type: 'line',
       data: lineData.value,
       symbol: 'none',
-      lineStyle: { width: 3, color: '#dc2626' },
+      lineStyle: { width: 3, color: C.value.danger },
       markLine: {
         silent: true,
         symbol: 'none',
-        lineStyle: { color: '#94a3b8', type: 'dashed' },
+        lineStyle: { color: C.value.slate, type: 'dashed' },
         data: [
           { xAxis: 0, label: { formatter: '市场 0%' } },
           { yAxis: 0, label: { formatter: '个股 0%' } },
@@ -169,7 +170,7 @@ const option = computed(() => ({
         <span class="chip" v-if="stats">α（年化前）<strong>{{ stats.alpha.toFixed(3) }}%</strong></span>
         <span class="chip" v-if="stats">R² <strong>{{ stats.r2.toFixed(3) }}</strong></span>
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="tip">
         茅台对上证指数（2020-2026 日收益 OLS）的 β 约 {{ stats?.beta.toFixed(2) }}：市场每涨跌 1%，茅台平均同向变动约
         {{ (stats?.beta ?? 0).toFixed(2) }}%（回归线斜率）。R²={{ stats?.r2.toFixed(2) }} 表示市场因子能解释茅台约

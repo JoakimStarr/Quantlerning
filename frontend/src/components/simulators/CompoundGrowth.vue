@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -52,14 +53,14 @@ const option = computed(() => ({
       name: '单利',
       type: 'line', smooth: true, symbol: 'none',
       data: growth.value.simple,
-      lineStyle: { width: 2, color: '#d97706', type: 'dashed' },
+      lineStyle: { width: 2, color: C.value.warning, type: 'dashed' },
     },
     {
       name: '复利',
       type: 'line', smooth: true, symbol: 'none',
       data: growth.value.compound,
-      lineStyle: { width: 3, color: '#2563eb' },
-      areaStyle: { color: 'rgba(37, 99, 235, 0.06)' },
+      lineStyle: { width: 3, color: C.value.primary },
+      areaStyle: { color: withAlpha(C.value.primary, 0.06) },
     },
   ],
 }))
@@ -67,7 +68,7 @@ const option = computed(() => ({
 
 <template>
   <div class="compound-growth">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

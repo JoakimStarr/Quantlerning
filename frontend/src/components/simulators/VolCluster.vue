@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -68,10 +69,10 @@ const option = computed(() => {
         xAxisIndex: 0,
         yAxisIndex: 0,
         data: rets.map((v) => +v.toFixed(2)),
-        itemStyle: { color: (p: any) => (p.value >= 0 ? 'rgba(37,99,235,0.6)' : 'rgba(220,38,38,0.6)') },
+        itemStyle: { color: (p: any) => (p.value >= 0 ? withAlpha(C.value.primary, 0.6) : withAlpha(C.value.danger, 0.6)) },
       },
-      { name: '20日滚动波动', type: 'line', xAxisIndex: 1, yAxisIndex: 1, data: vol20, symbol: 'none', lineStyle: { width: 2, color: '#2563eb' } },
-      { name: '60日滚动波动', type: 'line', xAxisIndex: 1, yAxisIndex: 1, data: vol60, symbol: 'none', lineStyle: { width: 1.5, color: '#d97706' } },
+      { name: '20日滚动波动', type: 'line', xAxisIndex: 1, yAxisIndex: 1, data: vol20, symbol: 'none', lineStyle: { width: 2, color: C.value.primary } },
+      { name: '60日滚动波动', type: 'line', xAxisIndex: 1, yAxisIndex: 1, data: vol60, symbol: 'none', lineStyle: { width: 1.5, color: C.value.warning } },
     ],
   }
 })
@@ -82,7 +83,7 @@ const option = computed(() => {
     <div v-if="loading" class="status">数据加载中…</div>
     <div v-else-if="error" class="status">数据不可用</div>
     <template v-else-if="series">
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="tip">
         注意日收益柱状：剧烈波动（2024-09 下跌、09-26 大涨、10-09 大跌）总是扎堆出现，而 6-8 月相对平静——这就是波动聚集。20 日滚动波动曲线清晰呈现「波动有记忆」。
       </div>

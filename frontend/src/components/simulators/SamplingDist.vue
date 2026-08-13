@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -124,7 +125,7 @@ const option = computed(() => {
         type: 'bar',
         data: barData,
         barWidth: '98%',
-        itemStyle: { color: 'rgba(37, 99, 235, 0.35)' },
+        itemStyle: { color: withAlpha(C.value.primary, 0.35) },
         z: 1,
       },
       {
@@ -133,7 +134,7 @@ const option = computed(() => {
         smooth: true,
         symbol: 'none',
         data: normalCurve.value,
-        lineStyle: { width: 3, color: '#dc2626' },
+        lineStyle: { width: 3, color: C.value.danger },
         z: 5,
       },
       {
@@ -144,8 +145,8 @@ const option = computed(() => {
         markLine: {
           silent: true,
           symbol: 'none',
-          label: { fontSize: 11, color: '#d97706', formatter: `μ = ${POP_MEAN}` },
-          lineStyle: { color: '#d97706', type: 'dashed', width: 1.5 },
+          label: { fontSize: 11, color: C.value.warning, formatter: `μ = ${POP_MEAN}` },
+          lineStyle: { color: C.value.warning, type: 'dashed', width: 1.5 },
           data: [{ xAxis: POP_MEAN }],
         },
       },
@@ -156,7 +157,7 @@ const option = computed(() => {
 
 <template>
   <div class="sampling">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

@@ -330,20 +330,20 @@ const REGION_ORDER: RegionKey[] = ['A', 'B', 'AB', 'union', 'ABar', 'notAB', 'Ao
 .space { fill: var(--bg-hover); stroke: var(--border); stroke-width: 1.5; }
 .omega { font-size: 18px; font-style: italic; fill: var(--text-3); }
 .set { opacity: 0.85; }
-.set-a { fill: rgba(59, 130, 246, 0.28); }
-.set-b { fill: rgba(245, 158, 11, 0.28); }
-.set-lens { fill: rgba(139, 92, 246, 0.4); }
+.set-a { fill: color-mix(in srgb, var(--primary) 28%, transparent); }
+.set-b { fill: color-mix(in srgb, var(--warning) 28%, transparent); }
+.set-lens { fill: color-mix(in srgb, var(--violet) 40%, transparent); }
 .ring { fill: none; stroke: var(--text-3); stroke-width: 1.5; }
-.dim { fill: rgba(15, 23, 42, 0.35); }
+.dim { fill: color-mix(in srgb, var(--ink) 35%, transparent); }
 .hl path {
-  fill: #f59e0b;
+  fill: var(--warning, #f59e0b);
   opacity: 0.92;
-  stroke: #b45309;
+  stroke: var(--warning, #b45309);
   stroke-width: 1.5;
 }
 .lbl { font-size: 12.5px; font-weight: 600; fill: var(--text-2); }
 .name { font-size: 15px; font-weight: 700; font-style: italic; fill: var(--text-1); }
-.lens-hl { fill: #f59e0b; opacity: 0.92; stroke: #b45309; stroke-width: 1.5; }
+.lens-hl { fill: var(--warning, #f59e0b); opacity: 0.92; stroke: var(--warning, #b45309); stroke-width: 1.5; }
 
 .cond-btns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 12px 0 6px; }
 

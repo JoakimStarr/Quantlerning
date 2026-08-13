@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -61,7 +62,7 @@ const barOption = computed(() => ({
       name: '模拟中位数',
       type: 'bar',
       data: histData.value.map((h) => +h.median.toFixed(2)),
-      itemStyle: { color: '#2563eb' },
+      itemStyle: { color: C.value.primary },
       label: { show: true, position: 'top', fontSize: 11, formatter: (p: any) => p.value.toFixed(1) },
     },
     {
@@ -69,12 +70,12 @@ const barOption = computed(() => ({
       type: 'line',
       data: trialLevels.map((n) => +Math.sqrt(2 * Math.log(2 * n)).toFixed(2)),
       symbol: 'none',
-      lineStyle: { width: 2, color: '#dc2626', type: 'dashed' },
+      lineStyle: { width: 2, color: C.value.danger, type: 'dashed' },
       markLine: {
         silent: true,
         symbol: 'none',
         label: { fontSize: 11, formatter: '|t|=1.96（5% 显著）' },
-        data: [{ yAxis: 1.96, lineStyle: { color: '#16a34a', type: 'dotted' } }],
+        data: [{ yAxis: 1.96, lineStyle: { color: C.value.success, type: 'dotted' } }],
       },
     },
   ],
@@ -94,11 +95,11 @@ const curveOption = computed(() => ({
       smooth: true,
       symbol: 'none',
       data: theory.value,
-      lineStyle: { width: 3, color: '#dc2626' },
+      lineStyle: { width: 3, color: C.value.danger },
       markLine: {
         silent: true,
         symbol: 'none',
-        lineStyle: { color: '#16a34a', type: 'dotted' },
+        lineStyle: { color: C.value.success, type: 'dotted' },
         label: { fontSize: 11, formatter: '|t|=1.96' },
         data: [{ yAxis: 1.96 }],
       },
@@ -134,8 +135,8 @@ const curExp = computed(() => {
       </div>
     </div>
 
-    <VChart class="chart" :option="barOption" autoresize />
-    <VChart class="chart" :option="curveOption" autoresize />
+    <ThemedChart class="chart" :option="barOption" autoresize />
+    <ThemedChart class="chart" :option="curveOption" autoresize />
 
     <div class="controls">
       <div class="control-row">
@@ -164,7 +165,7 @@ const curExp = computed(() => {
 .muted { font-size: 12px; color: var(--text-3); }
 .res-main { font-size: 18px; font-weight: 700; color: var(--primary); }
 .res-sub { font-size: 15px; font-weight: 700; color: var(--text-2); }
-.res-sub.warn { color: #dc2626; }
+.res-sub.warn { color: var(--danger, #dc2626); }
 .controls { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .control-row { display: flex; align-items: center; gap: 12px; }
 .control-label { width: 88px; font-size: 13px; color: var(--text-2); flex-shrink: 0; }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -62,7 +63,7 @@ const weightOption = computed(() => {
       {
         type: 'bar',
         data: current.value.w.map((w) => +w.toFixed(3)),
-        itemStyle: { color: '#2563eb', opacity: 0.75 },
+        itemStyle: { color: C.value.primary, opacity: 0.75 },
         label: { show: true, position: 'top', fontSize: 10, formatter: (p: any) => `${(p.value * 100).toFixed(0)}%` },
       },
     ],
@@ -81,7 +82,7 @@ const rcOption = computed(() => {
       {
         type: 'bar',
         data: current.value.rc.map((v) => +v.toFixed(3)),
-        itemStyle: { color: '#d97706', opacity: 0.8 },
+        itemStyle: { color: C.value.warning, opacity: 0.8 },
         label: { show: true, position: 'top', fontSize: 10, formatter: (p: any) => `${(p.value * 100).toFixed(0)}%` },
       },
     ],
@@ -104,7 +105,7 @@ const compareOption = computed(() => {
         name: '组合波动',
         type: 'bar',
         data: wList.map((w) => +(portfolioVol(w, cov.value) * 100).toFixed(1)),
-        itemStyle: { color: '#dc2626', opacity: 0.8 },
+        itemStyle: { color: C.value.danger, opacity: 0.8 },
         label: { show: true, position: 'top', fontSize: 10, formatter: (p: any) => `${p.value}%` },
       },
     ],
@@ -131,11 +132,11 @@ const compareOption = computed(() => {
         <span class="chip note">夏普(rf=2%) <strong>{{ ((current.ret - 0.02) / current.vol).toFixed(2) }}</strong></span>
       </div>
       <p class="sub">当前权重</p>
-      <VChart class="chart small" :option="weightOption" autoresize />
+      <ThemedChart class="chart small" :option="weightOption" autoresize />
       <p class="sub">各资产对组合的风险贡献（风险平价 → 各柱接近等高）</p>
-      <VChart class="chart small" :option="rcOption" autoresize />
+      <ThemedChart class="chart small" :option="rcOption" autoresize />
       <p class="sub">三种方法组合波动对比</p>
-      <VChart class="chart small" :option="compareOption" autoresize />
+      <ThemedChart class="chart small" :option="compareOption" autoresize />
       <p class="note">真实锚点：贵州茅台 / 五粮液 / 宁德时代 / 招商银行 / 中国平安 2024 全年日收益。教学点：宁德时代波动高（46%），等权时它贡献了大部分风险；风险平价降低它的权重，让每个资产风险贡献均衡——不预测收益，只看波动与相关性。</p>
     </template>
   </div>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -78,20 +79,20 @@ const option = computed(() => {
         data: nav.value.map((v, i) => [dates[i], +v.toFixed(2)]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 2, color: '#2563eb' },
-        itemStyle: { color: '#2563eb' },
+        lineStyle: { width: 2, color: C.value.primary },
+        itemStyle: { color: C.value.primary },
         markArea: {
           silent: true,
-          itemStyle: { color: 'rgba(220, 38, 38, 0.12)' },
-          label: { show: true, position: 'insideTop', fontSize: 11, color: '#dc2626', formatter: `最大回撤区间` },
+          itemStyle: { color: withAlpha(C.value.danger, 0.12) },
+          label: { show: true, position: 'insideTop', fontSize: 11, color: C.value.danger, formatter: `最大回撤区间` },
           data: [[{ xAxis: peakDate }, { xAxis: troughDate }]],
         },
         markPoint: {
           symbolSize: 44,
           label: { fontSize: 10 },
           data: [
-            { coord: [peakDate, nav.value[dd.value.peakIdx]], value: '峰值', itemStyle: { color: '#d97706' } },
-            { coord: [troughDate, nav.value[dd.value.troughIdx]], value: '谷底', itemStyle: { color: '#dc2626' } },
+            { coord: [peakDate, nav.value[dd.value.peakIdx]], value: '峰值', itemStyle: { color: C.value.warning } },
+            { coord: [troughDate, nav.value[dd.value.troughIdx]], value: '谷底', itemStyle: { color: C.value.danger } },
           ],
         },
       },
@@ -102,9 +103,9 @@ const option = computed(() => {
         data: nav.value.map((_, i) => [dates[i], drawPct[i]]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1, color: '#dc2626', opacity: 0.7 },
-        areaStyle: { color: 'rgba(220, 38, 38, 0.18)' },
-        itemStyle: { color: '#dc2626' },
+        lineStyle: { width: 1, color: C.value.danger, opacity: 0.7 },
+        areaStyle: { color: withAlpha(C.value.danger, 0.18) },
+        itemStyle: { color: C.value.danger },
       },
     ],
   }
@@ -131,7 +132,7 @@ const option = computed(() => {
         </div>
       </div>
 
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
 
       <div class="controls">
         <div class="control-row">
@@ -158,7 +159,7 @@ const option = computed(() => {
 .result-item { display: flex; flex-direction: column; gap: 2px; }
 .result-label { font-size: 12px; color: var(--text-3); }
 .result-value { font-size: 20px; font-weight: 700; }
-.result-value.red { color: #dc2626; }
+.result-value.red { color: var(--danger, #dc2626); }
 .result-value.sm { font-size: 15px; color: var(--text-2); font-family: var(--font-mono); }
 .controls { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
 .control-row { display: flex; align-items: center; gap: 12px; }
@@ -167,6 +168,6 @@ const option = computed(() => {
 .control-value { width: 64px; font-size: 13px; font-weight: 600; color: var(--primary); text-align: right; flex-shrink: 0; }
 .align-btn { font-size: 12px; padding: 4px 10px; border-radius: var(--radius-sm); background: var(--primary); color: #fff; border: none; cursor: pointer; flex-shrink: 0; }
 .rec-box { margin-top: 6px; padding: 10px 14px; background: var(--bg-hover); border-radius: var(--radius-sm); font-size: 14px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.rec-need { color: #dc2626; font-size: 18px; }
+.rec-need { color: var(--danger, #dc2626); font-size: 18px; }
 .rec-formula { font-size: 12px; color: var(--text-3); font-family: var(--font-mono); }
 </style>

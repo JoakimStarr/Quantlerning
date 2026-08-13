@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -103,7 +104,7 @@ const option = computed(() => {
       data: nav.value.slice(0, steps.value).map((v) => +((v / base) * 100).toFixed(1)),
       smooth: true,
       symbol: 'none',
-      lineStyle: { width: 2.2, color: '#d97706' },
+      lineStyle: { width: 2.2, color: C.value.warning },
     })
   }
   return {
@@ -129,7 +130,7 @@ const option = computed(() => {
       <button class="btn" @click="regenerate">重新生成</button>
     </div>
     <p v-if="realVol" class="note">真实茅台 2024 年化波动 = {{ realVol.toFixed(2) }}%（quantlab 库，官方口径）。默认 σ 即取此值——模拟路径与真实净值对比，看「随机游走」能否重现真实走势的统计特征。</p>
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
   </div>
 </template>
 

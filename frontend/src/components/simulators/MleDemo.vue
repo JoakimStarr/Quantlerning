@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -71,20 +72,20 @@ const option = computed(() => ({
       smooth: true,
       symbol: 'none',
       data: curve.value,
-      lineStyle: { width: 3, color: '#2563eb' },
-      areaStyle: { color: 'rgba(37, 99, 235, 0.10)' },
+      lineStyle: { width: 3, color: C.value.primary },
+      areaStyle: { color: withAlpha(C.value.primary, 0.10) },
       markPoint: {
         symbol: 'pin',
         symbolSize: 50,
         label: { fontSize: 11, color: '#fff', formatter: 'MLE' },
         data: [{ coord: [mle.value, maxL.value] }],
-        itemStyle: { color: '#dc2626' },
+        itemStyle: { color: C.value.danger },
       },
       markLine: {
         silent: true,
         symbol: 'none',
-        label: { fontSize: 11, color: '#dc2626', formatter: `p̂ = k/n = ${mle.value.toFixed(2)}` },
-        lineStyle: { color: '#dc2626', type: 'dashed', width: 1.5 },
+        label: { fontSize: 11, color: C.value.danger, formatter: `p̂ = k/n = ${mle.value.toFixed(2)}` },
+        lineStyle: { color: C.value.danger, type: 'dashed', width: 1.5 },
         data: [{ xAxis: mle.value }],
       },
     },
@@ -94,7 +95,7 @@ const option = computed(() => ({
 
 <template>
   <div class="mle">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

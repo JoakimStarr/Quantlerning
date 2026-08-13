@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
@@ -45,7 +46,7 @@ const barOption = computed(() => ({
       barMaxWidth: 60,
       data: factors.value.map((f) => ({
         value: +f.value.toFixed(2),
-        itemStyle: { color: '#2563eb' },
+        itemStyle: { color: C.value.primary },
       })),
       label: { show: true, position: 'top', fontSize: 11, formatter: (p: any) => p.value.toFixed(2) },
     },
@@ -78,7 +79,7 @@ const sensOption = computed(() => ({
       smooth: true,
       symbol: 'none',
       data: sensData.value,
-      lineStyle: { width: 2.5, color: '#2563eb' },
+      lineStyle: { width: 2.5, color: C.value.primary },
       markLine: {
         silent: true,
         symbol: 'none',
@@ -107,8 +108,8 @@ const sensOption = computed(() => ({
       </div>
     </div>
 
-    <VChart class="chart" :option="barOption" autoresize />
-    <VChart class="chart" :option="sensOption" autoresize />
+    <ThemedChart class="chart" :option="barOption" autoresize />
+    <ThemedChart class="chart" :option="sensOption" autoresize />
 
     <div class="controls">
       <div class="control-row">

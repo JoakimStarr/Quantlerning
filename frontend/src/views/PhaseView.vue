@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowRight, Check } from 'lucide-vue-next'
 import { fetchCourses } from '@/api'
 import { isCompleted } from '@/stores/progress'
-import { chapterLabel } from '@/utils/chapter'
+import { chapterLabel, PHASE_STATUS as phaseStatus } from '@/utils/chapter'
 import AppSpinner from '@/components/common/AppSpinner.vue'
 import AppError from '@/components/common/AppError.vue'
 
@@ -17,13 +17,6 @@ const error = ref('')
 
 const phaseNum = computed(() => Number(route.params.phase))
 const phase = computed(() => phases.value.find((p) => p.phase === phaseNum.value))
-
-const phaseStatus: Record<string, { label: string; cls: string }> = {
-  prereq: { label: '前置知识', cls: 'badge' },
-  completed: { label: '已完成', cls: 'badge badge-success' },
-  in_progress: { label: '进行中', cls: 'badge badge-primary' },
-  planned: { label: '计划中', cls: 'badge' },
-}
 
 async function load() {
   loading.value = true
@@ -83,7 +76,7 @@ function goLesson(id: string) {
 </template>
 
 <style scoped>
-.page { max-width: 860px; margin: 0 auto; }
+.page { max-width: 960px; margin: 0 auto; }
 .status { padding: 40px; text-align: center; }
 
 .phase-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 28px; }

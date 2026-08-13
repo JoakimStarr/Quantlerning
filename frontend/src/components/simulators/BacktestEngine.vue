@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -78,7 +79,7 @@ const option = computed(() => {
         data: c.arr.closes.map((v, i) => [c.arr.dates[i], v]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.3, color: '#2563eb' },
+        lineStyle: { width: 1.3, color: C.value.primary },
       },
       {
         name: '持仓',
@@ -88,8 +89,8 @@ const option = computed(() => {
         data: c.pos.map((v, i) => [c.arr.dates[i], v]),
         symbol: 'none',
         step: 'end',
-        lineStyle: { width: 2, color: '#0891b2' },
-        areaStyle: { color: 'rgba(8, 145, 178, 0.12)' },
+        lineStyle: { width: 2, color: C.value.cyan },
+        areaStyle: { color: withAlpha(C.value.cyan, 0.12) },
       },
       {
         name: '策略净值',
@@ -99,7 +100,7 @@ const option = computed(() => {
         data: c.nav.map((v, i) => [c.arr.dates[i], +v.toFixed(1)]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 2, color: '#d97706' },
+        lineStyle: { width: 2, color: C.value.warning },
       },
       {
         name: '买入持有',
@@ -109,7 +110,7 @@ const option = computed(() => {
         data: c.buyNav.map((v, i) => [c.arr.dates[i], +v.toFixed(1)]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.2, color: '#64748b', type: 'dashed' },
+        lineStyle: { width: 1.2, color: C.value.slateStrong, type: 'dashed' },
       },
     ],
   }
@@ -121,7 +122,7 @@ const option = computed(() => {
     <div v-if="loading" class="status">数据加载中…</div>
     <div v-else-if="error" class="status">数据不可用</div>
     <template v-else-if="com">
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="controls">
         <div class="control-row">
           <span class="control-label">快线 MA</span>

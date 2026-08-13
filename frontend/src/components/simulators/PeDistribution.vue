@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart } from 'echarts/charts'
@@ -50,9 +51,9 @@ const option = computed(() => {
   const { visible } = truncated.value
   const marks: any[] = []
   if (dist.value.median !== null)
-    marks.push({ xAxis: dist.value.median, label: { formatter: `中位数 ${dist.value.median}`, position: 'insideEndTop' }, lineStyle: { color: '#2563eb', type: 'dashed' } })
+    marks.push({ xAxis: dist.value.median, label: { formatter: `中位数 ${dist.value.median}`, position: 'insideEndTop' }, lineStyle: { color: C.value.primary, type: 'dashed' } })
   if (dist.value.p90 !== null)
-    marks.push({ xAxis: dist.value.p90, label: { formatter: `90分位 ${dist.value.p90}`, position: 'insideEndTop' }, lineStyle: { color: '#dc2626', type: 'dashed' } })
+    marks.push({ xAxis: dist.value.p90, label: { formatter: `90分位 ${dist.value.p90}`, position: 'insideEndTop' }, lineStyle: { color: C.value.danger, type: 'dashed' } })
   return {
     animation: true,
     grid: { left: 52, right: 24, top: 36, bottom: 56 },
@@ -66,7 +67,7 @@ const option = computed(() => {
         type: 'bar',
         data: visible.map((b) => [b.lo, b.count]),
         barWidth: '90%',
-        itemStyle: { color: '#2563eb', opacity: 0.7 },
+        itemStyle: { color: C.value.primary, opacity: 0.7 },
         markLine: marks.length ? { silent: true, symbol: 'none', data: marks } : undefined,
       },
     ],
@@ -101,7 +102,7 @@ const option = computed(() => {
           <strong class="result-value warn">{{ truncated.negCount }} 只</strong>
         </div>
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="tip">
         分布严重右偏：一半股票 PE 低于中位数，但尾部拖到 100+；另有 {{ truncated.negCount }} 只亏损股（PE 为负或缺失）。所以判断个股贵贱要用「分位」，不能孤立看 PE=30。
       </div>
@@ -118,8 +119,8 @@ const option = computed(() => {
 .result-label { font-size: 12px; color: var(--text-3); }
 .result-value { font-size: 18px; font-weight: 700; }
 .result-value.primary { color: var(--primary); }
-.result-value.red { color: #dc2626; }
-.result-value.warn { color: #d97706; }
+.result-value.red { color: var(--danger, #dc2626); }
+.result-value.warn { color: var(--warning, #d97706); }
 .result-value.sm { font-size: 15px; color: var(--text-2); font-family: var(--font-mono); }
 .tip { margin-top: 10px; font-size: 12.5px; color: var(--text-3); line-height: 1.7; }
 </style>

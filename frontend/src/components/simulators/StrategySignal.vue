@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -107,12 +108,12 @@ const option = computed(() => {
         data: closes.value.map((v, i) => [dates.value[i], v]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.5, color: '#2563eb' },
-        itemStyle: { color: '#2563eb' },
+        lineStyle: { width: 1.5, color: C.value.primary },
+        itemStyle: { color: C.value.primary },
         markPoint: {
           symbolSize: 46,
           label: { fontSize: 11, color: '#fff' },
-          data: com.value.buyIdx.map((i) => ({ coord: [dates.value[i], closes.value[i]], value: '买', itemStyle: { color: '#16a34a' } })),
+          data: com.value.buyIdx.map((i) => ({ coord: [dates.value[i], closes.value[i]], value: '买', itemStyle: { color: C.value.success } })),
         },
       },
       {
@@ -123,8 +124,8 @@ const option = computed(() => {
         data: f,
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1, color: '#d97706', opacity: 0.9 },
-        itemStyle: { color: '#d97706' },
+        lineStyle: { width: 1, color: C.value.warning, opacity: 0.9 },
+        itemStyle: { color: C.value.warning },
       },
       {
         name: `MA${slow.value}`,
@@ -134,8 +135,8 @@ const option = computed(() => {
         data: s,
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1, color: '#dc2626', opacity: 0.9 },
-        itemStyle: { color: '#dc2626' },
+        lineStyle: { width: 1, color: C.value.danger, opacity: 0.9 },
+        itemStyle: { color: C.value.danger },
       },
       {
         name: '持仓',
@@ -145,9 +146,9 @@ const option = computed(() => {
         data: com.value.pos.map((v, i) => [dates.value[i], v]),
         symbol: 'none',
         step: 'end',
-        lineStyle: { width: 2, color: '#0891b2' },
-        itemStyle: { color: '#0891b2' },
-        areaStyle: { color: 'rgba(8, 145, 178, 0.15)' },
+        lineStyle: { width: 2, color: C.value.cyan },
+        itemStyle: { color: C.value.cyan },
+        areaStyle: { color: withAlpha(C.value.cyan, 0.15) },
       },
     ],
   }
@@ -169,18 +170,18 @@ const posPct = computed(() => {
       <div class="result">
         <div class="result-item">
           <span class="result-label">买点（金叉次日起）</span>
-          <strong class="result-value" style="color: #16a34a">{{ buyCount }}</strong>
+          <strong class="result-value" style="color: var(--success, #16a34a)">{{ buyCount }}</strong>
         </div>
         <div class="result-item">
           <span class="result-label">卖点（死叉次日起）</span>
-          <strong class="result-value" style="color: #dc2626">{{ sellCount }}</strong>
+          <strong class="result-value" style="color: var(--danger, #dc2626)">{{ sellCount }}</strong>
         </div>
         <div class="result-item">
           <span class="result-label">持仓占比</span>
           <strong class="result-value">{{ posPct }}%</strong>
         </div>
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="controls">
         <div class="control-row">
           <span class="control-label">快线 MA</span>

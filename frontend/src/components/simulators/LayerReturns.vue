@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { HeatmapChart } from 'echarts/charts'
@@ -117,7 +117,7 @@ const groupMean = computed(() => {
     <div v-if="loading" class="status">数据加载中…</div>
     <div v-else-if="error" class="status">数据不可用</div>
     <template v-else-if="data">
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="table-wrap">
         <table class="tbl">
           <thead>

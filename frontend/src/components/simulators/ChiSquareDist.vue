@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -99,8 +100,8 @@ const option = computed(() => ({
       smooth: true,
       symbol: 'none',
       data: density.value,
-      lineStyle: { width: 3, color: '#2563eb' },
-      areaStyle: { color: 'rgba(37, 99, 235, 0.10)' },
+      lineStyle: { width: 3, color: C.value.primary },
+      areaStyle: { color: withAlpha(C.value.primary, 0.10) },
       z: 3,
     },
     {
@@ -111,8 +112,8 @@ const option = computed(() => ({
       markLine: {
         silent: true,
         symbol: 'none',
-        label: { fontSize: 11, color: '#dc2626', formatter: `χ²₀.₀₅≈${chiCrit.value}` },
-        lineStyle: { color: '#dc2626', type: 'dashed', width: 1.5 },
+        label: { fontSize: 11, color: C.value.danger, formatter: `χ²₀.₀₅≈${chiCrit.value}` },
+        lineStyle: { color: C.value.danger, type: 'dashed', width: 1.5 },
         data: [{ xAxis: chiCrit.value }],
       },
     },
@@ -124,7 +125,7 @@ const mode = computed(() => Math.max(0, df.value - 2))
 
 <template>
   <div class="chi">
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">

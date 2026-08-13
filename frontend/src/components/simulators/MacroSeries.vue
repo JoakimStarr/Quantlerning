@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -96,12 +97,12 @@ const option = computed(() => {
         symbolSize: 5,
         connectNulls: true,
         data: cpi.value.map((v) => (Number.isNaN(v) ? null : +v.toFixed(1))),
-        lineStyle: { width: 2.5, color: '#2563eb' },
-        itemStyle: { color: '#2563eb' },
+        lineStyle: { width: 2.5, color: C.value.primary },
+        itemStyle: { color: C.value.primary },
         markLine: {
           silent: true,
           symbol: 'none',
-          lineStyle: { color: '#94a3b8', type: 'dashed' },
+          lineStyle: { color: C.value.slate, type: 'dashed' },
           data: [{ yAxis: 0 }],
         },
         markPoint: {
@@ -118,8 +119,8 @@ const option = computed(() => {
         symbolSize: 5,
         connectNulls: true,
         data: ppi.value.map((v) => (Number.isNaN(v) ? null : +v.toFixed(1))),
-        lineStyle: { width: 2.5, color: '#dc2626' },
-        itemStyle: { color: '#dc2626' },
+        lineStyle: { width: 2.5, color: C.value.danger },
+        itemStyle: { color: C.value.danger },
       },
     ],
   }
@@ -137,7 +138,7 @@ const option = computed(() => {
         <span class="chip" v-if="range">区间 CPI <strong>{{ range.cpiMin.toFixed(1) }}% ~ {{ range.cpiMax.toFixed(1) }}%</strong></span>
         <span class="chip" v-if="range">PPI <strong>{{ range.ppiMin.toFixed(1) }}% ~ {{ range.ppiMax.toFixed(1) }}%</strong></span>
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="tip">
         {{ latest?.month }} CPI {{ latest?.cpi.toFixed(1) }}%（{{ latest && latest.cpi > 0 ? '温和正通胀' : '负通胀/通缩' }}）、PPI
         {{ latest?.ppi.toFixed(1) }}%（{{ latest && latest.ppi < 0 ? '工业品通缩' : '工业品扩张' }}）——

@@ -96,7 +96,7 @@ const sections: CheatSection[] = [
 </template>
 
 <style scoped>
-.page { max-width: 900px; margin: 0 auto; }
+.page { max-width: 960px; margin: 0 auto; }
 .page-head { margin-bottom: 24px; }
 .page-head h1 { font-size: 24px; margin-bottom: 4px; }
 .section { margin-bottom: 16px; }

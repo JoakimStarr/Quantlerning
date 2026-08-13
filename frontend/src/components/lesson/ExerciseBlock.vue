@@ -297,7 +297,7 @@ const variantParts = computed(() => {
   margin: 20px 0 8px;
   padding: 16px 18px;
   border: 1px solid var(--border);
-  border-left: 4px solid #7c3aed;
+  border-left: 4px solid var(--violet, #7c3aed);
   border-radius: var(--radius-md);
   background: var(--bg-card);
 }
@@ -305,7 +305,7 @@ const variantParts = computed(() => {
 .exercise-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .exercise-badge {
   font-size: 12px; font-weight: 600; color: #fff;
-  background: #7c3aed; padding: 2px 10px; border-radius: 999px;
+  background: var(--violet, #7c3aed); padding: 2px 10px; border-radius: 999px;
 }
 .exercise-tip { font-size: 12px; color: var(--text-3); }
 
@@ -317,7 +317,7 @@ const variantParts = computed(() => {
   background: var(--bg-hover); border-radius: var(--radius-sm);
   padding: 8px 12px; margin-bottom: 12px;
 }
-.exercise-hint .hint-label { font-weight: 600; color: #7c3aed; }
+.exercise-hint .hint-label { font-weight: 600; color: var(--violet, #7c3aed); }
 .exercise-hint :deep(.katex) { font-size: 1em; }
 
 .answer-box {
@@ -333,13 +333,13 @@ const variantParts = computed(() => {
   font-family: inherit;
   box-sizing: border-box;
 }
-.answer-box:focus { outline: none; border-color: #7c3aed; }
+.answer-box:focus { outline: none; border-color: var(--violet, #7c3aed); }
 .answer-box:disabled { opacity: 0.6; }
 
 .exercise-actions { margin-top: 10px; display: flex; align-items: center; gap: 12px; }
 
 .btn { font-size: 13px; padding: 6px 16px; border-radius: var(--radius-sm); cursor: pointer; border: none; }
-.btn-primary { background: #7c3aed; color: #fff; }
+.btn-primary { background: var(--violet, #7c3aed); color: #fff; }
 .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
 .btn-ghost { background: none; border: 1px solid var(--border); color: var(--text-2); }
 
@@ -369,7 +369,7 @@ const variantParts = computed(() => {
   user-select: none;
 }
 .judge-result-head:hover { background: var(--bg-active); }
-.judge-result-label { color: #7c3aed; }
+.judge-result-label { color: var(--violet, #7c3aed); }
 .collapse-toggle {
   background: none;
   border: none;
@@ -380,7 +380,7 @@ const variantParts = computed(() => {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
 }
-.collapse-toggle:hover { color: #7c3aed; border-color: #7c3aed; }
+.collapse-toggle:hover { color: var(--violet, #7c3aed); border-color: var(--violet, #7c3aed); }
 .judge-result-body {
   padding: 14px;
   font-size: 14px;
@@ -437,8 +437,8 @@ const variantParts = computed(() => {
 .judge-result-body :deep(blockquote) {
   margin: 0 0 8px;
   padding: 6px 10px;
-  border-left: 3px solid #7c3aed;
-  background: color-mix(in srgb, #7c3aed 8%, transparent);
+  border-left: 3px solid var(--violet, #7c3aed);
+  background: color-mix(in srgb, var(--violet, #7c3aed) 8%, transparent);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 .judge-result-body :deep(.katex) { font-size: 1em; }
@@ -458,13 +458,13 @@ const variantParts = computed(() => {
 .fu-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; max-height: 320px; overflow-y: auto; }
 .fu-item { display: flex; flex-direction: column; gap: 3px; }
 .fu-role { font-size: 11px; color: var(--text-3); font-weight: 600; }
-.fu-item.user .fu-role { color: #7c3aed; }
+.fu-item.user .fu-role { color: var(--violet, #7c3aed); }
 .fu-bubble {
   font-size: 13.5px; line-height: 1.7; color: var(--text-1);
   background: var(--bg-hover); border-radius: var(--radius-sm);
   padding: 8px 12px;
 }
-.fu-bubble.user { background: color-mix(in srgb, #7c3aed 10%, transparent); white-space: pre-wrap; }
+.fu-bubble.user { background: color-mix(in srgb, var(--violet, #7c3aed) 10%, transparent); white-space: pre-wrap; }
 .fu-bubble :deep(p) { margin: 0 0 8px; }
 .fu-bubble :deep(p:last-child) { margin-bottom: 0; }
 .fu-bubble :deep(strong) { font-weight: 600; }
@@ -498,8 +498,8 @@ const variantParts = computed(() => {
 .fu-bubble :deep(blockquote) {
   margin: 0 0 8px;
   padding: 6px 10px;
-  border-left: 3px solid #7c3aed;
-  background: color-mix(in srgb, #7c3aed 8%, transparent);
+  border-left: 3px solid var(--violet, #7c3aed);
+  background: color-mix(in srgb, var(--violet, #7c3aed) 8%, transparent);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 .fu-bubble :deep(.katex) { font-size: 1em; }
@@ -514,7 +514,7 @@ const variantParts = computed(() => {
   font-size: 13px;
   font-family: inherit;
 }
-.fu-input input:focus { outline: none; border-color: #7c3aed; }
+.fu-input input:focus { outline: none; border-color: var(--violet, #7c3aed); }
 .fu-input input:disabled { opacity: 0.6; }
 
 /* 变式练习 */
@@ -525,7 +525,7 @@ const variantParts = computed(() => {
   padding: 14px;
   background: var(--bg-card);
 }
-.variant-head { font-size: 13px; font-weight: 600; color: #7c3aed; margin-bottom: 10px; }
+.variant-head { font-size: 13px; font-weight: 600; color: var(--violet, #7c3aed); margin-bottom: 10px; }
 .variant-question { font-size: 14px; line-height: 1.75; color: var(--text-1); }
 .variant-question :deep(.katex) { font-size: 1em; }
 .variant-question :deep(p) { margin: 0 0 8px; }
@@ -561,12 +561,12 @@ const variantParts = computed(() => {
 .variant-question :deep(blockquote) {
   margin: 0 0 8px;
   padding: 6px 10px;
-  border-left: 3px solid #7c3aed;
-  background: color-mix(in srgb, #7c3aed 8%, transparent);
+  border-left: 3px solid var(--violet, #7c3aed);
+  background: color-mix(in srgb, var(--violet, #7c3aed) 8%, transparent);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 .variant-answer { margin-top: 12px; font-size: 13.5px; }
-.variant-answer summary { cursor: pointer; color: #7c3aed; font-weight: 600; margin-bottom: 6px; }
+.variant-answer summary { cursor: pointer; color: var(--violet, #7c3aed); font-weight: 600; margin-bottom: 6px; }
 .variant-answer :deep(p) { margin: 0 0 8px; line-height: 1.7; }
 .variant-answer :deep(p:last-child) { margin-bottom: 0; }
 .variant-answer :deep(strong) { font-weight: 600; }
@@ -600,8 +600,8 @@ const variantParts = computed(() => {
 .variant-answer :deep(blockquote) {
   margin: 0 0 8px;
   padding: 6px 10px;
-  border-left: 3px solid #7c3aed;
-  background: color-mix(in srgb, #7c3aed 8%, transparent);
+  border-left: 3px solid var(--violet, #7c3aed);
+  background: color-mix(in srgb, var(--violet, #7c3aed) 8%, transparent);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 .variant-answer :deep(.katex) { font-size: 1em; }

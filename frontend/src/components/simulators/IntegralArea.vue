@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -64,11 +65,11 @@ const METHOD_LABELS: Record<Method, string> = {
   simp: '辛普森法',
 }
 const METHOD_COLORS: Record<Method, string> = {
-  left: '#2563eb',
-  right: '#0ea5e9',
-  mid: '#0891b2',
-  trap: '#d97706',
-  simp: '#7c3aed',
+  left: C.value.primary,
+  right: C.value.cyan,
+  mid: C.value.cyan,
+  trap: C.value.warning,
+  simp: C.value.violet,
 }
 
 // 主图视口：围绕区间 [a,b]，留一点曲线弯曲的上下文
@@ -333,7 +334,7 @@ const mainOption = computed(() => {
         name: '分割线',
         data: partitionSegs.value,
         symbol: 'none',
-        lineStyle: { width: 1, color: '#94a3b8', type: 'dashed', opacity: 0.6 },
+        lineStyle: { width: 1, color: C.value.slate, type: 'dashed', opacity: 0.6 },
         silent: true,
         z: 1,
       },
@@ -343,14 +344,14 @@ const mainOption = computed(() => {
         data: curve.value,
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 2.5, color: '#2563eb' },
-        itemStyle: { color: '#2563eb' },
+        lineStyle: { width: 2.5, color: C.value.primary },
+        itemStyle: { color: C.value.primary },
         markLine: {
           silent: true,
           symbol: 'none',
           data: [
-            { xAxis: a.value, name: 'a', lineStyle: { color: '#dc2626', type: 'dashed', width: 1.2 }, label: { formatter: 'a', position: 'insideEndTop', fontSize: 10, color: '#dc2626' } },
-            { xAxis: b.value, name: 'b', lineStyle: { color: '#dc2626', type: 'dashed', width: 1.2 }, label: { formatter: 'b', position: 'insideEndTop', fontSize: 10, color: '#dc2626' } },
+            { xAxis: a.value, name: 'a', lineStyle: { color: C.value.danger, type: 'dashed', width: 1.2 }, label: { formatter: 'a', position: 'insideEndTop', fontSize: 10, color: C.value.danger } },
+            { xAxis: b.value, name: 'b', lineStyle: { color: C.value.danger, type: 'dashed', width: 1.2 }, label: { formatter: 'b', position: 'insideEndTop', fontSize: 10, color: C.value.danger } },
           ],
         },
         z: 3,
@@ -402,8 +403,8 @@ const convergeOption = computed(() => {
             : {
                 silent: true,
                 symbol: 'none',
-                lineStyle: { color: '#16a34a', type: 'dashed', width: 1.2 },
-                label: { formatter: '∫ₐᵇ f(x)dx', position: 'insideEndTop', fontSize: 10, color: '#16a34a' },
+                lineStyle: { color: C.value.success, type: 'dashed', width: 1.2 },
+                label: { formatter: '∫ₐᵇ f(x)dx', position: 'insideEndTop', fontSize: 10, color: C.value.success },
                 data: [{ yAxis: exact }],
               },
         markPoint:
@@ -466,7 +467,7 @@ const methodFormulaHtml = computed(() => {
     <div v-if="methodFormulaHtml" class="formula-bar method-formula" v-html="methodFormulaHtml"></div>
 
     <!-- 主图：分割 + 求和 -->
-    <VChart class="chart main-chart" :option="mainOption" autoresize />
+    <ThemedChart class="chart main-chart" :option="mainOption" autoresize />
 
     <!-- 收敛曲线：取极限 -->
     <div class="converge-head">
@@ -475,7 +476,7 @@ const methodFormulaHtml = computed(() => {
         {{ playing ? '⏸ 暂停' : '▶ 播放 n 增大' }}
       </button>
     </div>
-    <VChart class="chart converge-chart" :option="convergeOption" autoresize />
+    <ThemedChart class="chart converge-chart" :option="convergeOption" autoresize />
 
     <div class="controls">
       <div class="control-row">
@@ -577,8 +578,8 @@ const methodFormulaHtml = computed(() => {
 .result-box { flex: 1; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--bg-hover); text-align: center; display: flex; flex-direction: column; gap: 2px; }
 .result-box strong { font-size: 15px; }
 .num-primary { color: var(--primary); }
-.num-green { color: #16a34a; }
-.num-red { color: #dc2626; }
+.num-green { color: var(--success, #16a34a); }
+.num-red { color: var(--danger, #dc2626); }
 .muted { font-size: 12px; color: var(--text-3); }
 .hint { margin-top: 8px; font-size: 12px; color: var(--text-3); line-height: 1.7; }
 </style>

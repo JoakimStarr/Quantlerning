@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -78,12 +79,12 @@ const option = computed(() => {
         data: closes.value.map((v, i) => [dates.value[i], v]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.5, color: '#2563eb' },
-        itemStyle: { color: '#2563eb' },
+        lineStyle: { width: 1.5, color: C.value.primary },
+        itemStyle: { color: C.value.primary },
         markLine: {
           silent: true,
           symbol: 'none',
-          lineStyle: { color: '#64748b', type: 'dotted', width: 1 },
+          lineStyle: { color: C.value.slateStrong, type: 'dotted', width: 1 },
           label: { show: false },
           data: lowDate.value ? [{ xAxis: lowDate.value }] : [],
         },
@@ -96,23 +97,23 @@ const option = computed(() => {
         data: rsiVals.value.map((v, i) => [dates.value[i], v]),
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.8, color: '#7c3aed' },
-        itemStyle: { color: '#7c3aed' },
+        lineStyle: { width: 1.8, color: C.value.violet },
+        itemStyle: { color: C.value.violet },
         markLine: {
           silent: true,
           symbol: 'none',
-          label: { fontSize: 10, color: '#94a3b8' },
+          label: { fontSize: 10, color: C.value.slate },
           data: [
-            { yAxis: 70, lineStyle: { color: '#dc2626', type: 'dashed', width: 1 }, label: { formatter: '超买 70' } },
-            { yAxis: 50, lineStyle: { color: '#94a3b8', type: 'dotted', width: 1 } },
-            { yAxis: 30, lineStyle: { color: '#16a34a', type: 'dashed', width: 1 }, label: { formatter: '超卖 30' } },
+            { yAxis: 70, lineStyle: { color: C.value.danger, type: 'dashed', width: 1 }, label: { formatter: '超买 70' } },
+            { yAxis: 50, lineStyle: { color: C.value.slate, type: 'dotted', width: 1 } },
+            { yAxis: 30, lineStyle: { color: C.value.success, type: 'dashed', width: 1 }, label: { formatter: '超卖 30' } },
           ],
         },
         markArea: {
           silent: true,
           data: [
-            [{ yAxis: 100, itemStyle: { color: 'rgba(220, 38, 38, 0.06)' } }, { yAxis: 70 }],
-            [{ yAxis: 30, itemStyle: { color: 'rgba(22, 163, 74, 0.08)' } }, { yAxis: 0 }],
+            [{ yAxis: 100, itemStyle: { color: withAlpha(C.value.danger, 0.06) } }, { yAxis: 70 }],
+            [{ yAxis: 30, itemStyle: { color: withAlpha(C.value.success, 0.08) } }, { yAxis: 0 }],
           ],
         },
       },
@@ -126,7 +127,7 @@ const option = computed(() => {
     <div v-if="loading" class="status">数据加载中…</div>
     <div v-else-if="error" class="status">数据不可用</div>
     <template v-else>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
 
       <div class="controls">
         <div class="control-row">

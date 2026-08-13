@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -68,19 +69,19 @@ const option = computed(() => {
         data: price,
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 1.5, color: '#2563eb' },
+        lineStyle: { width: 1.5, color: C.value.primary },
         markPoint: {
           symbolSize: 40,
           label: { fontSize: 10, color: '#fff' },
           data: [
-            ...com.value.touchLow.map((i) => ({ coord: [dates0[i], closes.value[i]], value: '触下轨', itemStyle: { color: '#16a34a' } })),
-            ...com.value.touchHigh.map((i) => ({ coord: [dates0[i], closes.value[i]], value: '触上轨', itemStyle: { color: '#dc2626' } })),
+            ...com.value.touchLow.map((i) => ({ coord: [dates0[i], closes.value[i]], value: '触下轨', itemStyle: { color: C.value.success } })),
+            ...com.value.touchHigh.map((i) => ({ coord: [dates0[i], closes.value[i]], value: '触上轨', itemStyle: { color: C.value.danger } })),
           ],
         },
       },
-      { name: '中轨', type: 'line', data: band(com.value.mid), symbol: 'none', lineStyle: { width: 1, color: '#64748b', type: 'dashed' } },
-      { name: '上轨', type: 'line', data: band(com.value.upper), symbol: 'none', lineStyle: { width: 1, color: '#dc2626', opacity: 0.7 } },
-      { name: '下轨', type: 'line', data: band(com.value.lower), symbol: 'none', lineStyle: { width: 1, color: '#16a34a', opacity: 0.7 } },
+      { name: '中轨', type: 'line', data: band(com.value.mid), symbol: 'none', lineStyle: { width: 1, color: C.value.slateStrong, type: 'dashed' } },
+      { name: '上轨', type: 'line', data: band(com.value.upper), symbol: 'none', lineStyle: { width: 1, color: C.value.danger, opacity: 0.7 } },
+      { name: '下轨', type: 'line', data: band(com.value.lower), symbol: 'none', lineStyle: { width: 1, color: C.value.success, opacity: 0.7 } },
     ],
   }
 })
@@ -101,14 +102,14 @@ const touchHighCount = computed(() => com.value?.touchHigh.length ?? 0)
         </div>
         <div class="result-item">
           <span class="result-label">跌破下轨次数</span>
-          <strong class="result-value" style="color: #16a34a">{{ touchLowCount }}</strong>
+          <strong class="result-value" style="color: var(--success, #16a34a)">{{ touchLowCount }}</strong>
         </div>
         <div class="result-item">
           <span class="result-label">升破上轨次数</span>
-          <strong class="result-value" style="color: #dc2626">{{ touchHighCount }}</strong>
+          <strong class="result-value" style="color: var(--danger, #dc2626)">{{ touchHighCount }}</strong>
         </div>
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
       <div class="controls">
         <div class="control-row">
           <span class="control-label">周期 N</span>

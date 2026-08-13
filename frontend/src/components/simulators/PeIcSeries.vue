@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, BarChart } from 'echarts/charts'
@@ -56,7 +57,7 @@ const option = computed(() => {
         type: 'bar',
         data: d.ic.map((v) => +v.toFixed(4)),
         itemStyle: {
-          color: (p: any) => (p.value >= 0 ? '#16a34a' : '#dc2626'),
+          color: (p: any) => (p.value >= 0 ? C.value.success : C.value.danger),
           opacity: 0.65,
         },
         barWidth: '60%',
@@ -66,11 +67,11 @@ const option = computed(() => {
         type: 'line',
         data: d.ic.map(() => d.mean),
         symbol: 'none',
-        lineStyle: { width: 1.5, color: '#2563eb' },
+        lineStyle: { width: 1.5, color: C.value.primary },
         markLine: {
           silent: true,
           symbol: 'none',
-          data: [{ yAxis: 0, lineStyle: { color: '#94a3b8' }, label: { formatter: '0' } }],
+          data: [{ yAxis: 0, lineStyle: { color: C.value.slate }, label: { formatter: '0' } }],
         },
       },
     ],
@@ -89,7 +90,7 @@ const option = computed(() => {
         <span class="chip">IC 标准差 <strong>{{ data.std?.toFixed(3) }}</strong></span>
         <span class="chip">ICIR <strong>{{ data.icir?.toFixed(2) }}</strong></span>
       </div>
-      <VChart class="chart" :option="option" autoresize />
+      <ThemedChart class="chart" :option="option" autoresize />
     </template>
   </div>
 </template>

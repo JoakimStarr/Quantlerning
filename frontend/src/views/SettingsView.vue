@@ -375,7 +375,7 @@ async function test() {
 </template>
 
 <style scoped>
-.settings-page { max-width: 720px; margin: 0 auto; }
+.settings-page { max-width: 960px; margin: 0 auto; }
 .page-title { font-size: 24px; margin-bottom: 8px; }
 .page-desc { color: var(--text-3); font-size: 14px; line-height: 1.7; margin-bottom: 20px; }
 
@@ -451,9 +451,9 @@ async function test() {
 
 .msg-error, .msg-notice, .msg-test { font-size: 13px; padding: 9px 12px; border-radius: var(--radius-sm); line-height: 1.6; }
 .msg-error { color: var(--danger, #dc2626); background: color-mix(in srgb, var(--danger, #dc2626) 8%, transparent); }
-.msg-notice { color: #16a34a; background: rgba(22, 163, 74, 0.08); }
+.msg-notice { color: var(--success, #16a34a); background: color-mix(in srgb, var(--success) 8%, transparent); }
 .msg-test { border: 1px solid var(--border); }
-.msg-test.ok { color: #16a34a; background: rgba(22, 163, 74, 0.06); }
+.msg-test.ok { color: var(--success, #16a34a); background: color-mix(in srgb, var(--success) 6%, transparent); }
 .msg-test.bad { color: var(--danger, #dc2626); background: color-mix(in srgb, var(--danger, #dc2626) 6%, transparent); }
 .test-reply { margin-top: 4px; color: var(--text-2); }
 

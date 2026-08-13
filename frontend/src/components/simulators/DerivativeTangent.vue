@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import VChart from 'vue-echarts'
+import ThemedChart from '@/components/common/ThemedChart.vue'
+import { C } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
@@ -137,15 +138,15 @@ const option = computed(() => {
       data: curve.value,
       smooth: true,
       symbol: 'none',
-      lineStyle: { width: 2.5, color: '#2563eb' },
-      itemStyle: { color: '#2563eb' },
+      lineStyle: { width: 2.5, color: C.value.primary },
+      itemStyle: { color: C.value.primary },
       ...(Number.isFinite(y0.value)
         ? {
             markPoint: {
               symbol: 'pin',
               symbolSize: 30,
               label: { fontSize: 9 },
-              data: [{ name: '切点', coord: [x0.value, y0.value], itemStyle: { color: '#d97706' } }],
+              data: [{ name: '切点', coord: [x0.value, y0.value], itemStyle: { color: C.value.warning } }],
             },
           }
         : {}),
@@ -157,8 +158,8 @@ const option = computed(() => {
       type: 'line',
       data: tangent.value,
       symbol: 'none',
-      lineStyle: { width: 1.8, color: rising ? '#16a34a' : '#dc2626', type: 'dashed' },
-      itemStyle: { color: rising ? '#16a34a' : '#dc2626' },
+      lineStyle: { width: 1.8, color: rising ? C.value.success : C.value.danger, type: 'dashed' },
+      itemStyle: { color: rising ? C.value.success : C.value.danger },
     })
   }
   return {
@@ -227,7 +228,7 @@ const tangentHtml = computed(() => (tangentLatex.value ? renderTex(tangentLatex.
     <!-- 当前函数公式（katex 渲染） -->
     <div v-if="formulaHtml" class="formula-bar" v-html="formulaHtml"></div>
 
-    <VChart class="chart" :option="option" autoresize />
+    <ThemedChart class="chart" :option="option" autoresize />
 
     <div class="controls">
       <div class="control-row">
@@ -334,8 +335,8 @@ const tangentHtml = computed(() => (tangentLatex.value ? renderTex(tangentLatex.
 .result-row { display: flex; gap: 10px; margin-top: 8px; }
 .result-box { flex: 1; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--bg-hover); text-align: center; display: flex; flex-direction: column; gap: 2px; }
 .result-box strong { font-size: 16px; }
-.num-green { color: #16a34a; }
-.num-red { color: #dc2626; }
+.num-green { color: var(--success, #16a34a); }
+.num-red { color: var(--danger, #dc2626); }
 .muted { font-size: 12px; color: var(--text-3); }
 .hint { margin-top: 8px; font-size: 12px; color: var(--text-3); line-height: 1.7; }
 </style>
