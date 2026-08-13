@@ -46,7 +46,7 @@ frontend/
 
 ## 课程体系
 
-见 [PLAN.md](PLAN.md) — Phase 0~6 共 62 课。
+见 [PLAN.md](PLAN.md) — Phase 0~6 共 55 课。
 
 ## 里程碑
 

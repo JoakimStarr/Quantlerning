@@ -182,7 +182,7 @@ Q: 题目正文（Markdown/LaTeX）
 - M3 ✅ 第三章因子内容与可视化（7 课 + ic_distribution / factor_ic / layer_returns / industry_pe / factor_backtest_dashboard）
 - M4 ✅ 第四章衍生品内容与可视化（7 课 + random_walk / bs_price_slider / binomial_tree / monte_carlo_pricing / var_simulator）
 - M5 ✅ 第五章 ML 内容与可视化（8 课 + label_design / overfit_demo / feature_importance / ml_backtest，复用 gradient_field 讲梯度下降）
-- M6 🚧 第六章组合优化与实盘（6 课已写 + 5 模拟器已完成：frontier / risk_parity / black_litterman / pair_trading / portfolio_risk；剩余 4 课待补）
+- M6 ✅ 第六章组合优化与实盘（6 课 + 5 模拟器：frontier / risk_parity / black_litterman / pair_trading / portfolio_risk）
 
 ### 第四章真实锚点（模型 + 真实数据）
 

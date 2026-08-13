@@ -117,7 +117,7 @@ COURSES = [
         "phase": 6,
         "title": "组合优化 + 实盘",
         "subtitle": "马科维茨 / 风险平价 / Black-Litterman / 统计套利 / 实盘",
-        "status": "in_progress",
+        "status": "completed",
         "weeks": "持续",
         "lessons": [
             {"id": "p6-l1", "title": "组合优化：马科维茨、风险平价与 Black-Litterman", "concepts": ["有效前沿", "最小方差", "波动率平价", "观点融合"]},
