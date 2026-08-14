@@ -57,6 +57,9 @@ function goLesson(id: string) {
         <span :class="phaseStatus[phase.status]?.cls || 'badge'">{{ phaseStatus[phase.status]?.label || phase.status }}</span>
       </div>
 
+      <!-- 章引言 -->
+      <p v-if="phase.intro" class="phase-intro">{{ phase.intro }}</p>
+
       <!-- 课程列表 -->
       <div class="lesson-list">
         <div v-for="(l, i) in phase.lessons" :key="l.id" class="lesson-item" :class="{ done: isCompleted(l.id) }" @click="goLesson(l.id)">
@@ -85,6 +88,12 @@ function goLesson(id: string) {
 .link-btn:hover { text-decoration: underline; }
 .sep { margin: 0 4px; }
 .phase-head h1 { font-size: 24px; margin-bottom: 4px; }
+
+.phase-intro {
+  font-size: 15px; color: var(--text-2); line-height: 1.8;
+  border-left: 3px solid var(--primary); padding-left: 14px;
+  margin: 0 0 24px;
+}
 
 .lesson-list { display: flex; flex-direction: column; gap: 10px; }
 .lesson-item {

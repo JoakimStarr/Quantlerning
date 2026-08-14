@@ -17,6 +17,7 @@ async def list_courses():
             "subtitle": p["subtitle"],
             "status": p["status"],
             "weeks": p["weeks"],
+            "intro": p.get("intro", ""),
             "lessons": p["lessons"],
         }
         for p in COURSES
