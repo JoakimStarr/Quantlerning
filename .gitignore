@@ -30,6 +30,3 @@ vite.config.d.ts
 /tmp/
 .DS_Store
 *.swp
-
-# 数据导出产物（体积大，不入库；用 scripts/export_sample.py 重新生成）
-/data/*.sql.gz
