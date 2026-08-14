@@ -393,7 +393,7 @@ export function mlxStats(ret: number[], pos: number[]): MlxStats {
   const posMean = n > 0 ? pos.slice(1).reduce((a, b) => a + b, 0) / n : 0
   let switches = 0
   for (let i = 1; i < n; i++) if (pos[i] !== pos[i - 1]) switches++
-  return { cum, ann, vol, mdd, sharpe: (ann - 0.02) / vol, posMean, switches }
+  return { cum, ann, vol, mdd, sharpe: vol > 0 ? (ann - 0.02) / vol : 0, posMean, switches }
 }
 
 /** 预测概率 → 仓位（阈值化或按概率缩放） */

@@ -25,7 +25,8 @@ const FASTS = [5, 10, 15, 20, 30, 40, 60]
 const SLOWS = [20, 30, 40, 60, 90, 120, 180]
 
 function annFromNav(last: number, n: number): number {
-  return last ** (252 / n) - 1
+  // 净值以 100 为起点，几何年化须先归一为 1+累计：((last/100)^(252/n) − 1)
+  return (last / 100) ** (252 / n) - 1
 }
 
 const com = computed(() => {

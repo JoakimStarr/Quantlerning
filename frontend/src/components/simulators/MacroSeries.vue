@@ -133,15 +133,15 @@ const option = computed(() => {
     <div v-else-if="error" class="status">数据不可用</div>
     <template v-else-if="dates.length">
       <div class="stats">
-        <span class="chip" v-if="latest">最新（{{ latest.month }}）CPI <strong>{{ latest.cpi.toFixed(1) }}%</strong></span>
-        <span class="chip" v-if="latest">PPI <strong>{{ latest.ppi.toFixed(1) }}%</strong></span>
+        <span class="chip" v-if="latest && !Number.isNaN(latest.cpi)">最新（{{ latest.month }}）CPI <strong>{{ latest.cpi.toFixed(1) }}%</strong></span>
+        <span class="chip" v-if="latest && !Number.isNaN(latest.ppi)">PPI <strong>{{ latest.ppi.toFixed(1) }}%</strong></span>
         <span class="chip" v-if="range">区间 CPI <strong>{{ range.cpiMin.toFixed(1) }}% ~ {{ range.cpiMax.toFixed(1) }}%</strong></span>
         <span class="chip" v-if="range">PPI <strong>{{ range.ppiMin.toFixed(1) }}% ~ {{ range.ppiMax.toFixed(1) }}%</strong></span>
       </div>
       <ThemedChart class="chart" :option="option" autoresize />
-      <div class="tip">
-        {{ latest?.month }} CPI {{ latest?.cpi.toFixed(1) }}%（{{ latest && latest.cpi > 0 ? '温和正通胀' : '负通胀/通缩' }}）、PPI
-        {{ latest?.ppi.toFixed(1) }}%（{{ latest && latest.ppi < 0 ? '工业品通缩' : '工业品扩张' }}）——
+      <div class="tip" v-if="latest && !Number.isNaN(latest.cpi) && !Number.isNaN(latest.ppi)">
+        {{ latest.month }} CPI {{ latest.cpi.toFixed(1) }}%（{{ latest.cpi > 0 ? '温和正通胀' : '负通胀/通缩' }}）、PPI
+        {{ latest.ppi.toFixed(1) }}%（{{ latest.ppi < 0 ? '工业品通缩' : '工业品扩张' }}）——
         这种「生产端偏弱、需求端温和」的组合对应宽松预期，推动利率下行、支撑资产估值（p1-l8 主线逻辑）。
       </div>
     </template>

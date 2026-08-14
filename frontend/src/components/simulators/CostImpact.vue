@@ -30,20 +30,21 @@ const com = computed(() => {
   if (!data.value) return null
   const arr = backtestArrays(data.value)
   const pos = shiftPosition(maCrossSignal(arr.closes, fast.value, slow.value))
-  // 成本：每次持仓切换按开盘价成交，单边成本 bp（万分比）
+  // 成本：每次持仓切换按单边成本 bp（万分比）扣费
   const cost = bp.value / 10000
-  const netRet = arr.ret.map((r, i) => {
-    const turnover = i > 0 ? Math.abs(pos[i] - pos[i - 1]) : 0 // 0/1 全仓切换
-    const costHit = i > 0 ? arr.ret.slice(0, i).reduce((s) => s, 0) * 0 : 0
-    void costHit
-    // 切换到满仓需付买入成本，切到空仓需付卖出成本，方向与 turnover 相关
-    return r * pos[i] - turnover * cost
-  })
-  const nav = strategyNav(netRet, pos)
+  // 零成本净值与统计
   const zeroNav = strategyNav(arr.ret, pos)
   const zeroSt = stats(arr.ret, pos)
-  const st = stats(netRet, pos)
-  return { arr, pos, nav, zeroNav, zeroSt, st, cost }
+  // 含成本净值：0→1 买入、1→0 卖出都扣费。卖出日 pos=0，若把成本并入
+  // netRet 再交给 strategyNav（内部再乘 pos）会把卖出成本归零，故此处直接逐日累乘。
+  const netNav: number[] = [100]
+  for (let i = 1; i < arr.ret.length; i++) {
+    const turnover = Math.abs(pos[i] - pos[i - 1])
+    const net = arr.ret[i] * pos[i] - turnover * cost
+    netNav.push(Number((netNav[i - 1] * (1 + net)).toFixed(4)))
+  }
+  const netCum = netNav[netNav.length - 1] / 100 - 1
+  return { arr, pos, nav: netNav, zeroNav, zeroSt, st: { cum: netCum }, cost }
 })
 
 const option = computed(() => {

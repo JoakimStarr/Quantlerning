@@ -8,6 +8,7 @@ import { LineChart, ScatterChart, BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent } from 'echarts/components'
 import { usePortfolioDaily } from '@/composables/usePortfolioDaily'
 import { cointegrationTest, pairTradingSignal, spreadNav } from '@/utils/portfolio'
+import { shiftPosition } from '@/utils/strategies'
 import { mlxStats } from '@/utils/ml'
 
 use([CanvasRenderer, LineChart, ScatterChart, BarChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent])
@@ -41,7 +42,8 @@ const analysis = computed(() => {
   const p2 = closes.value.map((row) => row[1]).filter((v) => !isNaN(v))
   const n = Math.min(p1.length, p2.length)
   const ci = cointegrationTest(p1.slice(0, n), p2.slice(0, n))
-  const sig = pairTradingSignal(ci.zscore, entry.value, exit.value)
+  // 信号次日生效（杜绝当日成交的前视）：shiftPosition 把 t 日信号挪到 t+1 日持仓
+  const sig = shiftPosition(pairTradingSignal(ci.zscore, entry.value, exit.value))
   const r1 = returns.value.slice(0, n).map((row) => row[0])
   const r2 = returns.value.slice(0, n).map((row) => row[1])
   const spreadRet = r1.map((v, i) => r2[i] - ci.beta * v)

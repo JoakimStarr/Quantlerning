@@ -5,6 +5,7 @@ import { mean, std } from './ml'
 // ---------- 基础统计 ----------
 export function covarianceMatrix(rets: number[][]): number[][] {
   // rets: [date][stock]
+  if (!rets.length || !rets[0] || !rets[0].length) return []
   const nStocks = rets[0].length
   const n = rets.length
   const means = Array.from({ length: nStocks }, (_, j) => mean(rets.map((r) => r[j])))
@@ -33,6 +34,7 @@ export function correlationMatrix(cov: number[][]): number[][] {
 }
 
 export function annualReturns(dailyRets: number[][], periods = 252): number[] {
+  if (!dailyRets.length || !dailyRets[0]) return []
   const nStocks = dailyRets[0].length
   return Array.from({ length: nStocks }, (_, j) => {
     const r = dailyRets.map((row) => row[j])

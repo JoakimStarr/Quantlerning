@@ -11,18 +11,22 @@ import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 const KEY_PHASE: Record<string, number> = {
   // Phase 0 前言：数学基础
   derivative_tangent: 0, gradient_field: 0, integral_area: 0, num_integration: 0, matrix_transform: 0, eigen_demo: 0,
-  linear_approx: 0, concavity_demo: 0, taylor_series: 0,
+  linear_approx: 0, concavity_demo: 0, taylor_series: 0, gradient_descent: 0,
   venn_diagram: 0, normal_dist: 0, distribution_explorer: 0, bayes_update: 0, law_of_large_numbers: 0,
   confidence_interval: 0, sampling_dist: 0, mle_demo: 0, p_value: 0, chi_square: 0, regression_fit: 0,
-  feature_pipeline: 0,
+  feature_pipeline: 0, code_sandbox: 0, binomial_dist: 0,
   // Phase 1 金融市场
   discount_curve: 1, bond_duration: 1, ddm_valuation: 1, capm_sml: 1, real_vs_log: 1, vol_cluster: 1,
   pe_distribution: 1, compound_growth: 1, sharpe_simulator: 1, mdd_simulator: 1, macd_simulator: 1, rsi_simulator: 1,
+  compounding_frequency: 1, npv_cashflows: 1, convexity_demo: 1, yield_curve: 1, beta_regression: 1,
+  macro_series: 1, dupont_demo: 1,
   // Phase 2 策略与回测
   strategy_signal: 2, trend_follow: 2, bollinger_bands: 2, momentum: 2, backtest_engine: 2,
   strategy_compare: 2, cost_impact: 2, lookahead: 2, parameter_landscape: 2,
+  strategy_correlation: 2, multiple_testing: 2,
   // Phase 3 因子
   ic_distribution: 3, factor_ic: 3, layer_returns: 3, industry_pe: 3, factor_backtest_dashboard: 3,
+  factor_corr: 3, barra_attribution: 3,
   // Phase 4 衍生品
   random_walk: 4, bs_price_slider: 4, binomial_tree: 4, monte_carlo_pricing: 4, var_simulator: 4,
   // Phase 5 ML

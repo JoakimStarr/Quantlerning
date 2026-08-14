@@ -94,6 +94,11 @@ const registry = {
     desc: '拖动 μ/σ，观察密度曲线与 ±1/2/3σ 区间（68-95-99.7）',
     comp: markRaw(defineAsyncComponent(() => import('../simulators/NormalDist.vue'))),
   },
+  binomial_dist: {
+    title: '二项分布',
+    desc: '拖动 n/p，看概率柱状图与正态逼近（中心极限定理雏形）',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/BinomialDist.vue'))),
+  },
   venn_diagram: {
     title: '文氏图',
     desc: '拖动 P(A)/P(B)/P(A∩B)，观察各区域概率与互斥/独立',

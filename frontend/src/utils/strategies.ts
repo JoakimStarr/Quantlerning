@@ -163,7 +163,7 @@ export function stats(ret: number[], pos: number[]): StrategyStats {
     ann,
     vol,
     mdd,
-    sharpe: (ann - 0.02) / vol,
+    sharpe: vol > 0 ? (ann - 0.02) / vol : 0,
     posMean,
     switches,
   }
