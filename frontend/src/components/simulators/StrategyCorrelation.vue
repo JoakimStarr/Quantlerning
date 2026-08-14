@@ -100,7 +100,7 @@ const combo = computed<{ nav: number[]; st: ReturnType<typeof stats> } | null>((
   // 组合日收益
   const ret = nav.map((_, i) => (i === 0 ? 0 : nav[i] / nav[i - 1] - 1))
   const cum = nav[nav.length - 1] / 100 - 1
-  const ann = (1 + cum) ** (252 / ret.length) - 1
+  const ann = (1 + cum) ** (252 / (ret.length - 1)) - 1
   const vol = Math.sqrt(252) * std(ret.filter((_, i) => i > 0))
   const sharpe = (ann - 0.02) / vol
   let peak = 0

@@ -55,7 +55,7 @@ const option = computed(() => {
         return parts.join('<br/>')
       },
     },
-    legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', '策略净值', '买入持有', '过去 20 日收益'] },
+    legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', '策略净值', '买入持有', '过去收益'] },
     grid: [
       { left: 52, right: 24, top: 40, height: '58%' },
       { left: 52, right: 24, top: '72%', height: '16%' },
