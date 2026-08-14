@@ -20,7 +20,31 @@
 - 前端: http://localhost:5173
 - 后端 API 文档: http://localhost:8100/docs
 
-> 依赖：PostgreSQL（quantlab 库，只读）、Python 3.11（`.venv`）、Node.js
+> 依赖：PostgreSQL、Python 3.11（`.venv`）、Node.js
+
+### 数据：用最小数据集（推荐）
+
+站点依赖真实 A 股数据。**不需要连接原始 quantlab 库**——用导出的最小数据集即可跑通全部课程、模拟器与代码沙箱：
+
+```bash
+# 1. 建库并导入（约 80MB，含 5 只核心股全历史 + 800 只横截面股票池 + 宏观/因子/回测数据）
+createdb quantlab
+gunzip -c data/quantlerning_sample.sql.gz | psql -d quantlab
+
+# 2. 配置连接（backend/.env）
+#    POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB=quantlab / POSTGRES_HOST / POSTGRES_PORT
+
+# 3. 启动
+./start.sh
+```
+
+数据范围与口径见 [scripts/export_sample.py](scripts/export_sample.py)。若你有完整 quantlab 库，也可跳过导入直接使用。
+
+### 重新生成数据集（维护者）
+
+```bash
+python scripts/export_sample.py --universe 800   # 输出 data/quantlerning_sample.sql.gz
+```
 
 ## 端口规划（避免冲突）
 
