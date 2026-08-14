@@ -7,7 +7,14 @@ export interface StrategyStats {
   ann: number // 年化收益
   vol: number // 年化波动
   mdd: number // 最大回撤（负值）
-  sharpe: number // Sharp(rf=2%)
+  sharpe: number // Sharpe(rf=2%)
+  sortino: number // Sortino(rf=2%)：只惩罚下行波动
+  calmar: number // Calmar：每单位最大回撤换来的年化收益
+  underwaterDays: number // 水下期间：净值连续低于峰值的最大天数
+  winRate: number // 胜率（0~1）：盈利交易占比
+  profitLossRatio: number // 盈亏比：平均盈利/平均亏损（绝对值）
+  turnover: number // 年化换手率：|Δpos| 日均 ×252
+  trades: number // 完整往返交易次数
   posMean: number // 平均持仓
   switches: number // 信号切换次数
 }
@@ -158,12 +165,69 @@ export function stats(ret: number[], pos: number[]): StrategyStats {
   for (let i = 1; i < n; i++) {
     if (pos[i] !== pos[i - 1]) switches++
   }
+  // Sortino：下行波动 = sqrt(mean(min(r,0)^2)) ×√252，只惩罚亏损日
+  const downDev =
+    Math.sqrt(stratRet.reduce((a, x) => a + Math.min(x, 0) ** 2, 0) / stratRet.length) * Math.sqrt(252)
+  const sortino = downDev > 0 ? (ann - 0.02) / downDev : 0
+  // Calmar：年化 / |最大回撤|
+  const calmar = mdd < 0 ? ann / Math.abs(mdd) : 0
+  // 水下期间：净值连续低于峰值的最大天数
+  let peakNav = -Infinity
+  let under = 0
+  let underwaterDays = 0
+  for (const v of nav) {
+    if (v > peakNav) peakNav = v
+    if (v < peakNav) {
+      under++
+      if (under > underwaterDays) underwaterDays = under
+    } else {
+      under = 0
+    }
+  }
+  // 交易：0→1 开仓、1→0 平仓；持仓期收益连乘为单笔交易收益
+  const tradeRets: number[] = []
+  let entry = -1
+  for (let i = 1; i < ret.length; i++) {
+    if (pos[i] === 1 && pos[i - 1] === 0) entry = i
+    else if (pos[i] === 0 && pos[i - 1] === 1 && entry >= 0) {
+      let tr = 1
+      for (let j = entry; j < i; j++) tr *= 1 + ret[j] * pos[j]
+      tradeRets.push(tr - 1)
+      entry = -1
+    }
+  }
+  if (entry >= 0) {
+    let tr = 1
+    for (let j = entry; j < ret.length; j++) tr *= 1 + ret[j] * pos[j]
+    tradeRets.push(tr - 1)
+  }
+  const wins = tradeRets.filter((t) => t > 0)
+  const losses = tradeRets.filter((t) => t < 0)
+  const winRate = tradeRets.length > 0 ? wins.length / tradeRets.length : 0
+  const profitLossRatio =
+    wins.length > 0 && losses.length > 0
+      ? wins.reduce((a, b) => a + b, 0) / wins.length / Math.abs(losses.reduce((a, b) => a + b, 0) / losses.length)
+      : wins.length > 0
+        ? Infinity // 无亏损交易（如买入持有单笔持有至期末）
+        : 0
+  // 年化换手率：日均 |Δpos| ×252（买入持有为 0）。从 i=2 起统计，
+  // 排除 i=1 的初始建仓（买入持有基线无交易成本）
+  let turnSum = 0
+  for (let i = 2; i < ret.length; i++) turnSum += Math.abs(pos[i] - pos[i - 1])
+  const turnover = n > 0 ? (turnSum / n) * 252 : 0
   return {
     cum,
     ann,
     vol,
     mdd,
     sharpe: vol > 0 ? (ann - 0.02) / vol : 0,
+    sortino,
+    calmar,
+    underwaterDays,
+    winRate,
+    profitLossRatio,
+    turnover,
+    trades: tradeRets.length,
     posMean,
     switches,
   }

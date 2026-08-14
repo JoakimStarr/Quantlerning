@@ -289,6 +289,11 @@ const registry = {
     desc: '同一窗口统一口径横向比较',
     comp: markRaw(defineAsyncComponent(() => import('../simulators/StrategyCompare.vue'))),
   },
+  performance_dashboard: {
+    title: '绩效仪表盘',
+    desc: '四类指标全表 + 指标对比条形图',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/PerformanceDashboard.vue'))),
+  },
   strategy_correlation: {
     title: '策略相关性矩阵',
     desc: '三策略日收益相关 + 等权组合净值',

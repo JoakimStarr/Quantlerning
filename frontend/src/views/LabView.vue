@@ -23,7 +23,7 @@ const KEY_PHASE: Record<string, number> = {
   // Phase 2 策略与回测
   strategy_signal: 2, trend_follow: 2, bollinger_bands: 2, momentum: 2, backtest_engine: 2,
   strategy_compare: 2, cost_impact: 2, lookahead: 2, parameter_landscape: 2,
-  strategy_correlation: 2, multiple_testing: 2,
+  strategy_correlation: 2, multiple_testing: 2, performance_dashboard: 2,
   // Phase 3 因子
   ic_distribution: 3, factor_ic: 3, layer_returns: 3, industry_pe: 3, factor_backtest_dashboard: 3,
   factor_corr: 3, barra_attribution: 3,

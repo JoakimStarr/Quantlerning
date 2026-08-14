@@ -100,6 +100,7 @@ const table = computed(() => {
     color: r.color,
     cum: (r.st.cum * 100).toFixed(1),
     ann: (r.st.ann * 100).toFixed(1),
+    vol: (r.st.vol * 100).toFixed(1),
     mdd: (r.st.mdd * 100).toFixed(1),
     sharpe: r.st.sharpe.toFixed(2),
     switches: r.st.switches,
@@ -121,6 +122,7 @@ const table = computed(() => {
             <th>策略</th>
             <th>累计</th>
             <th>年化</th>
+            <th>波动</th>
             <th>最大回撤</th>
             <th>Sharpe</th>
             <th>信号次数</th>
@@ -131,6 +133,7 @@ const table = computed(() => {
             <td><span class="dot" :style="{ background: r.color }"></span>{{ r.name }}</td>
             <td>{{ r.cum }}%</td>
             <td>{{ r.ann }}%</td>
+            <td>{{ r.vol }}%</td>
             <td>{{ r.mdd }}%</td>
             <td>{{ r.sharpe }}</td>
             <td>{{ r.switches }}</td>
