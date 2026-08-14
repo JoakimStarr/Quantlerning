@@ -49,7 +49,10 @@ const option = computed(() => {
       trigger: 'axis',
       formatter: (ps: any[]) => {
         const arr = Array.isArray(ps) ? ps : [ps]
-        return arr.map((p: any) => `${p.seriesName}：${p.value[1] ?? '—'}`).join('<br/>')
+        return arr.map((p: any) => {
+          const v = Array.isArray(p.value) ? p.value[1] : p.value
+          return `${p.seriesName}：${v == null || Number.isNaN(v) ? '—' : Number(v).toFixed(2)}`
+        }).join('<br/>')
       },
     },
     legend: { top: 0, textStyle: { fontSize: 12 } },

@@ -68,7 +68,7 @@ const option = computed(() => {
       trigger: 'axis',
       formatter: (ps: any[]) => {
         const arr = Array.isArray(ps) ? ps : [ps]
-        return arr.map((p: any) => `${p.seriesName}：${Number(p.value[1]).toFixed(2)}（${p.name}）`).join('<br/>')
+        return arr.map((p: any) => `${p.seriesName}：${Number(Array.isArray(p.value) ? p.value[1] : p.value).toFixed(2)}（${p.name}）`).join('<br/>')
       },
     },
     legend: { top: 0, textStyle: { fontSize: 12 } },

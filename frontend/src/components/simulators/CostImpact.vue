@@ -59,8 +59,8 @@ const option = computed(() => {
         const zero = ps.find((p: any) => p.seriesName === '零成本')
         const net = ps.find((p: any) => p.seriesName === '含成本')
         const parts = [ps[0].name]
-        if (zero) parts.push(`零成本 ${Number(zero.value[1]).toFixed(1)}`)
-        if (net) parts.push(`含${bp.value}bp ${Number(net.value[1]).toFixed(1)}`)
+        if (zero) parts.push(`零成本 ${Number(Array.isArray(zero.value) ? zero.value[1] : zero.value).toFixed(1)}`)
+        if (net) parts.push(`含${bp.value}bp ${Number(Array.isArray(net.value) ? net.value[1] : net.value).toFixed(1)}`)
         return parts.join('<br/>')
       },
     },

@@ -75,7 +75,7 @@ const option = computed(() => {
       trigger: 'axis',
       formatter: (ps: any[]) => {
         const head = ps[0].name
-        const lines = ps.map((p: any) => `<span style="color:${p.color}">●</span> ${p.seriesName}: ${Number(p.value[1]).toFixed(1)}`).join('<br/>')
+        const lines = ps.map((p: any) => `<span style="color:${p.color}">●</span> ${p.seriesName}: ${Number(Array.isArray(p.value) ? p.value[1] : p.value).toFixed(1)}`).join('<br/>')
         return `<b>${head}</b><br/>${lines}`
       },
     },

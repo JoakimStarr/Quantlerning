@@ -92,7 +92,8 @@ const barOption = computed(() => {
   const def = activeDef.value
   const vals = rows.value.map((r) => {
     const v = r.st[def.key]
-    return typeof v === 'number' ? +v.toFixed(4) : 0
+    const n = typeof v === 'number' && Number.isFinite(v) ? +v.toFixed(4) : 0
+    return n
   })
   const best = def.lowerBetter
     ? Math.min(...vals)
@@ -130,11 +131,15 @@ const barOption = computed(() => {
           position: 'top',
           fontSize: 10,
           color: C.value.text,
-          formatter: (p: any) => def.fmt(rows.value![p.dataIndex].st[def.key]),
+          formatter: (p: any) => {
+            const r = rows.value![p.dataIndex]
+            return r ? def.fmt(r.st[def.key]) : ''
+          },
         },
         markPoint: {
           symbol: 'pin',
           symbolSize: 44,
+          label: { show: true, fontSize: 10, color: '#fff', formatter: '最优' },
           data: [
             {
               coord: [vals.indexOf(best), best],

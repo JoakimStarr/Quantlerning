@@ -45,7 +45,8 @@ const option = computed(() => {
       trigger: 'axis',
       formatter: (ps: any[]) => {
         const p = Array.isArray(ps) ? ps[0] : ps
-        return `${d.dates[p.dataIndex]}<br/>Rank IC：${Number(p.value[1]).toFixed(4)}`
+        const v = Array.isArray(p.value) ? p.value[1] : p.value
+        return `${d.dates[p.dataIndex]}<br/>Rank IC：${Number(v).toFixed(4)}`
       },
     },
     legend: { top: 0, textStyle: { fontSize: 11 } },
