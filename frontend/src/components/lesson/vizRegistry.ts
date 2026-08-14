@@ -39,6 +39,11 @@ const registry = {
     desc: 'D/r/g 拖拽，看戈登模型估值',
     comp: markRaw(defineAsyncComponent(() => import('../simulators/DdmValuation.vue'))),
   },
+  dcf_sensitivity: {
+    title: 'DCF 估值敏感度',
+    desc: '拖动 5 年增长 g、WACC、永续增长 g∞，看企业价值爆炸与终值占比',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/DcfSensitivity.vue'))),
+  },
   capm_sml: {
     title: 'CAPM / SML',
     desc: '拖动 β，看期望收益在 SML 上移动',

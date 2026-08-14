@@ -16,7 +16,7 @@ const KEY_PHASE: Record<string, number> = {
   confidence_interval: 0, sampling_dist: 0, mle_demo: 0, p_value: 0, chi_square: 0, regression_fit: 0,
   feature_pipeline: 0, code_sandbox: 0, binomial_dist: 0,
   // Phase 1 金融市场
-  discount_curve: 1, bond_duration: 1, ddm_valuation: 1, capm_sml: 1, real_vs_log: 1, vol_cluster: 1,
+  discount_curve: 1, bond_duration: 1, ddm_valuation: 1, dcf_sensitivity: 1, capm_sml: 1, real_vs_log: 1, vol_cluster: 1,
   pe_distribution: 1, compound_growth: 1, sharpe_simulator: 1, mdd_simulator: 1, macd_simulator: 1, rsi_simulator: 1,
   compounding_frequency: 1, npv_cashflows: 1, convexity_demo: 1, yield_curve: 1, beta_regression: 1,
   macro_series: 1, dupont_demo: 1,
