@@ -59,6 +59,11 @@ const fbMaxTokens = ref(1024)
 const fbKeyMasked = ref('')
 const fbConfigured = ref(false)
 
+// 联网搜索（Tavily，可选）
+const webSearchKey = ref('')
+const webKeyMasked = ref('')
+const webConfigured = ref(false)
+
 const loading = ref(true)
 const saving = ref(false)
 const testing = ref(false)
@@ -150,6 +155,8 @@ async function reloadSettings() {
     fbMaxTokens.value = cfg.fallback_max_tokens || 1024
     fbKeyMasked.value = cfg.fallback_api_key_masked || ''
     fbConfigured.value = !!cfg.fallback_configured
+    webKeyMasked.value = cfg.web_search_key_masked || ''
+    webConfigured.value = !!cfg.web_search_configured
     // 匹配预设（按 base_url 前缀）
     const hit = PRESETS.find((p) => p.base_url && cfg.base_url.startsWith(p.base_url.split('/')[2] ?? ''))
     activePreset.value = hit?.name ?? (PRESETS[PRESETS.length - 1].name)
@@ -177,6 +184,7 @@ async function save() {
       fallback_model?: string
       fallback_max_tokens?: number | null
       fallback_api_key?: string
+      web_search_key?: string
     } = {
       base_url: baseUrl.value.trim(),
       model: model.value.trim(),
@@ -189,6 +197,7 @@ async function save() {
     // api_key 未输入 → 不发该字段，保留后端已保存的 key（避免误删）
     if (apiKey.value.trim()) payload.api_key = apiKey.value.trim()
     if (fbApiKey.value.trim()) payload.fallback_api_key = fbApiKey.value.trim()
+    if (webSearchKey.value.trim()) payload.web_search_key = webSearchKey.value.trim()
     const cfg = await saveAISettings(payload)
     savedKeyMasked.value = cfg.api_key_masked
     configured.value = cfg.configured
@@ -196,6 +205,9 @@ async function save() {
     fbKeyMasked.value = cfg.fallback_api_key_masked || ''
     fbConfigured.value = !!cfg.fallback_configured
     fbApiKey.value = ''
+    webKeyMasked.value = cfg.web_search_key_masked || ''
+    webConfigured.value = !!cfg.web_search_configured
+    webSearchKey.value = ''
     notice.value = '已保存并设为默认模型。api key 仅存后端；如需修改重新输入即可。'
   } catch (e: any) {
     error.value = e?.message || '保存失败'
@@ -349,6 +361,33 @@ async function test() {
             </p>
             <p class="field-help" v-else>尚未配置 api key——AI 追问与应用题批改将不可用。</p>
           </div>
+        </div>
+      </section>
+
+      <!-- 联网搜索（可选） -->
+      <section class="settings-card">
+        <div class="card-head">
+          <h2 class="card-title">联网搜索</h2>
+          <p class="card-desc">可选。AI 面板开启「联网」开关后，回答会检索外部实时信息并标注来源。</p>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="web-search-key">Tavily API Key</label>
+          <input
+            id="web-search-key"
+            v-model="webSearchKey"
+            class="field-input"
+            type="password"
+            placeholder="输入 Tavily API Key"
+            autocomplete="off"
+          />
+          <p class="field-help" v-if="webConfigured">
+            已配置：<code class="masked">{{ webKeyMasked }}</code>（重新输入可更换；不输入则保留原 key）
+          </p>
+          <p class="field-help" v-else>
+            未配置——面板的「联网」开关将不可用。Tavily 有免费额度（约 1000 次/月），在
+            <a href="https://tavily.com" target="_blank" rel="noreferrer">tavily.com</a> 注册后复制 API Key 填入。
+          </p>
         </div>
       </section>
 

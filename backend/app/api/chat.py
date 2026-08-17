@@ -16,6 +16,12 @@ from ..services.ai.chat import (
     build_plan_messages,
     stream_chat,
 )
+from ..services.ai.web_search import (
+    WebSearchError,
+    WebSearchNotConfiguredError,
+    build_search_context,
+    web_search,
+)
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -32,9 +38,10 @@ class ChatRequest(BaseModel):
     lesson_id: str
     section_index: int = 0
     messages: list[ChatMessage] = Field(default_factory=list)
-    # 面板可选：覆盖模型（空=用当前配置）；深度思考开关
+    # 面板可选：覆盖模型（空=用当前配置）；深度思考开关；联网搜索开关
     model: str | None = Field(None, max_length=200)
     deep: bool = False
+    web_search: bool = False
 
 
 class JudgeRequest(BaseModel):
@@ -135,7 +142,23 @@ async def chat_stream(payload: ChatRequest):
             messages = build_messages(
                 payload.lesson_id, payload.section_index, history, deep=payload.deep
             )
+            # 联网搜索：用最后一条用户消息检索，结果作为 system 上下文注入（标注外部来源）
+            if payload.web_search:
+                from app.services.ai.settings_store import get_effective_config
+
+                cfg = get_effective_config()
+                query = next(
+                    (m["content"] for m in reversed(history) if m["role"] == "user"), ""
+                )
+                results = await web_search(query, cfg.get("web_search_key", ""))
+                context = build_search_context(results)
+                if context:
+                    messages.append({"role": "system", "content": context})
         except ValueError as e:
+            yield _sse({"error": str(e)})
+            yield _sse({"done": True})
+            return
+        except (WebSearchNotConfiguredError, WebSearchError) as e:
             yield _sse({"error": str(e)})
             yield _sse({"done": True})
             return

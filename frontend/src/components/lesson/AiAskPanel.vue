@@ -4,6 +4,7 @@ import {
   Brain,
   ChevronDown,
   Copy,
+  Globe,
   Maximize2,
   Minimize2,
   Search,
@@ -14,7 +15,7 @@ import {
 import { createMarkdown } from '@/utils/markdownIt'
 import { unwrapOuterFence } from '@/utils/aiOutput'
 import 'katex/dist/katex.min.css'
-import { fetchAIModels, streamChat, type ChatTurn } from '@/api'
+import { fetchAIModels, fetchAISettings, streamChat, type ChatTurn } from '@/api'
 import { useChatHistory } from '@/composables/useChatHistory'
 
 // 运行时注入代码块的复制按钮图标（DOM 操作无法用 Vue 组件，内联 lucide Copy 的 SVG）
@@ -77,11 +78,13 @@ const inputRef = ref<HTMLTextAreaElement | null>(null)
 
 const maxLen = 2000
 
-// ---------- 深度思考 & 模型选择（全局偏好，localStorage 持久化）----------
+// ---------- 深度思考 & 模型选择 & 联网搜索（全局偏好，localStorage 持久化）----------
 const deep = ref(localStorage.getItem('ql:aiAskDeep') === '1')
 const model = ref(localStorage.getItem('ql:aiAskModel') || '') // '' = 默认（当前配置）
 const models = ref<string[]>([])
 const currentModel = ref('')
+const web = ref(localStorage.getItem('ql:aiAskWeb') === '1')
+const webSearchConfigured = ref(true) // 默认乐观；挂载后按设置页实际值修正
 
 // 模型下拉（自定义搜索弹层）
 const modelOpen = ref(false)
@@ -114,6 +117,12 @@ onMounted(async () => {
     if (model.value && !list.includes(model.value)) model.value = ''
   } catch {
     // 拉不到模型列表不阻塞：仍可用默认模型对话
+  }
+  try {
+    const cfg = await fetchAISettings()
+    webSearchConfigured.value = cfg.web_search_configured
+  } catch {
+    // 拉不到设置不阻塞
   }
 })
 
@@ -150,6 +159,11 @@ function toggleDeep() {
   deep.value = !deep.value
   if (deep.value) localStorage.setItem('ql:aiAskDeep', '1')
   else localStorage.removeItem('ql:aiAskDeep')
+}
+function toggleWeb() {
+  web.value = !web.value
+  if (web.value) localStorage.setItem('ql:aiAskWeb', '1')
+  else localStorage.removeItem('ql:aiAskWeb')
 }
 
 // 消息变化（含流式追加）→ DOM 更新后给代码块补复制按钮
@@ -207,6 +221,12 @@ async function send() {
   const text = input.value.trim()
   if (!text || thinking.value) return
 
+  // 联网搜索开启但未配置 Tavily key：本地拦截并提示，避免发了才报错
+  if (web.value && !webSearchConfigured.value) {
+    error.value = '联网搜索未配置：请先在「设置」页填写 Tavily API Key。'
+    return
+  }
+
   error.value = ''
   input.value = ''
   const question: ChatTurn = { role: 'user', content: text.slice(0, maxLen) }
@@ -227,6 +247,7 @@ async function send() {
         messages: history,
         model: model.value || undefined,
         deep: deep.value,
+        web_search: web.value,
       },
       (delta) => {
         const last = messages.value[messages.value.length - 1]
@@ -307,7 +328,7 @@ watch(
         <div v-if="messages.length === 0" class="msg-empty">
           <span class="empty-icon"><Sparkles :size="20" /></span>
           <p class="empty-title">正在学习「{{ sectionTitle }}」？</p>
-          <p class="empty-sub">针对这个知识点提问，AI 导师会结合本节内容回答。<br />可开启「深度思考」获得更深入的分析。</p>
+          <p class="empty-sub">针对这个知识点提问，AI 导师会结合本节内容回答。<br />可开启「深度思考」深入分析，或「联网」检索外部实时信息。</p>
         </div>
         <div
           v-for="(m, i) in messages"
@@ -348,6 +369,15 @@ watch(
             <Brain :size="13" />
             {{ deepLabel }}
           </button>
+          <button
+            class="deep-btn web-btn"
+            :class="{ on: web }"
+            :title="webSearchConfigured ? '联网搜索：回答时检索外部实时信息并标注来源' : '未配置 Tavily Key（设置页填写）'"
+            @click="toggleWeb"
+          >
+            <Globe :size="13" />
+            {{ web ? '联网·开' : '联网' }}
+          </button>
           <div ref="modelRef" class="model-select">
             <button class="model-btn" :title="modelLabel" @click.stop="toggleModel">
               <span class="model-label">{{ modelLabel }}</span>
@@ -378,7 +408,9 @@ watch(
               </div>
             </Transition>
           </div>
-          <span v-if="deep" class="toolbar-hint">回答将更详细深入</span>
+          <span v-if="deep || web" class="toolbar-hint">
+            {{ deep ? '深度思考' : '' }}{{ deep && web ? ' · ' : '' }}{{ web ? '联网搜索' : '' }}
+          </span>
         </div>
       </footer>
     </div>

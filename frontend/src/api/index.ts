@@ -234,7 +234,8 @@ async function streamSSE(
 
 /**
  * 围绕当前课程小节追问，SSE 流式返回。
- * @param payload.model 覆盖模型（空=用当前配置）；payload.deep 深度思考开关
+ * @param payload.model 覆盖模型（空=用当前配置）；payload.deep 深度思考开关；
+ *        payload.web_search 联网搜索开关（需在设置页配置 Tavily key）
  * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
  */
 export async function streamChat(
@@ -244,6 +245,7 @@ export async function streamChat(
     messages: ChatTurn[]
     model?: string
     deep?: boolean
+    web_search?: boolean
   },
   onDelta: (text: string) => void,
   signal?: AbortSignal,
@@ -327,6 +329,8 @@ export interface AISettings {
   fallback_max_tokens: number | null
   fallback_api_key_masked: string
   fallback_configured: boolean
+  web_search_key_masked: string
+  web_search_configured: boolean
 }
 
 export async function fetchAISettings(): Promise<AISettings> {
@@ -344,6 +348,7 @@ export async function saveAISettings(payload: {
   fallback_api_key?: string
   fallback_model?: string
   fallback_max_tokens?: number | null
+  web_search_key?: string
 }): Promise<AISettings> {
   const { data } = await api.put('/settings/ai', payload)
   return data

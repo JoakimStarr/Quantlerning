@@ -33,9 +33,11 @@ DEFAULTS = {
     "model": settings.opencodezen_model,
     "max_tokens": settings.opencodezen_max_tokens,
     "temperature": settings.opencodezen_temperature,
+    # 联网搜索（可选，Tavily）
+    "web_search_key": settings.tavily_api_key,
 }
 
-# 前端可写字段（主配置 + 备用配置）
+# 前端可写字段（主配置 + 备用配置 + 联网搜索）
 _EDITABLE = (
     "base_url",
     "api_key",
@@ -46,6 +48,7 @@ _EDITABLE = (
     "fallback_api_key",
     "fallback_model",
     "fallback_max_tokens",
+    "web_search_key",
 )
 
 # 备用配置字段（不含 temperature：备用复用主配置的温度）
@@ -132,7 +135,7 @@ def save_config(payload: dict) -> dict:
             v = payload.get(k)
             if isinstance(v, str):
                 v = v.strip()
-            is_key = k in ("api_key", "fallback_api_key")
+            is_key = k in ("api_key", "fallback_api_key", "web_search_key")
             if is_key:
                 if v is None or v == "":
                     # 未提供 → 保留；显式空串 → 清除（与保留区分）
@@ -181,4 +184,6 @@ def public_config() -> dict:
         "fallback_max_tokens": (fb or {}).get("max_tokens"),
         "fallback_api_key_masked": mask_key((fb or {}).get("api_key", "")) if fb_own_key else "",
         "fallback_configured": fb is not None,
+        "web_search_key_masked": mask_key(cfg.get("web_search_key", "")),
+        "web_search_configured": bool(cfg.get("web_search_key")),
     }

@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     opencodezen_max_tokens: int = 1024
     opencodezen_temperature: float = 0.4
 
+    # 联网搜索（Tavily API；可选，设置页可填）
+    tavily_api_key: str = ""
+
     @property
     def ai_configured(self) -> bool:
         """AI 是否已配置可用 key。"""

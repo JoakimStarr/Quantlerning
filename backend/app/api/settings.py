@@ -26,6 +26,8 @@ class AISettingsPayload(BaseModel):
     fallback_api_key: str | None = Field(None, max_length=500)
     fallback_model: str = Field("", max_length=200)
     fallback_max_tokens: int | None = Field(None, ge=16, le=8192)
+    # 联网搜索（可选，Tavily key；None=保留原值，""=清除）
+    web_search_key: str | None = Field(None, max_length=500)
 
 
 async def _fetch_models(base_url: str, api_key: str) -> list[str]:
