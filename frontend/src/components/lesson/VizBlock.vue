@@ -90,7 +90,7 @@ const captionHtml = computed(() =>
     </div>
     <!-- 图注行：说明这张"图"是什么、怎么互动（支持 LaTeX）；右侧是「问 AI」与重置按钮 -->
     <div class="viz-bottom">
-      <figcaption class="viz-caption" v-html="captionHtml"></figcaption>
+      <div class="viz-caption" v-html="captionHtml"></div>
       <button
         v-if="askAi"
         class="viz-reset"
