@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, inject, nextTick, ref, watch } from 'vue'
 import { runCode, type ExecResult } from '@/api'
 import { recordSandboxRun } from '@/stores/progress'
+import { ASK_AI_KEY } from '@/utils/aiAskKey'
 
 // 代码练习沙箱：提交 Python 代码到后端受限环境执行
 // 可用：白名单库（numpy/pandas/matplotlib/math/statistics/random 等）
@@ -90,6 +91,33 @@ function syncScroll() {
 }
 
 const result = ref<ExecResult | null>(null)
+
+// 「问 AI 这段代码」：由课程页注入（打开 AI 追问面板，携带代码与运行结果上下文）
+const askAi = inject(ASK_AI_KEY, undefined)
+
+// 截断超长输出，避免撑爆请求体
+function truncate(s: string, n: number): string {
+  return s.length > n ? `${s.slice(0, n)}\n…（已截断）` : s
+}
+
+function askAiAboutCode() {
+  if (!askAi) return
+  const parts: string[] = ['【我的代码】', '```python', code.value, '```']
+  const r = result.value
+  if (r) {
+    parts.push('【运行结果】')
+    parts.push(`执行：${r.ok ? '成功' : '失败'}（${r.duration_ms} ms）`)
+    if (r.blocked.length) parts.push(`被安全过滤拦截：${r.blocked.join('、')}`)
+    if (r.stdout) parts.push(`stdout：\n${truncate(r.stdout, 1500)}`)
+    if (r.stderr) parts.push(`stderr：\n${truncate(r.stderr, 1500)}`)
+  } else {
+    parts.push('（尚未运行）')
+  }
+  askAi(
+    '请结合当前小节，分析我在代码沙箱里写的这段代码：它想算什么、实现得对不对、有什么可改进的地方。',
+    parts.join('\n'),
+  )
+}
 
 async function run() {
   if (!code.value.trim() || running.value) return
@@ -251,6 +279,9 @@ const highlightedHtml = computed(() => highlightPython(code.value))
         </button>
         <button class="ghost-btn" :disabled="code === starter" @click="resetCode" title="回到起始代码">
           ↺ 重置
+        </button>
+        <button v-if="askAi" class="ghost-btn" @click="askAiAboutCode" title="打开 AI 追问，结合当前小节分析这段代码">
+          <span class="ai-btn-icon" aria-hidden="true">✦</span> 问 AI
         </button>
         <button v-if="expected" class="ghost-btn" @click="showExpected = !showExpected">
           预期输出 {{ showExpected ? '▴' : '▾' }}
@@ -483,6 +514,7 @@ const highlightedHtml = computed(() => highlightPython(code.value))
 }
 .ghost-btn:hover:not(:disabled) { color: var(--primary); border-color: var(--primary); }
 .ghost-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.ai-btn-icon { font-size: 11px; margin-right: 2px; }
 .hint { font-size: 11.5px; color: var(--text-3); line-height: 1.5; }
 .hint code { font-family: var(--font-mono); font-size: 11px; }
 

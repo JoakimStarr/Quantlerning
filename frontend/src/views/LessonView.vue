@@ -32,13 +32,13 @@ function scrollMainTop() {
 }
 
 // ---------- 选中文字 → 问 AI ----------
-const askPanelRef = ref<{ ask: (text: string) => void } | null>(null)
+const askPanelRef = ref<{ ask: (text: string, context?: string) => void } | null>(null)
 const articleRef = ref<HTMLElement | null>(null)
 const selBox = reactive({ show: false, x: 0, y: 0, text: '' })
 
-// 提供「问 AI」入口给深层组件（图表问 AI 等）：打开面板并预填问题
-function askAi(text: string) {
-  askPanelRef.value?.ask(text)
+// 提供「问 AI」入口给深层组件（图表/代码沙箱问 AI 等）：打开面板并预填问题
+function askAi(text: string, context?: string) {
+  askPanelRef.value?.ask(text, context)
 }
 provide(ASK_AI_KEY, askAi)
 

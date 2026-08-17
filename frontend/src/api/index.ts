@@ -256,6 +256,8 @@ export async function streamChat(
     model?: string
     deep?: boolean
     web_search?: boolean
+    guided?: boolean
+    context?: string
   },
   onDelta: (text: string) => void,
   signal?: AbortSignal,
@@ -311,6 +313,31 @@ export async function streamGenExercise(
   signal?: AbortSignal,
 ): Promise<{ error?: string }> {
   return streamSSE('/api/v1/chat/gen-exercise', payload, onDelta, signal)
+}
+
+/** 随堂测验变式题：结构化单选题（JSON 返回，非流式） */
+export interface QuizVariant {
+  question: string
+  options: string[]
+  answer: number[] // 正确选项下标（0-based）
+  explain?: string
+}
+
+/** 生成随堂测验的变式单选题；成功返回 {question,options,answer,explain}，失败返回 {error} */
+export async function fetchQuizVariant(payload: {
+  lesson_id: string
+  section_index: number
+  question: string
+  options: string[]
+  correct_indexes: number[]
+  user_indexes: number[]
+}): Promise<QuizVariant | { error: string }> {
+  try {
+    const { data } = await api.post('/chat/quiz-variant', payload)
+    return data as QuizVariant
+  } catch (e: any) {
+    return { error: e?.response?.data?.error || '请求失败，请重试' }
+  }
 }
 
 /**

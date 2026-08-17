@@ -31,6 +31,26 @@ const review = ref('')
 const reviewBusy = ref(false)
 const reviewError = ref('')
 
+// 掌握标记：随堂测验答错后「变式题再练」答对自动标记（QuizBlock 写入 ql:mastered:{lessonId}）
+function readMastered(lessonId: string): Record<string, boolean> {
+  try {
+    return JSON.parse(localStorage.getItem(`ql:mastered:${lessonId}`) ?? '{}') || {}
+  } catch {
+    return {}
+  }
+}
+
+// 随堂测验每题最佳分（ql:quizResults）：读错题清单
+function readQuizWrong(lessonId: string): string[] {
+  let map: Record<string, number> = {}
+  try {
+    map = JSON.parse(localStorage.getItem(`ql:quizResults:${lessonId}`) ?? '{}') || {}
+  } catch {
+    map = {}
+  }
+  return Object.keys(map).filter((q) => Number(map[q]) < 100)
+}
+
 function buildProgressSummary(): string {
   const lines: string[] = []
   lines.push(
@@ -44,6 +64,12 @@ function buildProgressSummary(): string {
       const parts = [`《${l.title}》`]
       if (pr.completed) parts.push('已完成')
       if (pr.quizScore != null && pr.quizzesTotal != null) parts.push(`测验 ${pr.quizScore}/${pr.quizzesTotal}`)
+      // 错题 + 变式题掌握情况：供规划端识别薄弱知识点
+      const wrong = readQuizWrong(l.id)
+      if (wrong.length) {
+        const mastered = wrong.filter((q) => readMastered(l.id)[q]).length
+        parts.push(`测验错 ${wrong.length} 题${mastered ? `（变式题已掌握 ${mastered}）` : ''}`)
+      }
       if (pr.exercises) parts.push(`应用题 ${pr.exercises} 次`)
       if (pr.reads) parts.push(`阅读 ${pr.reads} 次`)
       lines.push(`- ${parts.join('；')}`)
@@ -77,19 +103,16 @@ function buildReviewSummary(): string {
   const weakExercises: string[] = []
   for (const p of phases.value) {
     for (const l of p.lessons) {
-      let map: Record<string, number> = {}
-      try {
-        map = JSON.parse(localStorage.getItem(`ql:quizResults:${l.id}`) ?? '{}') || {}
-      } catch {
-        map = {}
-      }
-      const wrong = Object.keys(map).filter((q) => Number(map[q]) < 100)
+      const wrong = readQuizWrong(l.id)
       if (wrong.length) {
         wrongCount += wrong.length
+        const mastered = wrong.filter((q) => readMastered(l.id)[q]).length
         const titles = wrong
           .slice(0, 15)
           .map((q) => (q.length > 120 ? `${q.slice(0, 120)}…` : q))
-        wrongLessons.push(`《${l.title}》：${titles.join(' | ')}`)
+        wrongLessons.push(
+          `《${l.title}》：${titles.join(' | ')}${mastered ? `（其中 ${mastered} 题变式题已掌握）` : ''}`,
+        )
       }
       // 应用题低分（<60）也是弱项
       const scores = (getProgress(l.id)?.exerciseScores ?? []).filter((s) => s < 60)

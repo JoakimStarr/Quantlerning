@@ -137,8 +137,10 @@ H: 提示（可选）
 
 ### 交互功能（2026-08-12 起陆续加入）
 
-- **AI 追问**（`components/lesson/AiAskPanel.vue` + 后端 `POST /api/v1/chat/stream`）：课程页右下角悬浮面板，围绕当前小节多轮对话、SSE 流式。对话按「课程+小节」存 localStorage（`aiask:v1:{lesson}:{section}`），重开/刷新自动恢复；AI 回答渲染 Markdown/LaTeX（归一化 `$$`/`\(`/`\[` 分隔符）
+- **AI 追问**（`components/lesson/AiAskPanel.vue` + 后端 `POST /api/v1/chat/stream`）：课程页右下角悬浮面板，围绕当前小节多轮对话、SSE 流式。对话按「课程+小节」存 localStorage（`aiask:v1:{lesson}:{section}`），重开/刷新自动恢复；AI 回答渲染 Markdown/LaTeX（归一化 `$$`/`\(`/`\[` 分隔符）。面板含深度思考/引导式/联网/模型选择开关（`ql:aiAskDeep`/`ql:aiAskGuide`/`ql:aiAskWeb`/`ql:aiAskModel` 持久化）；「引导式」苏格拉底式不直接给答案（后端 `build_messages` 注入 system 指令）
 - **选中问 AI**（`LessonView.vue` + `utils/selectionToMarkdown.ts`）：选中正文文字弹「问 AI」按钮，katex 公式靠 `data-latex` 还原成 `$...$` 源码随问题发给 AI
+- **代码问 AI**（`CodeSandbox.vue`）：沙箱工具栏「问 AI」按钮，把代码 + 运行结果（stdout/stderr/耗时/拦截）作为 `context` 注入 `/chat/stream`（仅本次请求，不进历史），复用 AI 追问面板分析代码
+- **变式题再练**（`QuizBlock.vue` + 后端 `POST /api/v1/chat/quiz-variant`）：随堂测验答错后可生成同知识点单选题变式题（JSON 返回，非流式，答案提交后 reveal）；变式题答对自动写入 `ql:mastered:{lessonId}`（键=原题题干），HomeView 复习/规划据此识别「已掌握」
 - **阅读位置记忆**：`App.vue` 存 `ql:lastPath`（首页「继续学习」回到上次课程页）；页内滚动位置靠浏览器原生恢复（`main.ts` 设 `history.scrollRestoration='auto'`，body 滚动）。`LessonView.vue` 的滚动监听只用于**当前小节跟踪**（阅读进度条 + AI 追问上下文），不持久化
 - **函数表达式解析**（`utils/mathExpr.ts`）：**基于 mathjs 的安全解析器**（非 eval），支持 `x/y`、`+ - * / ^`、括号、隐式乘法（`2x`、`x(x+1)`、`2|x|`）、函数 sin/cos/tan/sqrt/log/ln/exp/abs、`|x|` 绝对值；含**符号微分** `differentiate`（泰勒系数/凹凸拐点用，比数值差分精确）与 `exprToLatex`（AST→LaTeX 公式展示）。**mathjs 坑**：无 `ln` 函数（`log` 即自然对数，需预处理 `ln`→`log`）、无 `|x|` 语法（预处理成 `abs(...)`）
 - **主题跟随系统**（`App.vue` + `main.ts`）：`ql:theme` 未手动设置时跟随 `prefers-color-scheme`（matchMedia 监听）；手动切换后固定。`main.ts` 挂载前按「手动选择 > 系统偏好」初始化防闪烁
@@ -194,10 +196,11 @@ H: 提示（可选）
 | `GET /api/v1/data/market/pe-distribution` | 全市场某日 PE 分布 |
 | `GET /api/v1/data/backtests` | QuantLab 多因子回测结果（含净值曲线） |
 | `POST /api/v1/exec/run` | 练习沙箱：AST 白名单过滤 + 子进程隔离（python -I + 资源限制）执行，白名单库 + `get_daily` 只读真实行情（实现：`services/sandbox/`） |
-| `POST /api/v1/chat/stream` | AI 追问（SSE 流式，围绕课程小节） |
+| `POST /api/v1/chat/stream` | AI 追问（SSE 流式，围绕课程小节；支持 guided 引导式 / context 附加上下文） |
 | `POST /api/v1/chat/judge` | AI 批改应用题（SSE 流式） |
 | `POST /api/v1/chat/judge-followup` | 批改后追问：结合题目/学生答案/上轮批改回答疑问（SSE 流式） |
 | `POST /api/v1/chat/gen-exercise` | 生成变式应用题：同知识点、相近难度（SSE 流式） |
+| `POST /api/v1/chat/quiz-variant` | 生成随堂测验变式单选题（JSON 返回，非流式；含 JSON 解析失败自动纠偏重试） |
 | `POST /api/v1/chat/plan` | 学习路径规划：基于前端汇总的进度输出复习重点与建议（SSE 流式） |
 | `GET/PUT /api/v1/settings/ai` | AI 模型配置（base_url/model/api_key，密钥掩码存储） |
 | `POST /api/v1/settings/ai/test` | 测试 AI 连接是否可用 |

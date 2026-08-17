@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount } from 'vue'
-import { Check, Sparkles, X } from 'lucide-vue-next'
+import { Check, RefreshCw, Sparkles, X } from 'lucide-vue-next'
 import { createMarkdown } from '../../utils/markdownIt'
 import { renderAiBubble } from '../../utils/aiBubble'
-import { streamQuizExplain } from '@/api'
+import { fetchQuizVariant, streamQuizExplain } from '@/api'
 import type { QuizQuestion } from './MarkdownRenderer.vue'
 
 const props = defineProps<{
@@ -131,6 +131,79 @@ function stateClass(i: number): string {
   if (selected.value.includes(i)) return 'opt wrong'
   return 'opt'
 }
+
+// ---------- 变式题再练（答错后）：AI 生成同知识点单选题，答对标记该题「已掌握」 ----------
+const variant = ref<QuizQuestion | null>(null)
+const vGenerating = ref(false)
+const vError = ref('')
+const vSelected = ref<number[]>([])
+const vSubmitted = ref(false)
+
+// 掌握标记：按「课程」存到 ql:mastered:{lessonId}（键=原题题干），HomeView 复习/规划读取
+const MASTERED_KEY = (lessonId: string) => `ql:mastered:${lessonId}`
+
+function markMastered() {
+  if (!props.lessonId) return
+  try {
+    const key = MASTERED_KEY(props.lessonId)
+    const map = JSON.parse(localStorage.getItem(key) ?? '{}') || {}
+    map[props.quiz.q] = true
+    localStorage.setItem(key, JSON.stringify(map))
+  } catch {
+    // 存储不可用：忽略
+  }
+}
+
+async function genVariant() {
+  if (vGenerating.value || !props.lessonId) return
+  vError.value = ''
+  vGenerating.value = true
+  const res = await fetchQuizVariant({
+    lesson_id: props.lessonId,
+    section_index: props.sectionIndex ?? 0,
+    question: props.quiz.q,
+    options: props.quiz.options,
+    correct_indexes: props.quiz.answer,
+    user_indexes: selected.value,
+  })
+  vGenerating.value = false
+  if ('error' in res) {
+    vError.value = res.error
+    return
+  }
+  variant.value = {
+    q: res.question,
+    options: res.options,
+    answer: res.answer,
+    explain: res.explain || undefined,
+  }
+  vSelected.value = []
+  vSubmitted.value = false
+}
+
+// 变式题固定为单选题
+const vScore = computed(() =>
+  vSelected.value.length === 1 && variant.value?.answer.includes(vSelected.value[0]) ? 100 : 0,
+)
+
+function vToggle(i: number) {
+  if (vSubmitted.value) return
+  vSelected.value = [i]
+}
+
+function vSubmit() {
+  if (vSubmitted.value || vSelected.value.length === 0 || !variant.value) return
+  vSubmitted.value = true
+  if (vScore.value === 100) markMastered() // 只记变式题本身答对
+}
+
+function vStateClass(i: number): string {
+  if (!variant.value) return 'opt'
+  if (!vSubmitted.value) return vSelected.value.includes(i) ? 'opt selected' : 'opt'
+  if (variant.value.answer.includes(i)) return 'opt correct'
+  if (vSelected.value.includes(i)) return 'opt wrong'
+  return 'opt'
+}
 </script>
 
 <template>
@@ -166,6 +239,10 @@ function stateClass(i: number): string {
       </button>
       <template v-else>
         <span class="quiz-score" :class="score === 100 ? 'pass' : 'fail'">{{ score === 100 ? '回答正确' : '回答错误' }}</span>
+        <button v-if="score < 100 && lessonId" type="button" class="btn btn-ghost" :disabled="vGenerating" @click="genVariant">
+          <RefreshCw :size="13" :class="{ spin: vGenerating }" />
+          {{ vGenerating ? '生成中…' : '变式题再练' }}
+        </button>
         <button v-if="lessonId" type="button" class="btn btn-ghost" :disabled="explaining" @click="explainWithAi">
           <Sparkles :size="13" />
           {{ explaining ? '解析中…' : 'AI 展开解析' }}
@@ -184,6 +261,51 @@ function stateClass(i: number): string {
       <div v-if="explainError" class="explain-error">{{ explainError }}</div>
       <div v-else-if="explainText" class="explain-body" v-html="renderAiBubble(explainText)"></div>
       <span v-else class="typing">▍</span>
+    </div>
+
+    <!-- 变式题再练：AI 生成同知识点单选题，答案提交后 reveal，答对自动标记已掌握 -->
+    <div v-if="variant || vGenerating || vError" class="quiz-explain variant-panel">
+      <div class="explain-title"><RefreshCw :size="12" /> 变式题再练</div>
+      <div v-if="vError" class="explain-error">{{ vError }}</div>
+      <span v-if="vGenerating" class="typing">生成中…▍</span>
+      <template v-if="variant">
+        <div class="quiz-question variant-q" v-html="render(variant.q)"></div>
+        <div class="quiz-options">
+          <button
+            v-for="(opt, i) in variant.options"
+            :key="i"
+            type="button"
+            class="quiz-opt"
+            :class="vStateClass(i)"
+            @click="vToggle(i)"
+          >
+            <span class="opt-idx">{{ String.fromCharCode(65 + i) }}</span>
+            <span class="opt-text" v-html="render(opt)"></span>
+            <span class="opt-mark">
+              <Check v-if="vStateClass(i).includes('correct')" :size="13" />
+              <X v-else-if="vStateClass(i).includes('wrong')" :size="13" />
+            </span>
+          </button>
+        </div>
+        <div class="quiz-actions">
+          <button v-if="!vSubmitted" type="button" class="btn btn-primary" :disabled="vSelected.length === 0" @click="vSubmit">
+            提交答案
+          </button>
+          <template v-else>
+            <span class="quiz-score" :class="vScore === 100 ? 'pass' : 'fail'">
+              {{ vScore === 100 ? '回答正确，已掌握该知识点' : '回答错误' }}
+            </span>
+            <button type="button" class="btn btn-ghost" :disabled="vGenerating" @click="genVariant">
+              <RefreshCw :size="13" :class="{ spin: vGenerating }" />
+              {{ vGenerating ? '生成中…' : '再出一题' }}
+            </button>
+          </template>
+        </div>
+        <div v-if="vSubmitted && variant.explain" class="quiz-explain">
+          <div class="explain-title">解析</div>
+          <div class="explain-body" v-html="render(variant.explain)"></div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -262,4 +384,10 @@ function stateClass(i: number): string {
 .explain-error { font-size: 13px; color: var(--danger, #dc2626); line-height: 1.6; }
 .typing { display: inline-block; animation: blink 1s steps(2) infinite; color: var(--primary); }
 @keyframes blink { 50% { opacity: 0; } }
+.spin { animation: spin-rotate 0.8s linear infinite; }
+@keyframes spin-rotate { to { transform: rotate(360deg); } }
+
+/* 变式题再练：虚线边框与 AI 解析区分 */
+.variant-panel { border: 1px dashed color-mix(in srgb, var(--primary) 45%, transparent); }
+.variant-q { margin-top: 8px; }
 </style>

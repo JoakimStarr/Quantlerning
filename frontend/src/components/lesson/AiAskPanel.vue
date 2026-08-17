@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Copy,
   Globe,
+  HelpCircle,
   Link2,
   Maximize2,
   Minimize2,
@@ -160,13 +161,16 @@ const inputRef = ref<HTMLTextAreaElement | null>(null)
 
 const maxLen = 2000
 
-// ---------- 深度思考 & 模型选择 & 联网搜索（全局偏好，localStorage 持久化）----------
+// ---------- 深度思考 & 引导式 & 模型选择 & 联网搜索（全局偏好，localStorage 持久化）----------
 const deep = ref(localStorage.getItem('ql:aiAskDeep') === '1')
+const guided = ref(localStorage.getItem('ql:aiAskGuide') === '1')
 const model = ref(localStorage.getItem('ql:aiAskModel') || '') // '' = 默认（当前配置）
 const models = ref<string[]>([])
 const currentModel = ref('')
 const web = ref(localStorage.getItem('ql:aiAskWeb') === '1')
 const webSearchConfigured = ref(true) // 默认乐观；挂载后按设置页实际值修正
+// 附加上下文（如代码沙箱代码与运行结果）：仅注入下一次发送，不进聊天历史
+const pendingContext = ref('')
 
 // 模型下拉（自定义搜索弹层）
 const modelOpen = ref(false)
@@ -185,6 +189,7 @@ const modelLabel = computed(() => {
 })
 
 const deepLabel = computed(() => (deep.value ? '深度思考·开' : '深度思考'))
+const guideLabel = computed(() => (guided.value ? '引导式·开' : '引导式'))
 
 // 历史持久化（按「课程+小节」存 localStorage）
 const history = useChatHistory(() => props.lessonId, () => props.sectionIndex, messages)
@@ -248,6 +253,11 @@ function toggleDeep() {
   if (deep.value) localStorage.setItem('ql:aiAskDeep', '1')
   else localStorage.removeItem('ql:aiAskDeep')
 }
+function toggleGuide() {
+  guided.value = !guided.value
+  if (guided.value) localStorage.setItem('ql:aiAskGuide', '1')
+  else localStorage.removeItem('ql:aiAskGuide')
+}
 function toggleWeb() {
   web.value = !web.value
   if (web.value) localStorage.setItem('ql:aiAskWeb', '1')
@@ -269,11 +279,12 @@ watch(
   { deep: true },
 )
 
-/** 外部调用：打开面板并把选中文字作为问题预填（「选中问 AI」） */
-function ask(prefill: string) {
+/** 外部调用：打开面板并把选中文字作为问题预填（「选中问 AI」/「图表问 AI」/「代码问 AI」） */
+function ask(prefill: string, context?: string) {
   open.value = true
   error.value = ''
   input.value = prefill
+  pendingContext.value = context ?? '' // 附加上下文（如沙箱代码与运行结果），仅注入下一次发送
   void nextTick(() => inputRef.value?.focus())
 }
 
@@ -332,6 +343,9 @@ async function send() {
   await scrollToBottom()
 
   const history: ChatTurn[] = messages.value.slice(0, -1)
+  // 附加上下文只在本次请求注入（沙箱代码问 AI），用完即清，避免后续轮次重复携带
+  const ctx = pendingContext.value
+  pendingContext.value = ''
   try {
     const result = await streamChat(
       {
@@ -342,6 +356,8 @@ async function send() {
         model: model.value || undefined,
         deep: deep.value,
         web_search: web.value,
+        guided: guided.value,
+        context: ctx || undefined,
       },
       (delta) => {
         const last = messages.value[messages.value.length - 1]
@@ -440,7 +456,7 @@ watch(
         <div v-if="messages.length === 0" class="msg-empty">
           <span class="empty-icon"><Sparkles :size="20" /></span>
           <p class="empty-title">正在学习「{{ sectionTitle }}」？</p>
-          <p class="empty-sub">针对这个知识点提问，AI 导师会结合本节内容回答。<br />可开启「深度思考」深入分析，或「联网」检索外部实时信息。</p>
+          <p class="empty-sub">针对这个知识点提问，AI 导师会结合本节内容回答。<br />可开启「深度思考」深入分析，「引导式」启发思考，或「联网」检索外部实时信息。</p>
         </div>
         <div
           v-for="(m, i) in messages"
@@ -496,6 +512,15 @@ watch(
             {{ deepLabel }}
           </button>
           <button
+            class="deep-btn"
+            :class="{ on: guided }"
+            :title="'引导式：不直接给答案，先用提问引导你思考（苏格拉底式）'"
+            @click="toggleGuide"
+          >
+            <HelpCircle :size="13" />
+            {{ guideLabel }}
+          </button>
+          <button
             class="deep-btn web-btn"
             :class="{ on: web }"
             :title="webSearchConfigured ? '联网搜索：回答时检索外部实时信息并标注来源' : '未配置 Tavily Key（设置页填写）'"
@@ -534,8 +559,8 @@ watch(
               </div>
             </Transition>
           </div>
-          <span v-if="deep || web" class="toolbar-hint">
-            {{ deep ? '深度思考' : '' }}{{ deep && web ? ' · ' : '' }}{{ web ? '联网搜索' : '' }}
+          <span v-if="deep || guided || web" class="toolbar-hint">
+            {{ deep ? '深度思考' : '' }}{{ deep && (guided || web) ? ' · ' : '' }}{{ guided ? '引导式' : '' }}{{ guided && web ? ' · ' : '' }}{{ web ? '联网搜索' : '' }}
           </span>
         </div>
       </footer>

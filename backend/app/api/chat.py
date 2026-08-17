@@ -3,7 +3,7 @@ import json
 from collections.abc import Callable
 
 from fastapi import APIRouter
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from ..services.ai.chat import (
@@ -16,7 +16,9 @@ from ..services.ai.chat import (
     build_messages,
     build_plan_messages,
     build_quiz_explain_messages,
+    build_quiz_variant_messages,
     build_review_messages,
+    complete_chat,
     stream_chat,
 )
 from ..services.ai.web_search import (
@@ -45,6 +47,9 @@ class ChatRequest(BaseModel):
     model: str | None = Field(None, max_length=200)
     deep: bool = False
     web_search: bool = False
+    # 引导式教学开关；代码沙箱等附加上下文（注入 system，不走历史截断）
+    guided: bool = False
+    context: str | None = Field(None, max_length=6000)
 
 
 class JudgeRequest(BaseModel):
@@ -69,6 +74,15 @@ class GenExerciseRequest(BaseModel):
     question: str = Field(..., max_length=2000)
     answer: str = Field("", max_length=4000)
     feedback: str = Field("", max_length=8000)
+
+
+class QuizVariantRequest(BaseModel):
+    lesson_id: str
+    section_index: int = 0
+    question: str = Field(..., max_length=2000)
+    options: list[str] = Field(default_factory=list)
+    correct_indexes: list[int] = Field(default_factory=list)
+    user_indexes: list[int] = Field(default_factory=list)
 
 
 class PlanRequest(BaseModel):
@@ -161,7 +175,12 @@ async def chat_stream(payload: ChatRequest):
         sources: list[dict] = []
         try:
             messages = build_messages(
-                payload.lesson_id, payload.section_index, history, deep=payload.deep
+                payload.lesson_id,
+                payload.section_index,
+                history,
+                deep=payload.deep,
+                guided=payload.guided,
+                context=payload.context or "",
             )
             # 联网搜索：用最后一条用户消息检索，结果作为 system 上下文注入（标注外部来源）
             if payload.web_search:
@@ -236,6 +255,81 @@ async def gen_exercise(payload: GenExerciseRequest):
             payload.feedback,
         )
     )
+
+
+def _parse_quiz_variant(text: str) -> dict | None:
+    """从模型输出中提取并校验变式题 JSON（容忍 ```json 围栏与前后缀文字）。"""
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end <= start:
+        return None
+    try:
+        data = json.loads(text[start : end + 1])
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    q = str(data.get("question") or "").strip()
+    opts = data.get("options")
+    if not q or not isinstance(opts, list) or len(opts) < 2:
+        return None
+    options = [str(o).strip() for o in opts]
+    raw = data.get("answer")
+    if isinstance(raw, int):
+        answers = [raw]
+    elif isinstance(raw, list):
+        answers = [a for a in raw if isinstance(a, (int, float))]
+    else:
+        return None
+    ans = [int(a) - 1 for a in answers]
+    if not ans or not all(0 <= a < len(options) for a in ans):
+        return None
+    return {
+        "question": q,
+        "options": options,
+        "answer": ans,
+        "explain": str(data.get("explain") or "").strip(),
+    }
+
+
+@router.post("/quiz-variant")
+async def quiz_variant(payload: QuizVariantRequest):
+    """随堂测验变式题：同知识点、相近难度的单选题（JSON 返回，非流式）。
+
+    成功返回 {"question","options","answer","explain"}；失败返回 {"error"}。
+    模型输出非合法 JSON 时带纠偏指令重试一次。
+    """
+    try:
+        messages = build_quiz_variant_messages(
+            payload.lesson_id,
+            payload.section_index,
+            payload.question,
+            payload.options,
+            payload.correct_indexes,
+            payload.user_indexes,
+        )
+    except ValueError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+    for attempt in range(2):
+        try:
+            text = await complete_chat(messages)
+        except (AINotConfiguredError, AIProviderError) as e:
+            return JSONResponse({"error": str(e)}, status_code=502)
+        data = _parse_quiz_variant(text)
+        if data:
+            return JSONResponse(data)
+        if attempt == 0:
+            # 纠偏重试：把模型上次输出回灌，明确要求只输出 JSON
+            messages = messages + [
+                {"role": "assistant", "content": text[:2000]},
+                {
+                    "role": "user",
+                    "content": "上一条输出不是合法 JSON。请只输出符合字段要求的 JSON 对象，"
+                    "不要任何解释文字、Markdown 或代码围栏。",
+                },
+            ]
+    return JSONResponse({"error": "AI 生成的变式题格式异常，请重试"}, status_code=502)
 
 
 @router.post("/plan")

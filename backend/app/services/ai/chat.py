@@ -148,12 +148,19 @@ def _match_sections(sections: list[dict], current_index: int, history: list[dict
 
 
 def build_messages(
-    lesson_id: str, section_index: int, history: list[dict], deep: bool = False
+    lesson_id: str,
+    section_index: int,
+    history: list[dict],
+    deep: bool = False,
+    guided: bool = False,
+    context: str = "",
 ) -> list[dict]:
     """组装请求消息：system（课程+当前小节上下文）+ 最近几轮历史。
 
     deep=True 时启用「深度思考」：system 提示词要求先拆解问题、考虑常见误区，
     并放宽字数限制（配合 stream_chat 的 max_tokens 翻倍）。
+    guided=True 时启用「引导式」教学：不直接给答案，反问+给思路（苏格拉底式）。
+    context 非空时作为附加上下文注入（如代码沙箱的代码与运行结果，供 AI 分析）。
     """
     lesson = _find_lesson(lesson_id)
     if lesson is None:
@@ -190,6 +197,18 @@ def build_messages(
             "\n\n本次提问开启「深度思考」模式：请先拆解问题、考虑常见的理解误区与不同解释，"
             "再给出结构化结论；可以分点展示推理过程，回答可以更详细、更深入，"
             "不受上述 300 字限制，但仍需条理清晰、不重复废话。"
+        )
+    if guided:
+        system += (
+            "\n\n本次提问开启「引导式」教学模式：不要直接给出完整答案。"
+            "先用 1-2 个问题引导学生思考，指出关键概念与思路方向，必要时给一点小提示；"
+            "等学生自己尝试后再确认或纠正，保持苏格拉底式启发。"
+        )
+    if context:
+        system += (
+            "\n\n以下是学生在代码沙箱中运行的代码与执行结果（供你结合分析，"
+            "不要逐行复述整段代码）：\n"
+            f"{context}"
         )
     messages = [{"role": "system", "content": system}]
     # 只保留最近若干轮历史，避免 token 膨胀
@@ -377,6 +396,60 @@ def build_quiz_explain_messages(
     ]
 
 
+def build_quiz_variant_messages(
+    lesson_id: str,
+    section_index: int,
+    question: str,
+    options: list[str],
+    correct_indexes: list[int],
+    user_indexes: list[int],
+) -> list[dict]:
+    """生成变式选择题：基于原题与作答表现，出同知识点、相近难度的单选题。
+
+    要求模型只输出 JSON（question/options/answer/explain），由上层解析并回填到前端测验卡。
+    """
+    lesson = _find_lesson(lesson_id)
+    if lesson is None:
+        raise ValueError(f"课程 {lesson_id} 不存在")
+    content = get_content().get(lesson_id)
+    if not content:
+        raise ValueError(f"课程 {lesson_id} 没有内容")
+    sections = content.get("sections") or []
+    if not 0 <= section_index < len(sections):
+        raise ValueError(f"小节索引 {section_index} 越界（共 {len(sections)} 节）")
+    section = sections[section_index]
+
+    body = (section.get("body") or "").strip()
+    if len(body) > _MAX_BODY_CHARS:
+        body = body[:_MAX_BODY_CHARS] + "\n…（内容已截断）"
+
+    opt_lines = "\n".join(f"{_LETTERS[i]}. {options[i]}" for i in range(len(options)))
+    correct = "、".join(_LETTERS[i] for i in correct_indexes) or "（题目未标记）"
+    user_ans = "、".join(_LETTERS[i] for i in user_indexes) if user_indexes else "（未作答）"
+
+    system = (
+        "你是 Quantlerning 量化学习网站的出题老师，用中文生成一道变式选择题。\n"
+        f"课程：《{lesson['title']}》\n"
+        f"当前小节：{section.get('title', '')}\n\n"
+        f"本节课程内容（节选）：\n{body}\n\n"
+        "学生刚答错了一道随堂测验题。请生成 1 道与它考察同一知识点、难度相近的单选题变式题，"
+        "并给出解析。\n"
+        "只输出一个 JSON 对象，不要任何额外文字、Markdown 或代码围栏，字段：\n"
+        '{"question": "题干（可用行内 LaTeX）", "options": ["选项1", "选项2", "选项3", "选项4"], '
+        '"answer": [正确选项序号，1 起，单选题填一个数字], "explain": "解析，结合本节知识说明各选项对错"}。\n'
+        "要求：选项 3-5 个；正确选项唯一；题干与选项中的公式用行内 LaTeX 单个美元符；"
+        "数字要合理、可验证，不编造与课程无关的数据。"
+    )
+    user_content = (
+        f"学生答错的原题：\n{question}\n\n选项：\n{opt_lines}\n\n"
+        f"正确答案：{correct}\n学生选择：{user_ans}"
+    )
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_content},
+    ]
+
+
 def build_lesson_summary_messages(lesson_id: str) -> list[dict]:
     """章节小结：基于全课内容生成 3-5 条要点（内容过长截断控制 token 成本）。"""
     lesson = _find_lesson(lesson_id)
@@ -532,3 +605,17 @@ async def stream_chat(
         if is_model_error(str(e)):
             raise AIProviderError(friendly_model_error(str(e))) from e
         raise
+
+
+async def complete_chat(
+    messages: list[dict], model: str | None = None
+) -> str:
+    """非流式调用：收集完整回答文本。
+
+    供结构化输出端点（如 /chat/quiz-variant）使用；复用 stream_chat 的
+    主/备用模型降级逻辑，仅把流式增量拼成整段文本。
+    """
+    parts: list[str] = []
+    async for delta in stream_chat(messages, model=model):
+        parts.append(delta)
+    return "".join(parts)
