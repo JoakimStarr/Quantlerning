@@ -149,36 +149,27 @@ async def get_market_pe_distribution(
     n = len(pes_sorted)
     median = pes_sorted[(n - 1) // 2]
     p90 = pes_sorted[int(n * 0.9) - 1]
-    lo = min(pes_sorted)
-    hi = max(pes_sorted)
-    # 分箱：负 PE 单独一桶（亏损股），其余等宽
+    # 分箱：负 PE 单独一桶（亏损股），正 PE 封顶到 CAP 后等宽分桶。
+    # 右偏分布若按真实 max 等宽（如 PE=30000），几乎全部股票挤进第一个桶，
+    # 直方图退化成「一根柱子」；封顶到 300 后 0-300 区间才有分辨率，
+    # PE>300 的极端值并入最后一桶（数量守恒，不丢样本）。
     neg = [p for p in pes_sorted if p <= 0]
     pos = [p for p in pes_sorted if p > 0]
     out_bins: list[dict] = [{"lo": None, "hi": 0, "count": len(neg)}]
     if pos:
-        p_min, p_max = min(pos), max(pos)
-        if p_min == p_max:
-            # 全部正 PE 相等：width=0 会除零，单桶返回
-            out_bins.append({"lo": round(p_min, 1), "hi": round(p_max, 1), "count": len(pos)})
-            return {
-                "date": str(trade_date),
-                "count": n,
-                "median": round(median, 2),
-                "p90": round(p90, 2),
-                "bins": out_bins,
-            }
-        width = (p_max - p_min) / bins
+        CAP = 300.0
+        width = CAP / bins
         counts = [0] * bins
         for p in pos:
-            idx = int((p - p_min) / width)
+            idx = int(min(p, CAP) / width)
             if idx >= bins:
                 idx = bins - 1
             counts[idx] += 1
         for i in range(bins):
             out_bins.append(
                 {
-                    "lo": round(p_min + i * width, 1),
-                    "hi": round(p_min + (i + 1) * width, 1),
+                    "lo": round(i * width, 1),
+                    "hi": round((i + 1) * width, 1),
                     "count": counts[i],
                 }
             )

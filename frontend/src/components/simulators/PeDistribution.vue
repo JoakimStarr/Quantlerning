@@ -10,7 +10,7 @@ import { fetchMarketPeDistribution } from '@/api'
 
 use([CanvasRenderer, BarChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent])
 
-// 全市场 PE 分布（真实 quantlab 数据快照）
+// 全市场 PE 分布（quantlab 真实数据）
 // 看估值分布是「右偏 + 负值桶（亏损股）」——所以要用分位而非孤立数字
 
 const props = defineProps<{
@@ -37,7 +37,7 @@ async function load() {
 
 onMounted(load)
 
-// 只画 PE > 0 的桶，且截断到 99 分位以内以便观察主体；负值桶单独标注
+// 只画 PE > 0 的桶，且截断到 200 以内以便观察主体（后端已把正 PE 封顶到 300，极端值并入最后一桶）；负值桶单独标注
 const truncated = computed(() => {
   if (!dist.value) return null
   const pos = dist.value.bins.filter((b): b is { lo: number; hi: number; count: number } => b.lo !== null)
