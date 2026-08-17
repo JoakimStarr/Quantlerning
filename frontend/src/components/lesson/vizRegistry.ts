@@ -394,6 +394,16 @@ const registry = {
     desc: 'ML 逻辑回归 vs 传统双均线 vs 买入持有（walk-forward 回测）',
     comp: markRaw(defineAsyncComponent(() => import('../simulators/MlBacktest.vue'))),
   },
+  gradient_vanishing: {
+    title: '梯度消失演示',
+    desc: 'tanh 导数连乘：RNN 梯度随步数指数衰减',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/GradientVanishing.vue'))),
+  },
+  rl_trading_loop: {
+    title: 'RL 交易循环',
+    desc: '状态→动作→奖励 三要素（真实茅台日线，示意策略）',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/RlTradingLoop.vue'))),
+  },
   frontier: {
     title: '有效前沿拖拽',
     desc: '5 股真实收益：权重滑块 → 实时前沿',
