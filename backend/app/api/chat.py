@@ -1,5 +1,6 @@
 """AI 追问路由：POST /api/v1/chat/stream（SSE 流式）。"""
 import json
+import logging
 from collections.abc import Callable
 
 from fastapi import APIRouter
@@ -29,6 +30,8 @@ from ..services.ai.web_search import (
 )
 
 router = APIRouter(prefix="/chat", tags=["chat"])
+
+logger = logging.getLogger(__name__)
 
 _MAX_MSG_LEN = 2000  # 单条用户消息长度上限
 _MAX_HISTORY = 20  # 前端可传历史条数上限
@@ -309,6 +312,12 @@ async def quiz_variant(payload: QuizVariantRequest):
             payload.user_indexes,
         )
     except ValueError as e:
+        logger.warning(
+            "quiz-variant 参数校验失败 lesson=%s section=%s: %s",
+            payload.lesson_id,
+            payload.section_index,
+            e,
+        )
         return JSONResponse({"error": str(e)}, status_code=400)
 
     for attempt in range(2):

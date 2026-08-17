@@ -415,8 +415,18 @@ def build_quiz_variant_messages(
     if not content:
         raise ValueError(f"课程 {lesson_id} 没有内容")
     sections = content.get("sections") or []
+    if not sections:
+        raise ValueError(f"课程 {lesson_id} 没有内容")
+    # 前端小节索引可能因内容 md 更新（缓存重建、sections 变少）而短暂越界：
+    # 就近截断到边界，避免对用户硬报错（题目/选项已在请求里带全，上下文偏差可接受）
     if not 0 <= section_index < len(sections):
-        raise ValueError(f"小节索引 {section_index} 越界（共 {len(sections)} 节）")
+        logger.info(
+            "quiz-variant 小节索引 %s 越界（共 %s 节），截断为 %s",
+            section_index,
+            len(sections),
+            max(0, min(section_index, len(sections) - 1)),
+        )
+        section_index = max(0, min(section_index, len(sections) - 1))
     section = sections[section_index]
 
     body = (section.get("body") or "").strip()
