@@ -196,6 +196,8 @@ export interface ChatTurn {
 
 /**
  * 通用 SSE 流式 POST：解析 {"delta"} / {"sources"} / {"done"} / {"error"} 事件。
+ * 网络层失败（连接被拒/代理错误）、HTTP 非 200、流中途中断、EOF 但无 done 事件
+ * 一律在这里转成 {error} 返回，调用方统一显示，避免「发消息没回复又没提示」。
  * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
  */
 async function streamSSE(
@@ -205,40 +207,54 @@ async function streamSSE(
   signal?: AbortSignal,
   onSources?: (sources: ChatSource[]) => void,
 ): Promise<{ error?: string }> {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    signal,
-  })
+  let res: Response
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal,
+    })
+  } catch (e) {
+    // 用户主动停止/关闭：静默；其余网络异常（连接被拒/代理错误/跨域）报错提示
+    if (signal?.aborted) return {}
+    return { error: `请求失败：${e instanceof Error ? e.message : String(e)}` }
+  }
   if (!res.ok || !res.body) {
     return { error: `请求失败（HTTP ${res.status}）` }
   }
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-    let sep: number
-    while ((sep = buffer.indexOf('\n\n')) !== -1) {
-      const raw = buffer.slice(0, sep)
-      buffer = buffer.slice(sep + 2)
-      const line = raw.split('\n').find((l) => l.trim().startsWith('data:'))
-      if (!line) continue
-      try {
-        const evt = JSON.parse(line.slice(line.indexOf('data:') + 5).trim())
-        if (typeof evt.delta === 'string' && evt.delta) onDelta(evt.delta)
-        if (Array.isArray(evt.sources) && onSources) onSources(evt.sources)
-        if (evt.error) return { error: String(evt.error) }
-        if (evt.done) return {}
-      } catch {
-        // 忽略无法解析的帧
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      let sep: number
+      while ((sep = buffer.indexOf('\n\n')) !== -1) {
+        const raw = buffer.slice(0, sep)
+        buffer = buffer.slice(sep + 2)
+        const line = raw.split('\n').find((l) => l.trim().startsWith('data:'))
+        if (!line) continue
+        try {
+          const evt = JSON.parse(line.slice(line.indexOf('data:') + 5).trim())
+          if (typeof evt.delta === 'string' && evt.delta) onDelta(evt.delta)
+          if (Array.isArray(evt.sources) && onSources) onSources(evt.sources)
+          if (evt.error) return { error: String(evt.error) }
+          if (evt.done) return {}
+        } catch {
+          // 忽略无法解析的帧
+        }
       }
     }
+  } catch (e) {
+    // 读流中断：AbortError（用户停止）静默，其余（代理掐断连接等）报错
+    if (signal?.aborted) return {}
+    return { error: `连接中断：${e instanceof Error ? e.message : String(e)}` }
   }
-  return {}
+  // 流正常 EOF 却从未收到 done 事件：回答不完整，提示重试
+  return { error: '连接中断，回答不完整，请重试' }
 }
 
 /**

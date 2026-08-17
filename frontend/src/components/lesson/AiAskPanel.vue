@@ -376,10 +376,14 @@ async function send() {
       const last = messages.value[messages.value.length - 1]
       if (last?.role === 'assistant' && !last.content) messages.value.pop()
     }
-  } catch {
-    // 用户中止（关闭面板/切课）等：移除空气泡，不显示错误
+  } catch (e) {
+    // 用户主动停止/关闭面板（AbortError）静默；其余异常也提示，避免「没回复也没提示」
     const last = messages.value[messages.value.length - 1]
     if (last?.role === 'assistant' && !last.content) messages.value.pop()
+    const aborted = e instanceof DOMException && e.name === 'AbortError'
+    if (!aborted) {
+      error.value = `请求异常：${e instanceof Error ? e.message : String(e)}`
+    }
   } finally {
     thinking.value = false
     abortCtrl.value = null
