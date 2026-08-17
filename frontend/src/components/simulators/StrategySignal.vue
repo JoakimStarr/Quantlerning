@@ -5,13 +5,13 @@ import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkPointComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, MarkPointComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
-import { sma, shiftPosition } from '@/utils/strategies'
+import { sma, shiftPosition, strategyNav, stats, backtestArrays } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkPointComponent])
+use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkPointComponent])
 
-// 策略解剖：真实行情 + 双均线信号 → 持仓映射（p2-l1）
+// 策略解剖：真实行情 + 双均线信号 → 持仓映射 → 净值与回测指标（p2-l1）
 
 const props = defineProps<{
   params?: Record<string, unknown>
@@ -26,16 +26,13 @@ const fast = ref(20)
 const slow = ref(60)
 const effFast = computed(() => Math.min(fast.value, slow.value - 1))
 
-const dates = computed(() => data.value?.map((d) => d.date) ?? [])
-const closes = computed(() => data.value?.map((d) => d.close) ?? [])
-
 const com = computed(() => {
   if (!data.value) return null
-  const cl = closes.value
-  const f = sma(cl, effFast.value)
-  const s = sma(cl, slow.value)
+  const arr = backtestArrays(data.value)
+  const f = sma(arr.closes, effFast.value)
+  const s = sma(arr.closes, slow.value)
   // 信号：金叉/死叉次日生效的持仓
-  const rawSig = cl.map((_, i) => {
+  const rawSig = arr.closes.map((_, i) => {
     if (f[i] === null || s[i] === null) return 0
     return f[i]! > s[i]! ? 1 : 0
   })
@@ -47,13 +44,38 @@ const com = computed(() => {
     if (pos[i] > pos[i - 1]) buyIdx.push(i)
     else if (pos[i] < pos[i - 1]) sellIdx.push(i)
   }
-  return { f, s, pos, buyIdx, sellIdx }
+  const nav = strategyNav(arr.ret, pos)
+  const buyNav = strategyNav(arr.ret, arr.closes.map(() => 1))
+  const st = stats(arr.ret, pos)
+  return { arr, f, s, pos, nav, buyNav, st, buyIdx, sellIdx }
 })
 
 const option = computed(() => {
-  if (!com.value) return {}
-  const f = com.value.f.map((v, i) => [dates.value[i], v === null ? '-' : +v.toFixed(1)])
-  const s = com.value.s.map((v, i) => [dates.value[i], v === null ? '-' : +v.toFixed(1)])
+  const c = com.value
+  if (!c) return {}
+  const f = c.f.map((v, i) => [c.arr.dates[i], v === null ? '-' : +v.toFixed(1)])
+  const s = c.s.map((v, i) => [c.arr.dates[i], v === null ? '-' : +v.toFixed(1)])
+  const maFast = `MA${effFast.value}`
+  const maSlow = `MA${slow.value}`
+  // 买卖点：小三角贴价格线，标签带底色错开到线外，避免遮住价格/均线
+  const buyp = c.buyIdx.map((i) => ({
+    coord: [c.arr.dates[i], c.arr.closes[i]],
+    value: '买',
+    symbol: 'triangle',
+    symbolOffset: [0, 6],
+    symbolRotate: 0,
+    label: { position: 'top', backgroundColor: C.value.success },
+    itemStyle: { color: C.value.success },
+  }))
+  const sellp = c.sellIdx.map((i) => ({
+    coord: [c.arr.dates[i], c.arr.closes[i]],
+    value: '卖',
+    symbol: 'triangle',
+    symbolRotate: 180,
+    symbolOffset: [0, -6],
+    label: { position: 'bottom', backgroundColor: C.value.danger },
+    itemStyle: { color: C.value.danger },
+  }))
   return {
     animation: true,
     axisPointer: { link: [{ xAxisIndex: 'all' }] },
@@ -61,30 +83,50 @@ const option = computed(() => {
       trigger: 'axis',
       formatter: (ps: any[]) => {
         const hp = ps.find((p: any) => p.seriesName === '收盘价')
+        const fv = ps.find((p: any) => p.seriesName === maFast)
+        const sv = ps.find((p: any) => p.seriesName === maSlow)
         const hh = ps.find((p: any) => p.seriesName === '持仓')
-        const head = hp ? `${hp.name}<br/>收盘 ${hp.value[1]}` : hp
+        const nv = ps.find((p: any) => p.seriesName === '策略净值')
+        const bv = ps.find((p: any) => p.seriesName === '买入持有')
+        const head = hp ? `${hp.name}<br/>收盘 ${hp.value[1]}` : (nv?.name ?? '')
         const parts = [head]
+        if (fv) parts.push(`${maFast} ${fv.value[1]}`)
+        if (sv) parts.push(`${maSlow} ${sv.value[1]}`)
         if (hh) parts.push(`持仓 ${hh.value[1] === 1 ? '全仓' : '空仓'}`)
+        if (nv) parts.push(`策略净值 ${Number(nv.value[1]).toFixed(1)}`)
+        if (bv) parts.push(`买入持有 ${Number(bv.value[1]).toFixed(1)}`)
         return parts.join('<br/>')
       },
     },
-    legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', `MA${effFast.value}`, `MA${slow.value}`, '持仓'] },
+    legend: {
+      top: 0,
+      textStyle: { fontSize: 12 },
+      data: ['收盘价', maFast, maSlow, '持仓', '策略净值', '买入持有'],
+    },
     grid: [
-      { left: 56, right: 24, top: 40, height: '62%' },
-      { left: 56, right: 24, top: '76%', height: '14%' },
+      { left: 56, right: 24, top: 60, height: '36%' },
+      { left: 56, right: 24, top: '53%', height: '12%' },
+      { left: 56, right: 24, top: '68%', height: '22%' },
     ],
     xAxis: [
       {
         type: 'category',
-        data: dates.value,
+        data: c.arr.dates,
         gridIndex: 0,
         axisLabel: { show: false },
         axisPointer: { label: { show: false } },
       },
       {
         type: 'category',
-        data: dates.value,
+        data: c.arr.dates,
         gridIndex: 1,
+        axisLabel: { show: false },
+        axisPointer: { label: { show: false } },
+      },
+      {
+        type: 'category',
+        data: c.arr.dates,
+        gridIndex: 2,
         axisLabel: { fontSize: 10, hideOverlap: true },
       },
     ],
@@ -98,6 +140,7 @@ const option = computed(() => {
         splitNumber: 1,
         axisLabel: { fontSize: 10, formatter: (v: number) => (v === 1 ? '①全仓' : v === 0 ? '〇空仓' : '') },
       },
+      { type: 'value', gridIndex: 2, scale: true, axisLabel: { fontSize: 10 } },
     ],
     series: [
       {
@@ -105,19 +148,19 @@ const option = computed(() => {
         type: 'line',
         xAxisIndex: 0,
         yAxisIndex: 0,
-        data: closes.value.map((v, i) => [dates.value[i], v]),
+        data: c.arr.closes.map((v, i) => [c.arr.dates[i], v]),
         smooth: true,
         symbol: 'none',
         lineStyle: { width: 1.5, color: C.value.primary },
         itemStyle: { color: C.value.primary },
         markPoint: {
-          symbolSize: 46,
-          label: { fontSize: 11, color: '#fff' },
-          data: com.value.buyIdx.map((i) => ({ coord: [dates.value[i], closes.value[i]], value: '买', itemStyle: { color: C.value.success } })),
+          symbolSize: 13,
+          label: { fontSize: 8, color: '#fff', fontWeight: 600, padding: [1, 3], borderRadius: 2 },
+          data: [...buyp, ...sellp],
         },
       },
       {
-        name: `MA${effFast.value}`,
+        name: maFast,
         type: 'line',
         xAxisIndex: 0,
         yAxisIndex: 0,
@@ -128,7 +171,7 @@ const option = computed(() => {
         itemStyle: { color: C.value.warning },
       },
       {
-        name: `MA${slow.value}`,
+        name: maSlow,
         type: 'line',
         xAxisIndex: 0,
         yAxisIndex: 0,
@@ -143,22 +186,37 @@ const option = computed(() => {
         type: 'line',
         xAxisIndex: 1,
         yAxisIndex: 1,
-        data: com.value.pos.map((v, i) => [dates.value[i], v]),
+        data: c.pos.map((v, i) => [c.arr.dates[i], v]),
         symbol: 'none',
         step: 'end',
         lineStyle: { width: 2, color: C.value.cyan },
         itemStyle: { color: C.value.cyan },
         areaStyle: { color: withAlpha(C.value.cyan, 0.15) },
       },
+      {
+        name: '策略净值',
+        type: 'line',
+        xAxisIndex: 2,
+        yAxisIndex: 2,
+        data: c.nav.map((v, i) => [c.arr.dates[i], +v.toFixed(1)]),
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: 2, color: C.value.warning },
+        itemStyle: { color: C.value.warning },
+      },
+      {
+        name: '买入持有',
+        type: 'line',
+        xAxisIndex: 2,
+        yAxisIndex: 2,
+        data: c.buyNav.map((v, i) => [c.arr.dates[i], +v.toFixed(1)]),
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: 1.2, color: C.value.slateStrong, type: 'dashed' },
+        itemStyle: { color: C.value.slateStrong },
+      },
     ],
   }
-})
-
-const buyCount = computed(() => com.value?.buyIdx.length ?? 0)
-const sellCount = computed(() => com.value?.sellIdx.length ?? 0)
-const posPct = computed(() => {
-  if (!com.value) return 0
-  return Math.round((com.value.pos.reduce((a, b) => a + b, 0) / com.value.pos.length) * 100)
 })
 </script>
 
@@ -169,16 +227,32 @@ const posPct = computed(() => {
     <template v-else-if="com">
       <div class="result">
         <div class="result-item">
-          <span class="result-label">买点（金叉次日起）</span>
-          <strong class="result-value" style="color: var(--success, #16a34a)">{{ buyCount }}</strong>
+          <span class="result-label">累计收益</span>
+          <strong class="result-value" :style="{ color: com.st.cum >= 0 ? 'var(--success, #16a34a)' : 'var(--danger, #dc2626)' }">{{ (com.st.cum * 100).toFixed(1) }}%</strong>
         </div>
         <div class="result-item">
-          <span class="result-label">卖点（死叉次日起）</span>
-          <strong class="result-value" style="color: var(--danger, #dc2626)">{{ sellCount }}</strong>
+          <span class="result-label">年化收益</span>
+          <strong class="result-value">{{ (com.st.ann * 100).toFixed(1) }}%</strong>
+        </div>
+        <div class="result-item">
+          <span class="result-label">最大回撤</span>
+          <strong class="result-value" style="color: var(--danger, #dc2626)">{{ (com.st.mdd * 100).toFixed(1) }}%</strong>
+        </div>
+        <div class="result-item">
+          <span class="result-label">Sharpe(rf 2%)</span>
+          <strong class="result-value">{{ com.st.sharpe.toFixed(2) }}</strong>
+        </div>
+        <div class="result-item">
+          <span class="result-label">胜率</span>
+          <strong class="result-value">{{ (com.st.winRate * 100).toFixed(0) }}%</strong>
         </div>
         <div class="result-item">
           <span class="result-label">持仓占比</span>
-          <strong class="result-value">{{ posPct }}%</strong>
+          <strong class="result-value">{{ (com.st.posMean * 100).toFixed(1) }}%</strong>
+        </div>
+        <div class="result-item">
+          <span class="result-label">信号次数</span>
+          <strong class="result-value">{{ com.st.switches }}</strong>
         </div>
       </div>
       <ThemedChart class="chart" :option="option" autoresize />
@@ -194,7 +268,7 @@ const posPct = computed(() => {
           <span class="control-value">{{ slow }}</span>
         </div>
         <p class="hint">
-          信号（金叉/死叉）→ 持仓（次日生效）→ 成交（次日开盘）：三段式缺一不可。拖动参数看信号与持仓如何联动变化。
+          信号（金叉/死叉）→ 持仓（次日生效）→ 成交（次日开盘）：三段式缺一不可。上图买卖点、中图持仓、下图净值（橙）对比买入持有（灰虚线），回测指标随参数实时更新。
         </p>
       </div>
     </template>
@@ -203,8 +277,8 @@ const posPct = computed(() => {
 
 <style scoped>
 .ss { padding: 16px; }
-.status { height: 460px; display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 14px; }
-.chart { height: 460px; }
+.status { height: 520px; display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 14px; }
+.chart { height: 520px; }
 .result { display: flex; gap: 28px; margin-bottom: 12px; padding: 12px 16px; background: var(--primary-soft); border-radius: var(--radius-sm); flex-wrap: wrap; }
 .result-item { display: flex; flex-direction: column; gap: 2px; }
 .result-label { font-size: 12px; color: var(--text-3); }
