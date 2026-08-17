@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Copy,
   Globe,
+  Link2,
   Maximize2,
   Minimize2,
   Search,
@@ -38,9 +39,17 @@ function renderBubble(content: string): string {
   return bubbleMd.render(normalized)
 }
 
+// 提取链接域名（去掉 www. 前缀），用于参考文献的灰色域名标注
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return ''
+  }
+}
+
 // 给 AI 回答里的每个代码块加「复制代码」按钮（v-html 无法绑事件，运行时注入 DOM）
-function enhanceCodeBlocks() {
-  const list = listRef.value
+function enhanceCodeBlocks() {  const list = listRef.value
   if (!list) return
   list.querySelectorAll<HTMLElement>('pre:not([data-copied])').forEach((pre) => {
     pre.setAttribute('data-copied', '1')
@@ -322,7 +331,8 @@ async function send() {
       {
         lesson_id: props.lessonId,
         section_index: props.sectionIndex,
-        messages: history,
+        // 只传 role/content，sources 是 UI 数据不进模型上下文
+        messages: history.map((m) => ({ role: m.role, content: m.content })),
         model: model.value || undefined,
         deep: deep.value,
         web_search: web.value,
@@ -335,6 +345,11 @@ async function send() {
         }
       },
       ctrl.signal,
+      (sources) => {
+        // 来源清单挂到最后一条 assistant 消息：渲染为回答下方「参考文献」
+        const last = messages.value[messages.value.length - 1]
+        if (last?.role === 'assistant') last.sources = sources
+      },
     )
     if (result.error) {
       error.value = result.error
@@ -433,6 +448,17 @@ watch(
           <div v-else class="bubble bubble-md">
             <span v-if="m.content" v-html="renderBubble(m.content)"></span>
             <span v-else-if="thinking && i === messages.length - 1" class="typing">▍</span>
+            <!-- 联网搜索来源：正文用 [1][2] 编号引用，这里列出可点击的参考文献 -->
+            <div v-if="m.sources?.length" class="refs">
+              <div class="refs-title"><Link2 :size="12" /> 参考文献</div>
+              <ul class="refs-list">
+                <li v-for="(s, si) in m.sources" :key="si" class="refs-item">
+                  <span class="refs-num">[{{ si + 1 }}]</span>
+                  <a :href="s.url" target="_blank" rel="noreferrer" class="refs-link" :title="s.title">{{ s.title }}</a>
+                  <span class="refs-host">{{ hostOf(s.url) }}</span>
+                </li>
+              </ul>
+            </div>
             <button v-if="m.content" class="copy-btn" title="复制回答" @click="copyMessage(m.content)"><Copy :size="13" /></button>
           </div>
         </div>
@@ -790,6 +816,53 @@ watch(
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 .bubble-md :deep(.katex) { font-size: 1em; }
+
+/* 参考文献：正文 [n] 编号引用的来源清单，主流学术样式 */
+.refs {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed var(--border);
+}
+.refs-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+.refs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.refs-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  min-width: 0;
+}
+.refs-num {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-3);
+}
+.refs-link {
+  color: var(--primary);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.refs-link:hover { text-decoration: underline; }
+.refs-host {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
 .typing {
   display: inline-block;
   animation: blink 1s steps(2) infinite;

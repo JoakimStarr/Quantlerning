@@ -182,13 +182,20 @@ export async function runCode(code: string): Promise<ExecResult> {
 }
 
 // ---------- AI 追问（SSE 流式）----------
+export interface ChatSource {
+  title: string
+  url: string
+}
+
 export interface ChatTurn {
   role: 'user' | 'assistant'
   content: string
+  /** 仅 assistant 消息：联网搜索的来源清单（渲染为回答下方「参考文献」） */
+  sources?: ChatSource[]
 }
 
 /**
- * 通用 SSE 流式 POST：解析 {"delta"} / {"done"} / {"error"} 事件。
+ * 通用 SSE 流式 POST：解析 {"delta"} / {"sources"} / {"done"} / {"error"} 事件。
  * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
  */
 async function streamSSE(
@@ -196,6 +203,7 @@ async function streamSSE(
   payload: unknown,
   onDelta: (text: string) => void,
   signal?: AbortSignal,
+  onSources?: (sources: ChatSource[]) => void,
 ): Promise<{ error?: string }> {
   const res = await fetch(url, {
     method: 'POST',
@@ -222,6 +230,7 @@ async function streamSSE(
       try {
         const evt = JSON.parse(line.slice(line.indexOf('data:') + 5).trim())
         if (typeof evt.delta === 'string' && evt.delta) onDelta(evt.delta)
+        if (Array.isArray(evt.sources) && onSources) onSources(evt.sources)
         if (evt.error) return { error: String(evt.error) }
         if (evt.done) return {}
       } catch {
@@ -236,6 +245,7 @@ async function streamSSE(
  * 围绕当前课程小节追问，SSE 流式返回。
  * @param payload.model 覆盖模型（空=用当前配置）；payload.deep 深度思考开关；
  *        payload.web_search 联网搜索开关（需在设置页配置 Tavily key）
+ * @param onSources 联网搜索来源清单回调（回答下方「参考文献」）
  * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
  */
 export async function streamChat(
@@ -249,8 +259,9 @@ export async function streamChat(
   },
   onDelta: (text: string) => void,
   signal?: AbortSignal,
+  onSources?: (sources: ChatSource[]) => void,
 ): Promise<{ error?: string }> {
-  return streamSSE('/api/v1/chat/stream', payload, onDelta, signal)
+  return streamSSE('/api/v1/chat/stream', payload, onDelta, signal, onSources)
 }
 
 /**

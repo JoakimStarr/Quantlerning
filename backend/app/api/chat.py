@@ -138,6 +138,7 @@ async def chat_stream(payload: ChatRequest):
             history.append({"role": m.role, "content": content[:_MAX_MSG_LEN]})
 
     async def gen():
+        sources: list[dict] = []
         try:
             messages = build_messages(
                 payload.lesson_id, payload.section_index, history, deep=payload.deep
@@ -154,6 +155,8 @@ async def chat_stream(payload: ChatRequest):
                 context = build_search_context(results)
                 if context:
                     messages.append({"role": "system", "content": context})
+                # 来源清单单独发给前端：渲染为回答下方的「参考文献」区块
+                sources = [{"title": r["title"], "url": r["url"]} for r in results]
         except ValueError as e:
             yield _sse({"error": str(e)})
             yield _sse({"done": True})
@@ -162,6 +165,8 @@ async def chat_stream(payload: ChatRequest):
             yield _sse({"error": str(e)})
             yield _sse({"done": True})
             return
+        if sources:
+            yield _sse({"sources": sources})
         try:
             async for delta in stream_chat(messages, model=payload.model, deep=payload.deep):
                 yield _sse({"delta": delta})

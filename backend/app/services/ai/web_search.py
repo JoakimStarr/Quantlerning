@@ -90,7 +90,7 @@ def build_search_context(results: list[dict]) -> str:
         lines.append(f"{i}. {r['title']}（{r['url']}）：{r['content']}")
     lines.append(
         "请结合课程知识回答用户问题：若网络信息与课程知识冲突，请明确指出差异；"
-        "引用外部信息时用 Markdown 链接标注来源（如 [来源标题](URL)）；"
+        "引用外部信息时在正文中用 [1]、[2] 等编号标注（编号对应上面来源列表的序号），"
         "不要把网络信息说成本站 quantlab 数据。"
     )
     return "\n".join(lines)
