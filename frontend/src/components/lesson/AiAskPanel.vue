@@ -188,9 +188,6 @@ const modelLabel = computed(() => {
   return currentModel.value ? `默认 · ${currentModel.value}` : '默认模型'
 })
 
-const deepLabel = computed(() => (deep.value ? '深度思考·开' : '深度思考'))
-const guideLabel = computed(() => (guided.value ? '引导式·开' : '引导式'))
-
 // 历史持久化（按「课程+小节」存 localStorage）
 const history = useChatHistory(() => props.lessonId, () => props.sectionIndex, messages)
 
@@ -489,7 +486,7 @@ watch(
       <div v-if="error" class="msg-error">{{ error }}</div>
 
       <footer class="panel-input">
-        <div class="input-wrap">
+        <div class="input-row">
           <textarea
             ref="inputRef"
             v-model="input"
@@ -499,36 +496,49 @@ watch(
             rows="2"
             @keydown.enter.exact.prevent="send"
           />
-          <button v-if="thinking" class="send-btn stop" title="停止生成" @click="stopGenerate">
+          <button
+            v-if="thinking"
+            class="send-btn stop"
+            title="停止生成"
+            @click="stopGenerate"
+          >
             <Square :size="13" />
+            停止
           </button>
           <button v-else class="send-btn" :disabled="!input.trim()" title="发送" @click="send">
-            <Send :size="15" />
+            <Send :size="14" />
+            发送
           </button>
         </div>
         <div class="toolbar">
-          <button class="deep-btn" :class="{ on: deep }" :title="'深度思考：回答前先深入分析、分步推理'" @click="toggleDeep">
+          <button
+            class="tb-btn"
+            :class="{ on: deep }"
+            :title="'深度思考：回答前先深入分析、分步推理'"
+            @click="toggleDeep"
+          >
             <Brain :size="13" />
-            {{ deepLabel }}
+            深度
           </button>
           <button
-            class="deep-btn"
+            class="tb-btn"
             :class="{ on: guided }"
             :title="'引导式：不直接给答案，先用提问引导你思考（苏格拉底式）'"
             @click="toggleGuide"
           >
             <HelpCircle :size="13" />
-            {{ guideLabel }}
+            引导
           </button>
           <button
-            class="deep-btn web-btn"
+            class="tb-btn"
             :class="{ on: web }"
             :title="webSearchConfigured ? '联网搜索：回答时检索外部实时信息并标注来源' : '未配置 Tavily Key（设置页填写）'"
             @click="toggleWeb"
           >
             <Globe :size="13" />
-            {{ web ? '联网·开' : '联网' }}
+            联网
           </button>
+          <span class="tb-spacer"></span>
           <div ref="modelRef" class="model-select">
             <button class="model-btn" :title="modelLabel" @click.stop="toggleModel">
               <span class="model-label">{{ modelLabel }}</span>
@@ -559,9 +569,6 @@ watch(
               </div>
             </Transition>
           </div>
-          <span v-if="deep || guided || web" class="toolbar-hint">
-            {{ deep ? '深度思考' : '' }}{{ deep && (guided || web) ? ' · ' : '' }}{{ guided ? '引导式' : '' }}{{ guided && web ? ' · ' : '' }}{{ web ? '联网搜索' : '' }}
-          </span>
         </div>
       </footer>
     </div>
@@ -920,15 +927,17 @@ watch(
   flex-direction: column;
   gap: 8px;
 }
-.input-wrap { position: relative; }
+/* 输入行：输入框 + 右侧独立发送按钮（文字不再被按钮盖住） */
+.input-row { display: flex; align-items: stretch; gap: 8px; }
 .input-box {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   resize: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-card);
   color: var(--text-1);
-  padding: 9px 44px 9px 11px;
+  padding: 9px 12px;
   font-size: 13.5px;
   line-height: 1.5;
   font-family: inherit;
@@ -941,63 +950,52 @@ watch(
 }
 .input-box:disabled { opacity: 0.6; }
 .send-btn {
-  position: absolute;
-  right: 7px;
-  bottom: 7px;
-  width: 30px;
-  height: 30px;
+  flex-shrink: 0;
+  width: 54px;
   border: none;
-  border-radius: 50%;
+  border-radius: var(--radius-md);
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   color: #fff;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.15s, transform 0.15s;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: opacity 0.15s, filter 0.15s;
 }
-.send-btn:hover:not(:disabled) { transform: scale(1.05); }
+.send-btn:hover:not(:disabled) { filter: brightness(1.06); }
 .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .send-btn.stop {
   background: var(--danger, #dc2626);
-  border-radius: var(--radius-sm);
-  width: auto;
-  padding: 0 10px;
-  gap: 4px;
-  font-size: 12px;
-  display: inline-flex;
-  align-items: center;
+  width: 54px;
+  padding: 0;
 }
 .send-btn.stop:hover:not(:disabled) { background: var(--danger, #dc2626); }
 
-.toolbar { display: flex; align-items: center; gap: 8px; min-height: 26px; }
-.deep-btn {
+.toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 26px; }
+.tb-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   border: 1px solid var(--border);
   background: var(--bg-card);
   color: var(--text-2);
   font-size: 12px;
-  padding: 4px 10px;
+  padding: 3px 9px;
   border-radius: 999px;
   cursor: pointer;
   transition: all 0.15s;
   flex-shrink: 0;
 }
-.deep-btn:hover { border-color: var(--primary); color: var(--primary); }
-.deep-btn.on {
+.tb-btn:hover { border-color: var(--primary); color: var(--primary); }
+.tb-btn.on {
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   border-color: transparent;
   color: #fff;
 }
-.toolbar-hint {
-  font-size: 11px;
-  color: var(--text-3);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.tb-spacer { flex: 1; }
 
 /* 模型选择下拉 */
 .model-select { position: relative; flex-shrink: 0; min-width: 0; }
