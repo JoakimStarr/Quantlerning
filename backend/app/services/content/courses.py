@@ -19,6 +19,8 @@ COURSES = [
             {"id": "p0-l2", "title": "数理统计", "concepts": ["估计", "假设检验", "置信区间"]},
             {"id": "p0-l5", "title": "计量经济学", "concepts": ["回归", "OLS", "平稳性"]},
             {"id": "p0-l6", "title": "Python 与 Pandas", "concepts": ["Pandas", "滚动窗口", "重采样"]},
+            # 阶段测验：前言综合题库（独立入口，不塞进单课文件）
+            {"id": "p0-t1", "title": "阶段测验：前言综合题库", "concepts": ["综合应用"]},
         ],
     },
     {
