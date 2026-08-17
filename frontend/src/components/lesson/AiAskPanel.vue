@@ -506,12 +506,10 @@ watch(
             title="停止生成"
             @click="stopGenerate"
           >
-            <Square :size="13" />
-            停止
+            <Square :size="12" />
           </button>
           <button v-else class="send-btn" :disabled="!input.trim()" title="发送" @click="send">
-            <Send :size="14" />
-            发送
+            <Send :size="15" />
           </button>
         </div>
         <div class="toolbar">
@@ -931,8 +929,8 @@ watch(
   flex-direction: column;
   gap: 8px;
 }
-/* 输入行：输入框 + 右侧独立发送按钮（文字不再被按钮盖住） */
-.input-row { display: flex; align-items: stretch; gap: 8px; }
+/* 输入行：输入框 + 右侧独立发送按钮（按钮固定尺寸垂直居中，不随输入框高度拉伸） */
+.input-row { display: flex; align-items: center; gap: 8px; }
 .input-box {
   flex: 1;
   min-width: 0;
@@ -955,27 +953,21 @@ watch(
 .input-box:disabled { opacity: 0.6; }
 .send-btn {
   flex-shrink: 0;
-  width: 54px;
+  width: 40px;
+  height: 40px;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 50%;
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   color: #fff;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  font-size: 12.5px;
-  font-weight: 600;
-  transition: opacity 0.15s, filter 0.15s;
+  transition: opacity 0.15s, filter 0.15s, transform 0.15s;
 }
-.send-btn:hover:not(:disabled) { filter: brightness(1.06); }
+.send-btn:hover:not(:disabled) { filter: brightness(1.08); }
 .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.send-btn.stop {
-  background: var(--danger, #dc2626);
-  width: 54px;
-  padding: 0;
-}
+.send-btn.stop { background: var(--danger, #dc2626); }
 .send-btn.stop:hover:not(:disabled) { background: var(--danger, #dc2626); }
 
 .toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 26px; }
