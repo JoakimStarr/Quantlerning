@@ -109,6 +109,38 @@ async def backtests(
     return await queries.get_backtest_results(db, limit)
 
 
+@router.get("/factors/ic-scatter")
+async def factors_ic_scatter(
+    start: date = Query(...),
+    end: date = Query(...),
+    max_points: int = Query(8000, ge=100, le=20000),
+    db: AsyncSession = Depends(get_db),
+):
+    """PE 因子 IC 散点（真实数据）：月末 PE 百分位 vs 下月收益。"""
+    return await queries.get_factor_ic_scatter(db, start, end, max_points)
+
+
+@router.get("/factors/layer-nav")
+async def factors_layer_nav(
+    start: date = Query(...),
+    end: date = Query(...),
+    n_groups: int = Query(5, ge=2, le=10),
+    db: AsyncSession = Depends(get_db),
+):
+    """PE 分层累计净值曲线（真实数据）：Q1~Q5 月度调仓净值。"""
+    return await queries.get_layer_nav(db, start, end, n_groups)
+
+
+@router.get("/factors/ic-turnover")
+async def factors_ic_turnover(
+    status: str = Query("active"),
+    limit: int = Query(200, ge=10, le=500),
+    db: AsyncSession = Depends(get_db),
+):
+    """因子 IC vs 换手散点（真实数据）：factor 表 161 因子。"""
+    return await queries.get_factor_ic_turnover(db, status, limit)
+
+
 @router.get("/index/{code}/daily")
 async def index_daily(
     code: str,

@@ -169,6 +169,21 @@ const registry = {
     desc: '全市场按 PE 分 5 组的下月收益热力图（真实数据）',
     comp: markRaw(defineAsyncComponent(() => import('../simulators/LayerReturns.vue'))),
   },
+  ic_scatter: {
+    title: 'PE 因子 IC 散点',
+    desc: '月末 PE 百分位 vs 下月收益散点 + 趋势线（真实数据）',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/IcScatter.vue'))),
+  },
+  layer_nav: {
+    title: 'PE 分层累计净值',
+    desc: 'Q1~Q5 月度调仓净值曲线（真实数据）',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/LayerNav.vue'))),
+  },
+  factor_ic_turnover: {
+    title: '因子 IC × 换手散点',
+    desc: '161 个真实因子的 IC 与换手率散点',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/FactorIcTurnover.vue'))),
+  },
   factor_corr: {
     title: '因子相关性矩阵',
     desc: '同类因子高相关、跨类低相关（教学示意）',

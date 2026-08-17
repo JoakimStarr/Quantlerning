@@ -546,3 +546,111 @@ async def get_backtest_results(db: AsyncSession, limit: int = 20) -> list[dict]:
             }
         )
     return out
+
+
+@_cached("ic_scatter")
+async def get_factor_ic_scatter(db: AsyncSession, start: date, end: date, max_points: int = 8000) -> dict:
+    """PE 因子 IC 散点（真实数据）：每月末各股票 PE 百分位 vs 下月收益。
+
+    复用 _month_end_snapshot 的月末快照，返回 {dates, points: [{x, y}], n}。
+    x = 当月 PE 在全市场横截面的百分位（0~1，PE 越低百分位越低），
+    y = 该股票下月收益。散点整体趋势的斜率即 PE 因子方向。
+    """
+    data = await _month_end_snapshot(db, start, end)
+    # 按月份分组，组内算 PE 百分位
+    from collections import defaultdict
+
+    by_month: dict[str, list[tuple]] = defaultdict(list)
+    for ym, code, pe, fwd in data:
+        by_month[str(ym)[:10]].append((pe, fwd))
+    points: list[dict] = []
+    dates: list[str] = []
+    for m in sorted(by_month):
+        pairs = by_month[m]
+        if len(pairs) < 30:
+            continue
+        sorted_pe = sorted(p[0] for p in pairs)
+        n = len(sorted_pe)
+        for pe, fwd in pairs:
+            # 该股票 PE 在当月横截面的百分位（低估值 → 低百分位）
+            import bisect
+
+            rank = bisect.bisect_left(sorted_pe, pe)
+            pct = rank / n
+            points.append({"x": round(pct, 4), "y": round(fwd * 100, 3), "date": m})
+        dates.append(m)
+    # 采样上限，避免前端一次渲染过多点
+    if len(points) > max_points:
+        step = len(points) / max_points
+        points = [points[int(i * step)] for i in range(max_points)]
+    return {"dates": dates, "points": points, "n": len(points), "n_months": len(dates)}
+
+
+@_cached("layer_nav")
+async def get_layer_nav(db: AsyncSession, start: date, end: date, n_groups: int = 5) -> dict:
+    """PE 分层累计净值（真实数据）：每月末按 PE 分 Q1~Q5，各组逐月累乘净值。
+
+    返回 {dates, groups, nav: [[Q1净值...], ...], n_groups}。
+    与 pe-layers 热力图同源（同快照同分组），但以净值曲线呈现单调性。
+    """
+    data = await _month_end_snapshot(db, start, end)
+    if not data:
+        return {"dates": [], "groups": [], "nav": [], "n_groups": n_groups}
+    from collections import defaultdict
+
+    by_month: dict[str, list[tuple]] = defaultdict(list)
+    for ym, code, pe, fwd in data:
+        by_month[str(ym)[:10]].append((pe, fwd))
+    dates = sorted(by_month)
+    groups = [f"Q{i+1}（低估值）" if i == 0 else (f"Q{i+1}（高估值）" if i == n_groups - 1 else f"Q{i+1}") for i in range(n_groups)]
+    # nav[g][t]：第 g 组到第 t 个月的累计净值（起点 1.0，不包含首个快照月）
+    nav = [[1.0] for _ in range(n_groups)]
+    for m in dates:
+        pairs = sorted(by_month[m], key=lambda x: x[0])
+        n = len(pairs)
+        g = min(n_groups, n)
+        for i in range(n_groups):
+            if i >= g:
+                nav[i].append(nav[i][-1])
+                continue
+            lo_i = (i * n) // n_groups
+            hi_i = ((i + 1) * n) // n_groups
+            if hi_i <= lo_i:
+                nav[i].append(nav[i][-1])
+                continue
+            sub = pairs[lo_i:hi_i]
+            avg_ret = sum(x[1] for x in sub) / len(sub)
+            nav[i].append(nav[i][-1] * (1 + avg_ret))
+    return {"dates": dates, "groups": groups, "nav": nav, "n_groups": n_groups}
+
+
+@_cached("factor_ic_turnover")
+async def get_factor_ic_turnover(db: AsyncSession, status: str = "active", limit: int = 200) -> dict:
+    """因子 IC vs 换手散点（真实数据）：factor 表全部因子的 IC 与换手率。
+
+    返回 {points: [{name, ic, rank_ic, icir, turnover, category}], n}。
+    揭示「高换手因子的 IC 未必更高」——换手高的因子交易成本侵蚀更大。
+    """
+    q = text(
+        """
+        SELECT name, ic, rank_ic, icir, turnover, category
+        FROM factor
+        WHERE (:status = 'all' OR status = :status)
+          AND ic IS NOT NULL AND turnover IS NOT NULL
+        ORDER BY ic DESC
+        LIMIT :limit
+        """
+    )
+    rows = await db.execute(q, {"status": status, "limit": limit})
+    points = [
+        {
+            "name": r.name,
+            "ic": round(float(r.ic), 4),
+            "rank_ic": round(float(r.rank_ic), 4) if r.rank_ic is not None else None,
+            "icir": round(float(r.icir), 4) if r.icir is not None else None,
+            "turnover": round(float(r.turnover), 4),
+            "category": r.category or "",
+        }
+        for r in rows
+    ]
+    return {"points": points, "n": len(points)}

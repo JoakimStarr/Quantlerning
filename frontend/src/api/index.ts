@@ -123,6 +123,61 @@ export async function fetchPeIc(start: string, end: string) {
   return data as PeIc
 }
 
+export interface IcScatterPoint {
+  x: number
+  y: number
+  date: string
+}
+
+export interface IcScatter {
+  dates: string[]
+  points: IcScatterPoint[]
+  n: number
+  n_months: number
+}
+
+export async function fetchIcScatter(start: string, end: string, maxPoints = 8000) {
+  const { data } = await api.get('/data/factors/ic-scatter', {
+    params: { start, end, max_points: maxPoints },
+  })
+  return data as IcScatter
+}
+
+export interface LayerNav {
+  dates: string[]
+  groups: string[]
+  nav: number[][]
+  n_groups: number
+}
+
+export async function fetchLayerNav(start: string, end: string, nGroups = 5) {
+  const { data } = await api.get('/data/factors/layer-nav', {
+    params: { start, end, n_groups: nGroups },
+  })
+  return data as LayerNav
+}
+
+export interface FactorIcTurnoverPoint {
+  name: string
+  ic: number
+  rank_ic: number | null
+  icir: number | null
+  turnover: number
+  category: string
+}
+
+export interface FactorIcTurnover {
+  points: FactorIcTurnoverPoint[]
+  n: number
+}
+
+export async function fetchFactorIcTurnover(status = 'active', limit = 200) {
+  const { data } = await api.get('/data/factors/ic-turnover', {
+    params: { status, limit },
+  })
+  return data as FactorIcTurnover
+}
+
 export interface IndustryPe {
   date: string
   count: number
