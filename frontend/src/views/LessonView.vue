@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, provide, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowUp, ChevronLeft, ChevronRight } from 'lucide-vue-next'
-import { fetchLesson } from '@/api'
+import { ArrowUp, ChevronLeft, ChevronRight, RefreshCw, Sparkles } from 'lucide-vue-next'
+import { fetchLesson, streamLessonSummary } from '@/api'
 import MarkdownRenderer from '@/components/lesson/MarkdownRenderer.vue'
 import AiAskPanel from '@/components/lesson/AiAskPanel.vue'
 import AppSpinner from '@/components/common/AppSpinner.vue'
 import AppError from '@/components/common/AppError.vue'
+import { renderAiBubble } from '@/utils/aiBubble'
 import { getSelectionMarkdown } from '@/utils/selectionToMarkdown'
+import { ASK_AI_KEY } from '@/utils/aiAskKey'
 import { recordLessonRead, recordQuizAttempt } from '@/stores/progress'
 
 const route = useRoute()
@@ -33,6 +35,64 @@ function scrollMainTop() {
 const askPanelRef = ref<{ ask: (text: string) => void } | null>(null)
 const articleRef = ref<HTMLElement | null>(null)
 const selBox = reactive({ show: false, x: 0, y: 0, text: '' })
+
+// 提供「问 AI」入口给深层组件（图表问 AI 等）：打开面板并预填问题
+function askAi(text: string) {
+  askPanelRef.value?.ask(text)
+}
+provide(ASK_AI_KEY, askAi)
+
+// ---------- 本节小结（AI 生成，localStorage 缓存）----------
+const summary = ref('')
+const summaryBusy = ref(false)
+const summaryError = ref('')
+const summaryCtrl = ref<AbortController | null>(null)
+const SUMMARY_KEY = (id: string) => `ql:lessonSummary:${id}`
+
+function resetSummary(id: string) {
+  summaryCtrl.value?.abort()
+  summaryCtrl.value = null
+  summaryBusy.value = false
+  summaryError.value = ''
+  try {
+    summary.value = localStorage.getItem(SUMMARY_KEY(id)) ?? ''
+  } catch {
+    summary.value = ''
+  }
+}
+
+async function genSummary() {
+  if (summaryBusy.value || !lesson.value) return
+  summaryError.value = ''
+  summary.value = ''
+  summaryBusy.value = true
+  const ctrl = new AbortController()
+  summaryCtrl.value = ctrl
+  try {
+    const result = await streamLessonSummary(
+      lesson.value.id,
+      (d) => {
+        summary.value += d
+      },
+      ctrl.signal,
+    )
+    if (result.error) {
+      summaryError.value = result.error
+    } else if (summary.value) {
+      // 成功才缓存（课程内容静态，避免重复消费）
+      try {
+        localStorage.setItem(SUMMARY_KEY(lesson.value.id), summary.value)
+      } catch {
+        // 存储不可用：忽略
+      }
+    }
+  } catch {
+    // 中止/切课：忽略
+  } finally {
+    summaryBusy.value = false
+    summaryCtrl.value = null
+  }
+}
 
 function onSelectionChange() {
   const sel = window.getSelection()
@@ -98,6 +158,7 @@ async function load(id: string) {
   loading.value = true
   error.value = ''
   loadQuizResults(id)
+  resetSummary(id)
   try {
     lesson.value = await fetchLesson(id)
     recordLessonRead(id) // 阅读行为 → 学习天数/阅读次数
@@ -170,6 +231,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('mouseup', onSelectionChange)
   window.removeEventListener('scroll', hideSelBox, true)
   window.removeEventListener('keydown', onKeydown)
+  summaryCtrl.value?.abort()
 })
 
 watch(() => route.params.id, (id) => {
@@ -256,6 +318,32 @@ function onQuizSubmitted(score: number, question: string) {
         </div>
       </section>
 
+      <!-- 本节小结（AI 生成，localStorage 缓存） -->
+      <div class="lesson-summary">
+        <button
+          v-if="!summary"
+          type="button"
+          class="btn btn-ghost summary-trigger"
+          :disabled="summaryBusy"
+          @click="genSummary"
+        >
+          <Sparkles :size="14" />
+          {{ summaryBusy ? '生成中…' : '生成「本节小结」' }}
+        </button>
+        <div v-if="summary" class="summary-card">
+          <div class="summary-head">
+            <span class="summary-title"><Sparkles :size="13" /> 本节小结</span>
+            <button type="button" class="btn btn-ghost summary-regen" :disabled="summaryBusy" @click="genSummary">
+              <RefreshCw :size="12" :class="{ spin: summaryBusy }" />
+              {{ summaryBusy ? '生成中…' : '重新生成' }}
+            </button>
+          </div>
+          <div v-if="summaryError" class="summary-error">{{ summaryError }}</div>
+          <div v-else class="summary-body" v-html="renderAiBubble(summary)"></div>
+        </div>
+        <div v-if="summaryError && !summary" class="summary-error">{{ summaryError }}</div>
+      </div>
+
       <!-- 翻页导航：上一章 / 下一章 -->
       <nav class="chapter-nav">
         <button class="btn nav-btn" :disabled="!lesson.prev" @click="lesson.prev && router.push(`/lesson/${lesson.prev.id}`)">
@@ -321,6 +409,54 @@ function onQuizSubmitted(score: number, question: string) {
 .chapter-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
 .nav-btn { flex: 1; justify-content: space-between; }
 .nav-btn.next { flex-direction: row-reverse; }
+
+/* 本节小结（AI 生成） */
+.lesson-summary { margin-top: 36px; }
+.summary-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.summary-card {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  padding: 14px 18px;
+}
+.summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.summary-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.summary-regen { display: inline-flex; align-items: center; gap: 5px; }
+.summary-body { font-size: 14px; line-height: 1.8; color: var(--text-2); }
+.summary-body :deep(ul) { margin: 0; padding-left: 1.4em; }
+.summary-body :deep(li) { margin-bottom: 4px; }
+.summary-body :deep(.katex) { font-size: 1em; }
+.summary-error {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--danger, #dc2626);
+  background: color-mix(in srgb, var(--danger, #dc2626) 8%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  line-height: 1.6;
+}
+.spin { animation: spin-rotate 0.8s linear infinite; }
+@keyframes spin-rotate { to { transform: rotate(360deg); } }
 
 /* 选中文字后的「问 AI」悬浮按钮 */
 .ask-selection {

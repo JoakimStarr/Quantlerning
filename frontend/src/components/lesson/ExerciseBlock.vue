@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { MessageCircle, RefreshCw } from 'lucide-vue-next'
 import { createMarkdown } from '../../utils/markdownIt'
-import { unwrapOuterFence } from '../../utils/aiOutput'
+import { renderAiBubble } from '../../utils/aiBubble'
 import 'katex/dist/katex.min.css'
 import { judgeAnswer, streamGenExercise, streamJudgeFollowup } from '@/api'
 import type { ChatTurn } from '@/api'
@@ -27,16 +27,6 @@ const props = defineProps<{
 const md = createMarkdown()
 
 const render = (text: string) => md.render(text)
-
-// AI 输出的公式分隔符统一归一化（与 AiAskPanel 一致）；先剥掉外层代码围栏，
-// 否则模型把整段 Markdown 包在 ```…``` 里时会整块显示为代码框、语法原样可见
-function renderBubble(content: string): string {
-  const normalized = unwrapOuterFence(content)
-    .replace(/\$\$([\s\S]+?)\$\$/g, (_, m: string) => `$${m.trim()}$`)
-    .replace(/\\\[([\s\S]+?)\\\]/g, (_, m: string) => `$${m.trim()}$`)
-    .replace(/\\\(([\s\S]+?)\\\)/g, (_, m: string) => `$${m.trim()}$`)
-  return md.render(normalized)
-}
 
 const answer = ref('')
 const judging = ref(false)
@@ -242,7 +232,7 @@ const variantParts = computed(() => {
           {{ resultOpen ? '收起' : '展开' }}
         </button>
       </div>
-      <div v-show="resultOpen" class="judge-result-body" v-html="renderBubble(feedback)"></div>
+      <div v-show="resultOpen" class="judge-result-body" v-html="renderAiBubble(feedback)"></div>
     </div>
 
     <div v-if="feedback" class="exercise-ai-tools">
@@ -260,7 +250,7 @@ const variantParts = computed(() => {
         <div v-for="(t, i) in fuThread" :key="i" class="fu-item" :class="t.role">
           <div class="fu-role">{{ t.role === 'user' ? '我' : 'AI' }}</div>
           <div v-if="t.role === 'user'" class="fu-bubble user">{{ t.content }}</div>
-          <div v-else class="fu-bubble" v-html="renderBubble(t.content)"></div>
+          <div v-else class="fu-bubble" v-html="renderAiBubble(t.content)"></div>
         </div>
       </div>
       <div v-if="fuError" class="judge-error">{{ fuError }}</div>
@@ -282,10 +272,10 @@ const variantParts = computed(() => {
       <div class="variant-head">变式练习</div>
       <div v-if="variantError" class="judge-error">{{ variantError }}</div>
       <template v-if="variant">
-        <div class="variant-question" v-html="renderBubble(variantParts.q)"></div>
+        <div class="variant-question" v-html="renderAiBubble(variantParts.q)"></div>
         <details v-if="variantParts.a" class="variant-answer">
           <summary>参考答案</summary>
-          <div v-html="renderBubble(variantParts.a)"></div>
+          <div v-html="renderAiBubble(variantParts.a)"></div>
         </details>
       </template>
     </div>

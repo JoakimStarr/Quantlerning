@@ -12,8 +12,11 @@ from ..services.ai.chat import (
     build_gen_exercise_messages,
     build_judge_followup_messages,
     build_judge_messages,
+    build_lesson_summary_messages,
     build_messages,
     build_plan_messages,
+    build_quiz_explain_messages,
+    build_review_messages,
     stream_chat,
 )
 from ..services.ai.web_search import (
@@ -69,6 +72,23 @@ class GenExerciseRequest(BaseModel):
 
 
 class PlanRequest(BaseModel):
+    summary: str = Field("", max_length=8000)
+
+
+class QuizExplainRequest(BaseModel):
+    lesson_id: str
+    section_index: int = 0
+    question: str = Field(..., max_length=2000)
+    options: list[str] = Field(default_factory=list)
+    correct_indexes: list[int] = Field(default_factory=list)
+    user_indexes: list[int] = Field(default_factory=list)
+
+
+class LessonSummaryRequest(BaseModel):
+    lesson_id: str
+
+
+class ReviewRequest(BaseModel):
     summary: str = Field("", max_length=8000)
 
 
@@ -222,6 +242,33 @@ async def gen_exercise(payload: GenExerciseRequest):
 async def plan(payload: PlanRequest):
     """学习路径规划：基于前端汇总的进度数据，输出复习重点与下一步建议（SSE 流式）。"""
     return _sse_stream(lambda: build_plan_messages(payload.summary))
+
+
+@router.post("/quiz-explain")
+async def quiz_explain(payload: QuizExplainRequest):
+    """选择题 AI 解析：结合课程小节上下文，讲清正确项与各错误项（SSE 流式）。"""
+    return _sse_stream(
+        lambda: build_quiz_explain_messages(
+            payload.lesson_id,
+            payload.section_index,
+            payload.question,
+            payload.options,
+            payload.correct_indexes,
+            payload.user_indexes,
+        )
+    )
+
+
+@router.post("/lesson-summary")
+async def lesson_summary(payload: LessonSummaryRequest):
+    """章节小结：基于全课内容生成 3-5 条要点（SSE 流式）。"""
+    return _sse_stream(lambda: build_lesson_summary_messages(payload.lesson_id))
+
+
+@router.post("/review")
+async def review(payload: ReviewRequest):
+    """错题弱项复习：基于学习进度与错题清单给出复习建议（SSE 流式）。"""
+    return _sse_stream(lambda: build_review_messages(payload.summary))
 
 
 @router.post("/judge")

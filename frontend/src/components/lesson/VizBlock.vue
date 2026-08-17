@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { Image, RotateCcw } from 'lucide-vue-next'
+import { computed, inject, ref } from 'vue'
+import { Image, MessageSquareText, RotateCcw } from 'lucide-vue-next'
 import { createMarkdown } from '../../utils/markdownIt'
+import { ASK_AI_KEY } from '../../utils/aiAskKey'
 import { vizRegistry, type VizKey } from './vizRegistry'
 
 // 图注渲染器：支持 LaTeX（与正文同一套 markdown-it + katex）
@@ -11,12 +12,30 @@ const props = defineProps<{
   component: VizKey
   params?: Record<string, unknown>
   caption?: string  // 图注
+  lessonId?: string
+  sectionIndex?: number
 }>()
 
 // 重置：递增 key 强制重挂载模拟器组件，一键回到初始设置值
 const resetKey = ref(0)
 function reset() {
   resetKey.value++
+}
+
+// 「问 AI」：由课程页注入（打开 AI 追问面板并预填问题），图表问 AI 入口
+const askAi = inject(ASK_AI_KEY, undefined)
+function askAboutChart() {
+  if (!askAi) return
+  const paramText = props.params ? JSON.stringify(props.params) : ''
+  const q = [
+    `请讲解这张可视化图：${props.component}`,
+    props.caption ? `图注：${props.caption}` : '',
+    paramText ? `参数：${paramText}` : '',
+    '我看不懂，请结合当前小节用 2-4 句话讲清楚图表达什么、怎么看。',
+  ]
+    .filter(Boolean)
+    .join('。')
+  askAi(q)
 }
 
 const info = computed(() => vizRegistry[props.component])
@@ -50,9 +69,19 @@ const captionHtml = computed(() =>
         </div>
       </div>
     </div>
-    <!-- 图注行：说明这张"图"是什么、怎么互动（支持 LaTeX）；右侧是重置按钮 -->
+    <!-- 图注行：说明这张"图"是什么、怎么互动（支持 LaTeX）；右侧是「问 AI」与重置按钮 -->
     <div class="viz-bottom">
       <figcaption class="viz-caption" v-html="captionHtml"></figcaption>
+      <button
+        v-if="askAi"
+        class="viz-reset"
+        title="看不懂这张图？问 AI 结合当前小节讲解"
+        aria-label="看不懂这张图？问 AI"
+        @click="askAboutChart"
+      >
+        <span class="viz-reset-icon"><MessageSquareText :size="13" /></span>
+        <span>问 AI</span>
+      </button>
       <button
         v-if="hasComp"
         class="viz-reset"

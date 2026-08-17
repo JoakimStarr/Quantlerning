@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { Check, X } from 'lucide-vue-next'
+import { ref, computed, onBeforeUnmount } from 'vue'
+import { Check, Sparkles, X } from 'lucide-vue-next'
 import { createMarkdown } from '../../utils/markdownIt'
+import { renderAiBubble } from '../../utils/aiBubble'
+import { streamQuizExplain } from '@/api'
 import type { QuizQuestion } from './MarkdownRenderer.vue'
 
 const props = defineProps<{
@@ -19,6 +21,47 @@ const md = createMarkdown()
 
 const selected = ref<number[]>([])
 const submitted = ref(false)
+
+// AI 展开解析：流式输出正确项/错误项讲解
+const explaining = ref(false)
+const explainText = ref('')
+const explainError = ref('')
+const abortCtrl = ref<AbortController | null>(null)
+
+async function explainWithAi() {
+  if (explaining.value || !props.lessonId) return
+  explainError.value = ''
+  explainText.value = ''
+  explaining.value = true
+  const ctrl = new AbortController()
+  abortCtrl.value = ctrl
+  try {
+    const result = await streamQuizExplain(
+      {
+        lesson_id: props.lessonId,
+        section_index: props.sectionIndex ?? 0,
+        question: props.quiz.q,
+        options: props.quiz.options,
+        correct_indexes: props.quiz.answer,
+        user_indexes: selected.value,
+      },
+      (d) => {
+        explainText.value += d
+      },
+      ctrl.signal,
+    )
+    if (result.error) explainError.value = result.error
+  } catch {
+    // 用户中止/切课：忽略
+  } finally {
+    explaining.value = false
+    abortCtrl.value = null
+  }
+}
+
+onBeforeUnmount(() => {
+  abortCtrl.value?.abort()
+})
 
 // 每道测验的作答状态按「课程+小节+题号」存入 localStorage，刷新/重开后仍保留
 const STORAGE_KEY = `ql:quiz:${props.lessonId ?? ''}:${props.sectionIndex ?? 0}:${props.quizIndex ?? 0}`
@@ -123,6 +166,10 @@ function stateClass(i: number): string {
       </button>
       <template v-else>
         <span class="quiz-score" :class="score === 100 ? 'pass' : 'fail'">{{ score === 100 ? '回答正确' : '回答错误' }}</span>
+        <button v-if="lessonId" type="button" class="btn btn-ghost" :disabled="explaining" @click="explainWithAi">
+          <Sparkles :size="13" />
+          {{ explaining ? '解析中…' : 'AI 展开解析' }}
+        </button>
         <button type="button" class="btn btn-ghost" @click="reset">重新作答</button>
       </template>
     </div>
@@ -130,6 +177,13 @@ function stateClass(i: number): string {
     <div v-if="submitted && quiz.explain" class="quiz-explain">
       <div class="explain-title">解析</div>
       <div class="explain-body" v-html="render(quiz.explain)"></div>
+    </div>
+
+    <div v-if="explainText || explaining" class="quiz-explain quiz-ai">
+      <div class="explain-title"><Sparkles :size="12" /> AI 解析</div>
+      <div v-if="explainError" class="explain-error">{{ explainError }}</div>
+      <div v-else-if="explainText" class="explain-body" v-html="renderAiBubble(explainText)"></div>
+      <span v-else class="typing">▍</span>
     </div>
   </div>
 </template>
@@ -189,13 +243,23 @@ function stateClass(i: number): string {
 .btn { font-size: 13px; padding: 6px 16px; border-radius: var(--radius-sm); cursor: pointer; border: none; }
 .btn-primary { background: var(--primary); color: #fff; }
 .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
-.btn-ghost { background: none; border: 1px solid var(--border); color: var(--text-2); }
+.btn-ghost {
+  background: none; border: 1px solid var(--border); color: var(--text-2);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.btn-ghost:disabled { opacity: .5; cursor: not-allowed; }
 
 .quiz-explain {
   margin-top: 14px; padding: 12px 14px; border-radius: var(--radius-sm);
   background: var(--bg-hover);
 }
-.explain-title { font-size: 12px; font-weight: 600; color: var(--primary); margin-bottom: 6px; }
+.explain-title { font-size: 12px; font-weight: 600; color: var(--primary); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
 .explain-body { font-size: 14px; line-height: 1.7; color: var(--text-2); }
 .explain-body :deep(.katex) { font-size: 1em; }
+
+/* AI 展开解析：流式输出区 */
+.quiz-ai { border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent); }
+.explain-error { font-size: 13px; color: var(--danger, #dc2626); line-height: 1.6; }
+.typing { display: inline-block; animation: blink 1s steps(2) infinite; color: var(--primary); }
+@keyframes blink { 50% { opacity: 0; } }
 </style>

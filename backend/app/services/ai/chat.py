@@ -243,6 +243,110 @@ def build_plan_messages(progress_summary: str) -> list[dict]:
     ]
 
 
+_LETTERS = "ABCDEFGHIJ"
+
+
+def build_quiz_explain_messages(
+    lesson_id: str,
+    section_index: int,
+    question: str,
+    options: list[str],
+    correct_indexes: list[int],
+    user_indexes: list[int],
+) -> list[dict]:
+    """选择题 AI 解析：结合课程小节上下文，讲清正确项为什么对、错误项错在哪。"""
+    lesson = _find_lesson(lesson_id)
+    if lesson is None:
+        raise ValueError(f"课程 {lesson_id} 不存在")
+    content = get_content().get(lesson_id)
+    if not content:
+        raise ValueError(f"课程 {lesson_id} 没有内容")
+    sections = content.get("sections") or []
+    if not 0 <= section_index < len(sections):
+        raise ValueError(f"小节索引 {section_index} 越界（共 {len(sections)} 节）")
+    section = sections[section_index]
+
+    body = (section.get("body") or "").strip()
+    if len(body) > _MAX_BODY_CHARS:
+        body = body[:_MAX_BODY_CHARS] + "\n…（内容已截断）"
+
+    opt_lines = "\n".join(f"{_LETTERS[i]}. {options[i]}" for i in range(len(options)))
+    correct = "、".join(_LETTERS[i] for i in correct_indexes) or "（题目未标记）"
+    user_ans = "、".join(_LETTERS[i] for i in user_indexes) if user_indexes else "（未作答）"
+
+    system = (
+        "你是 Quantlerning 量化学习网站的测验讲解老师，用中文讲解选择题。\n"
+        f"课程：《{lesson['title']}》\n"
+        f"当前小节：{section.get('title', '')}\n\n"
+        f"本节课程内容（节选）：\n{body}\n\n"
+        "请结合本节知识讲清楚：① 正确选项为什么对；② 每个错误选项为什么错"
+        "（若学生选错，重点指出他选的那个错在哪）。\n"
+        "要求：数字不能编造；数学公式用行内 LaTeX 单个美元符；回答 250 字以内，用 Markdown 分条列出。"
+    )
+    user_content = (
+        f"题目：\n{question}\n\n选项：\n{opt_lines}\n\n"
+        f"正确答案：{correct}\n学生选择：{user_ans}"
+    )
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_content},
+    ]
+
+
+def build_lesson_summary_messages(lesson_id: str) -> list[dict]:
+    """章节小结：基于全课内容生成 3-5 条要点（内容过长截断控制 token 成本）。"""
+    lesson = _find_lesson(lesson_id)
+    if lesson is None:
+        raise ValueError(f"课程 {lesson_id} 不存在")
+    content = get_content().get(lesson_id)
+    if not content:
+        raise ValueError(f"课程 {lesson_id} 没有内容")
+    sections = content.get("sections") or []
+
+    parts = [f"# {lesson['title']}"]
+    total = 0
+    for s in sections:
+        body = (s.get("body") or "").strip()
+        if not body:
+            continue
+        title = s.get("title") or ""
+        chunk = f"\n## {title}\n{body}" if title else f"\n{body}"
+        total += len(chunk)
+        if total > 4000:
+            parts.append(f"\n## {title}\n…（内容过长，已截断）")
+            break
+        parts.append(chunk)
+    lesson_text = "".join(parts)
+
+    system = (
+        "你是 Quantlerning 量化学习网站的小结导师，用中文为学习者生成一课小结。\n"
+        "请基于课程全文，提炼 **3-5 条要点**，用 Markdown 无序列表输出；\n"
+        "只依据课程内容，不编造数字或数据；每条要点一句话、可独立理解；"
+        "涉及公式用行内 LaTeX 单个美元符；总长 250 字以内。"
+    )
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"课程全文：\n{lesson_text}"},
+    ]
+
+
+def build_review_messages(progress_summary: str) -> list[dict]:
+    """错题弱项复习：基于学习进度与错题清单，给出薄弱点分析与复习建议。"""
+    system = (
+        "你是 Quantlerning 量化学习网站的错题回顾导师，用中文帮助学生复习薄弱点。\n"
+        "基于学生的学习进度与错题清单，按 Markdown 输出：\n"
+        "1. **薄弱点分析**：结合错题概括可能遗漏的知识点；\n"
+        "2. **错题要点**：针对列出的错题，用一两句话点出关键概念或常见误区；\n"
+        "3. **复习建议**：点名 1-3 个最值得重看的课程并说明原因。\n"
+        "要求：只依据给出的数据，不编造；400 字以内；若没有错题，提示「暂无错题，继续保持」即可。"
+    )
+    user_content = f"学生的学习进度与错题数据：\n{progress_summary or '（暂无数据）'}"
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_content},
+    ]
+
+
 async def _stream_once(
     messages: list[dict], cfg: dict, deep: bool = False
 ) -> AsyncGenerator[str, None]:

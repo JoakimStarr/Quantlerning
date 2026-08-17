@@ -325,6 +325,49 @@ export async function streamPlan(
   return streamSSE('/api/v1/chat/plan', payload, onDelta, signal)
 }
 
+/**
+ * 选择题 AI 解析：结合课程小节上下文，讲清正确项与各错误项（SSE 流式）。
+ * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
+ */
+export async function streamQuizExplain(
+  payload: {
+    lesson_id: string
+    section_index: number
+    question: string
+    options: string[]
+    correct_indexes: number[]
+    user_indexes: number[]
+  },
+  onDelta: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<{ error?: string }> {
+  return streamSSE('/api/v1/chat/quiz-explain', payload, onDelta, signal)
+}
+
+/**
+ * 章节小结：基于全课内容生成 3-5 条要点（SSE 流式）。
+ * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
+ */
+export async function streamLessonSummary(
+  lessonId: string,
+  onDelta: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<{ error?: string }> {
+  return streamSSE('/api/v1/chat/lesson-summary', { lesson_id: lessonId }, onDelta, signal)
+}
+
+/**
+ * 错题弱项复习：基于学习进度与错题清单给出复习建议（SSE 流式）。
+ * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
+ */
+export async function streamReview(
+  summary: string,
+  onDelta: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<{ error?: string }> {
+  return streamSSE('/api/v1/chat/review', { summary }, onDelta, signal)
+}
+
 export default api
 
 // ---------- 设置（AI 模型配置）----------

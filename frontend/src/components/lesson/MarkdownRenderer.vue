@@ -229,6 +229,8 @@ function parseParams(raw: string): Record<string, unknown> {
         :component="part.viz.component"
         :params="part.viz.params"
         :caption="part.viz.caption"
+        :lesson-id="lessonId ?? ''"
+        :section-index="sectionIndex ?? 0"
       />
       <QuizBlock
         v-else-if="part.kind === 'quiz' && part.quiz"

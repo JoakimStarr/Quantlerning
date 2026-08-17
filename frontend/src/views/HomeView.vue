@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowRight, PlayCircle } from 'lucide-vue-next'
-import { fetchCourses, streamPlan } from '@/api'
+import { ArrowRight, PlayCircle, Target } from 'lucide-vue-next'
+import { fetchCourses, streamPlan, streamReview } from '@/api'
 import { getProgress, isCompleted, learningDays, sandboxRunCount, totalExercises } from '@/stores/progress'
 import { chapterLabel, PHASE_STATUS as phaseStatus } from '@/utils/chapter'
 import AppSpinner from '@/components/common/AppSpinner.vue'
 import AppError from '@/components/common/AppError.vue'
 
-// AI 规划结果懒加载渲染（避免 markdown-it/KaTeX 进首屏，仅生成后加载）
+// AI 规划/复习结果懒加载渲染（避免 markdown-it/KaTeX 进首屏，仅生成后加载）
 const PlanCard = defineAsyncComponent(() => import('@/components/common/PlanCard.vue'))
 
 const router = useRouter()
@@ -24,6 +24,11 @@ const lastPath = ref('')
 const plan = ref('')
 const planBusy = ref(false)
 const planError = ref('')
+
+// 错题弱项复习
+const review = ref('')
+const reviewBusy = ref(false)
+const reviewError = ref('')
 
 function buildProgressSummary(): string {
   const lines: string[] = []
@@ -60,6 +65,53 @@ async function getPlan() {
     // 中止等：忽略
   } finally {
     planBusy.value = false
+  }
+}
+
+// 错题汇总：读各课随堂测验每题最佳分（ql:quizResults），收集未满分题目
+function buildReviewSummary(): string {
+  const lines: string[] = []
+  let wrongCount = 0
+  const wrongLessons: string[] = []
+  for (const p of phases.value) {
+    for (const l of p.lessons) {
+      let map: Record<string, number> = {}
+      try {
+        map = JSON.parse(localStorage.getItem(`ql:quizResults:${l.id}`) ?? '{}') || {}
+      } catch {
+        map = {}
+      }
+      const wrong = Object.keys(map).filter((q) => Number(map[q]) < 100)
+      if (!wrong.length) continue
+      wrongCount += wrong.length
+      const titles = wrong
+        .slice(0, 15)
+        .map((q) => (q.length > 120 ? `${q.slice(0, 120)}…` : q))
+      wrongLessons.push(`《${l.title}》：${titles.join(' | ')}`)
+    }
+  }
+  lines.push(`错题数：${wrongCount} 题（随堂测验每题最佳分未满分）。`)
+  lines.push(wrongLessons.length ? `错题清单：\n${wrongLessons.map((x) => `- ${x}`).join('\n')}` : '暂无错题。')
+  lines.push('')
+  lines.push('学习进度概览：')
+  lines.push(buildProgressSummary())
+  return lines.join('\n')
+}
+
+async function getReview() {
+  if (reviewBusy.value) return
+  review.value = ''
+  reviewError.value = ''
+  reviewBusy.value = true
+  try {
+    const result = await streamReview(buildReviewSummary(), (d) => {
+      review.value += d
+    })
+    if (result.error) reviewError.value = result.error
+  } catch {
+    // 中止等：忽略
+  } finally {
+    reviewBusy.value = false
   }
 }
 
@@ -167,6 +219,24 @@ const overall = computed(() => {
         <PlanCard v-if="plan" :plan="plan" />
       </div>
 
+      <!-- 错题弱项复习 -->
+      <div class="plan-card">
+        <div class="plan-head">
+          <div class="plan-title-row">
+            <Target :size="15" />
+            <div>
+              <div class="plan-title">错题弱项复习</div>
+              <div class="plan-sub">根据随堂测验错题，分析薄弱点并给出复习建议</div>
+            </div>
+          </div>
+          <button class="btn btn-primary" :disabled="reviewBusy" @click="getReview">
+            {{ reviewBusy ? '生成中…' : '生成复习建议' }}
+          </button>
+        </div>
+        <div v-if="reviewError" class="plan-error">{{ reviewError }}</div>
+        <PlanCard v-if="review" :plan="review" />
+      </div>
+
       <div v-for="p in phases" :key="p.phase" class="phase-card" :class="{ active: p.status === 'in_progress' }" @click="goPhase(p)">
         <div class="phase-row">
           <span class="phase-num">{{ chapterLabel(p.phase) }}</span>
@@ -229,6 +299,8 @@ const overall = computed(() => {
 }
 .plan-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .plan-title { font-size: 15px; font-weight: 600; color: var(--primary); }
+.plan-title-row { display: flex; align-items: flex-start; gap: 8px; }
+.plan-title-row > svg { color: var(--primary); margin-top: 2px; flex-shrink: 0; }
 .plan-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
 .plan-error {
   margin-top: 12px; font-size: 13px; color: var(--danger, #dc2626);
