@@ -5,6 +5,7 @@ key 仅存后端 .env，不暴露前端。
 """
 import json
 import logging
+import re
 from collections.abc import AsyncGenerator
 
 import httpx
@@ -59,12 +60,91 @@ def friendly_ai_error(message: str) -> str:
     return message
 
 
+# 模型不可用（被服务商下架/改名等）错误特征词 → 可尝试切备用模型并引导换模型
+_MODEL_ERROR_HINTS = (
+    "not supported",
+    "model not found",
+    "model_not_found",
+    "unknown model",
+    "does not exist",
+    "invalid model",
+    "invalidmodelerror",
+    "modelerror",
+    "model does not",
+)
+_MODEL_GUIDE_MSG = "请在「设置」页点击「获取模型」重新选择可用模型后重试。"
+
+
+def is_model_error(message: str) -> bool:
+    """判断错误原文是否属于模型不可用（如 401 Model not supported）。"""
+    low = (message or "").lower()
+    return any(k in low for k in _MODEL_ERROR_HINTS)
+
+
+def friendly_model_error(message: str) -> str:
+    """模型不可用时的友好提示：保留原因 + 引导去设置页换模型。"""
+    if not message:
+        return f"当前模型不可用。{_MODEL_GUIDE_MSG}"
+    return f"当前模型不可用：{message}。{_MODEL_GUIDE_MSG}"
+
+
 def _find_lesson(lesson_id: str) -> dict | None:
     for phase in COURSES:
         for lesson in phase["lessons"]:
             if lesson["id"] == lesson_id:
                 return lesson
     return None
+
+
+# 跨小节检索：从用户问题提取检索词（拉丁词 + 中文 2-gram），匹配其他小节标题/正文
+_STOPWORDS = {
+    "什么", "为什么", "怎么", "如何", "这个", "那个", "一个", "一下", "有关", "关系",
+    "区别", "是否", "不是", "没有", "就是", "可以", "应该", "咱们", "这里", "那里",
+}
+
+
+def _query_keywords(query: str) -> list[str]:
+    """提取检索词：英文词 + 中文 2-gram，去掉常见停用词。"""
+    words = [w.lower() for w in re.findall(r"[A-Za-z]{2,}", query)]
+    grams: list[str] = []
+    for seg in re.findall(r"[\u4e00-\u9fff]{2,}", query):
+        if len(seg) <= 2:
+            grams.append(seg)
+        else:
+            grams.extend(seg[i : i + 2] for i in range(len(seg) - 1))
+    return [k for k in (words + grams) if k not in _STOPWORDS][:30]
+
+
+def _match_sections(sections: list[dict], current_index: int, history: list[dict]) -> str:
+    """轻量 RAG：用最后一条用户问题匹配其他小节，命中则返回可注入片段。"""
+    query = next((m["content"] for m in reversed(history) if m["role"] == "user"), "")
+    if not query.strip():
+        return ""
+    keywords = _query_keywords(query)
+    if not keywords:
+        return ""
+    scored: list[tuple[int, dict]] = []
+    for i, s in enumerate(sections):
+        if i == current_index:
+            continue
+        title = s.get("title") or ""
+        body = s.get("body") or ""
+        score = 0
+        for kw in keywords:
+            if kw in title:
+                score += 3
+            elif kw in body:
+                score += 1
+        if score >= 3:
+            scored.append((score, s))
+    scored.sort(key=lambda x: -x[0])
+    parts: list[str] = []
+    for _, s in scored[:2]:
+        snippet = (s.get("body") or "").strip().replace("\n", " ")
+        if len(snippet) > 300:
+            snippet = snippet[:300] + "…"
+        parts.append(f"- 《{s.get('title', '')}》：{snippet}")
+    return "\n".join(parts)
 
 
 def build_messages(
@@ -101,6 +181,10 @@ def build_messages(
         "$\\sigma=\\sqrt{\\frac{1}{n}\\sum (r_i-\\bar r)^2}$；"
         "禁止用 Unicode 字符写公式（如 σ²、√252、Pₜ 这类写法不要用）。"
     )
+    # 跨小节：问题关键词命中其他小节时注入片段（轻量 RAG，回答「和前面 X 的关系」类问题）
+    related = _match_sections(sections, section_index, history)
+    if related:
+        system += f"\n\n与本问题相关的其他小节内容（供参考）：\n{related}"
     if deep:
         system += (
             "\n\n本次提问开启「深度思考」模式：请先拆解问题、考虑常见的理解误区与不同解释，"
@@ -412,10 +496,11 @@ async def _stream_once(
 async def stream_chat(
     messages: list[dict], model: str | None = None, deep: bool = False
 ) -> AsyncGenerator[str, None]:
-    """流式调用 LLM：先走主配置，限流(429)时自动切换备用模型。
+    """流式调用 LLM：先走主配置，异常时自动切换备用模型。
 
     model 非空时覆盖本次使用的模型（如用户在面板手动选择）；deep=True 启用深度思考。
-    备用模型未配置时保持原行为（限流错误透传给前端）。
+    可降级异常：限流(429) 或 模型不可用（401 Model not supported 等）。
+    备用模型未配置/也失败时，模型错误给友好引导（去设置页换模型）。
     """
     from app.services.ai.settings_store import get_effective_config, get_fallback_config
 
@@ -426,10 +511,24 @@ async def stream_chat(
         async for delta in _stream_once(messages, cfg, deep=deep):
             yield delta
         return
-    except AIRateLimitError:
+    except (AIRateLimitError, AIProviderError) as e:
+        recoverable = isinstance(e, AIRateLimitError) or is_model_error(str(e))
         fb = get_fallback_config()
-        if not fb:
-            raise
-        logger.info("主模型限流，切换备用模型 %s", fb.get("model"))
-        async for delta in _stream_once(messages, fb, deep=deep):
-            yield delta
+        if recoverable and fb:
+            logger.info(
+                "主模型异常（%s），切换备用模型 %s", e.__class__.__name__, fb.get("model")
+            )
+            try:
+                async for delta in _stream_once(messages, fb, deep=deep):
+                    yield delta
+                return
+            except (AIRateLimitError, AIProviderError) as fb_e:
+                if is_model_error(str(fb_e)) or isinstance(fb_e, AIRateLimitError):
+                    if is_model_error(str(fb_e)):
+                        raise AIProviderError(friendly_model_error(str(fb_e))) from fb_e
+                    raise
+                raise
+        # 不可降级或未启用备用：模型错误给友好引导
+        if is_model_error(str(e)):
+            raise AIProviderError(friendly_model_error(str(e))) from e
+        raise

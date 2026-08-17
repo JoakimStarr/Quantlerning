@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ArrowRight, PlayCircle, Target } from 'lucide-vue-next'
 import { fetchCourses, streamPlan, streamReview } from '@/api'
 import { getProgress, isCompleted, learningDays, sandboxRunCount, totalExercises } from '@/stores/progress'
+import { linkifyCourses } from '@/utils/linkifyCourses'
 import { chapterLabel, PHASE_STATUS as phaseStatus } from '@/utils/chapter'
 import AppSpinner from '@/components/common/AppSpinner.vue'
 import AppError from '@/components/common/AppError.vue'
@@ -68,11 +69,12 @@ async function getPlan() {
   }
 }
 
-// 错题汇总：读各课随堂测验每题最佳分（ql:quizResults），收集未满分题目
+// 错题汇总：读各课随堂测验每题最佳分（ql:quizResults）+ 应用题批改得分（exerciseScores）
 function buildReviewSummary(): string {
   const lines: string[] = []
   let wrongCount = 0
   const wrongLessons: string[] = []
+  const weakExercises: string[] = []
   for (const p of phases.value) {
     for (const l of p.lessons) {
       let map: Record<string, number> = {}
@@ -82,16 +84,25 @@ function buildReviewSummary(): string {
         map = {}
       }
       const wrong = Object.keys(map).filter((q) => Number(map[q]) < 100)
-      if (!wrong.length) continue
-      wrongCount += wrong.length
-      const titles = wrong
-        .slice(0, 15)
-        .map((q) => (q.length > 120 ? `${q.slice(0, 120)}…` : q))
-      wrongLessons.push(`《${l.title}》：${titles.join(' | ')}`)
+      if (wrong.length) {
+        wrongCount += wrong.length
+        const titles = wrong
+          .slice(0, 15)
+          .map((q) => (q.length > 120 ? `${q.slice(0, 120)}…` : q))
+        wrongLessons.push(`《${l.title}》：${titles.join(' | ')}`)
+      }
+      // 应用题低分（<60）也是弱项
+      const scores = (getProgress(l.id)?.exerciseScores ?? []).filter((s) => s < 60)
+      if (scores.length) {
+        weakExercises.push(`《${l.title}》应用题最近得分 ${scores[scores.length - 1]}（共 ${scores.length} 次低分）`)
+      }
     }
   }
   lines.push(`错题数：${wrongCount} 题（随堂测验每题最佳分未满分）。`)
   lines.push(wrongLessons.length ? `错题清单：\n${wrongLessons.map((x) => `- ${x}`).join('\n')}` : '暂无错题。')
+  if (weakExercises.length) {
+    lines.push(`应用题弱项：\n${weakExercises.map((x) => `- ${x}`).join('\n')}`)
+  }
   lines.push('')
   lines.push('学习进度概览：')
   lines.push(buildProgressSummary())
@@ -114,6 +125,13 @@ async function getReview() {
     reviewBusy.value = false
   }
 }
+
+// 全部课程（title→id），供 AI 输出里的课程名渲染成可点击链接
+const allLessons = computed(() =>
+  phases.value.flatMap((p) => p.lessons.map((l: any) => ({ title: l.title, id: l.id }))),
+)
+const planLinked = computed(() => linkifyCourses(plan.value, allLessons.value))
+const reviewLinked = computed(() => linkifyCourses(review.value, allLessons.value))
 
 async function load() {
   loading.value = true
@@ -216,7 +234,7 @@ const overall = computed(() => {
           </button>
         </div>
         <div v-if="planError" class="plan-error">{{ planError }}</div>
-        <PlanCard v-if="plan" :plan="plan" />
+        <PlanCard v-if="plan" :plan="planLinked" />
       </div>
 
       <!-- 错题弱项复习 -->
@@ -226,7 +244,7 @@ const overall = computed(() => {
             <Target :size="15" />
             <div>
               <div class="plan-title">错题弱项复习</div>
-              <div class="plan-sub">根据随堂测验错题，分析薄弱点并给出复习建议</div>
+              <div class="plan-sub">根据随堂测验错题与应用题低分，分析薄弱点并给出复习建议</div>
             </div>
           </div>
           <button class="btn btn-primary" :disabled="reviewBusy" @click="getReview">
@@ -234,7 +252,7 @@ const overall = computed(() => {
           </button>
         </div>
         <div v-if="reviewError" class="plan-error">{{ reviewError }}</div>
-        <PlanCard v-if="review" :plan="review" />
+        <PlanCard v-if="review" :plan="reviewLinked" />
       </div>
 
       <div v-for="p in phases" :key="p.phase" class="phase-card" :class="{ active: p.status === 'in_progress' }" @click="goPhase(p)">

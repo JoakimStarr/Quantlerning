@@ -11,6 +11,7 @@ import {
   Search,
   Send,
   Sparkles,
+  Square,
   X,
 } from 'lucide-vue-next'
 import { createMarkdown } from '@/utils/markdownIt'
@@ -253,6 +254,11 @@ function toggleWeb() {
   else localStorage.removeItem('ql:aiAskWeb')
 }
 
+// 停止生成：中断当前流式请求（send 的 catch 会清理空气泡）
+function stopGenerate() {
+  abortCtrl.value?.abort()
+}
+
 // 消息变化（含流式追加）→ DOM 更新后给代码块补复制按钮
 watch(
   messages,
@@ -477,7 +483,10 @@ watch(
             rows="2"
             @keydown.enter.exact.prevent="send"
           />
-          <button class="send-btn" :disabled="thinking || !input.trim()" title="发送" @click="send">
+          <button v-if="thinking" class="send-btn stop" title="停止生成" @click="stopGenerate">
+            <Square :size="13" />
+          </button>
+          <button v-else class="send-btn" :disabled="!input.trim()" title="发送" @click="send">
             <Send :size="15" />
           </button>
         </div>
@@ -924,6 +933,17 @@ watch(
 }
 .send-btn:hover:not(:disabled) { transform: scale(1.05); }
 .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.send-btn.stop {
+  background: var(--danger, #dc2626);
+  border-radius: var(--radius-sm);
+  width: auto;
+  padding: 0 10px;
+  gap: 4px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+}
+.send-btn.stop:hover:not(:disabled) { background: var(--danger, #dc2626); }
 
 .toolbar { display: flex; align-items: center; gap: 8px; min-height: 26px; }
 .deep-btn {

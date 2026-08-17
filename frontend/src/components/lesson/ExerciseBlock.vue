@@ -6,7 +6,7 @@ import { renderAiBubble } from '../../utils/aiBubble'
 import 'katex/dist/katex.min.css'
 import { judgeAnswer, streamGenExercise, streamJudgeFollowup } from '@/api'
 import type { ChatTurn } from '@/api'
-import { recordExercise } from '@/stores/progress'
+import { recordExercise, recordExerciseScore } from '@/stores/progress'
 
 // 应用题（:::exercise 块）：展示题目 + 用户输入答案 + 调 AI 批改（SSE 流式）
 // 题目/提示为 Markdown 文本（支持 LaTeX），AI 批改结果渲染 Markdown/LaTeX
@@ -89,7 +89,12 @@ async function judge() {
       ctrl.signal,
     )
     if (result.error) error.value = result.error
-    else recordExercise(props.lessonId) // 成功批改记一次练习提交
+    else {
+      recordExercise(props.lessonId) // 成功批改记一次练习提交
+      // 从批改文本里提取得分（如「72 分」/「85/100」），记录低分供错题复习
+      const m = feedback.value.match(/(\d{1,3})\s*分/)
+      if (m) recordExerciseScore(props.lessonId, Number(m[1]))
+    }
   } catch {
     // 用户中止（retry/离开）等：不记提交
   } finally {

@@ -10,6 +10,7 @@ interface LessonProgress {
   quizScore?: number // 答对的知识点测验数（score===100）
   quizzesTotal?: number // 已提交的测验题数
   exercises?: number // 提交的应用题次数
+  exerciseScores?: number[] // 应用题批改得分（0-100，保留最近若干次）
   reads?: number // 打开/阅读次数
   lastReadAt?: string
   updatedAt?: string
@@ -104,6 +105,19 @@ export function recordExercise(lessonId: string) {
   }
   save(STORAGE_KEY, progress)
   markActivity()
+}
+
+/** 记录应用题批改得分（0-100），供「错题弱项复习」识别低分应用题 */
+export function recordExerciseScore(lessonId: string, score: number) {
+  const cur = progress[lessonId] ?? ({} as LessonProgress)
+  const scores = Array.isArray(cur.exerciseScores) ? cur.exerciseScores : []
+  scores.push(Math.round(Math.max(0, Math.min(100, score))))
+  progress[lessonId] = {
+    ...cur,
+    exerciseScores: scores.slice(-50), // 每课最多保留最近 50 次得分
+    updatedAt: new Date().toISOString(),
+  }
+  save(STORAGE_KEY, progress)
 }
 
 /** 记录一次代码沙箱运行（ok=是否执行成功，驱动「跑通」与「尝试」统计） */

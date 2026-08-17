@@ -237,6 +237,9 @@ async function save() {
   error.value = ''
   notice.value = ''
   saving.value = true
+  // 已拉取过模型列表且当前 model 不在其中 → 保存后提示可能失效
+  const modelWarn =
+    modelList.value.length > 0 && !modelList.value.includes(model.value.trim())
   try {
     const payload: {
       base_url: string
@@ -273,7 +276,9 @@ async function save() {
     webConfigured.value = !!cfg.web_search_configured
     webSearchKey.value = ''
     snapshotCurrent()
-    notice.value = '已保存并设为默认模型。api key 仅存后端；如需修改重新输入即可。'
+    notice.value = modelWarn
+      ? '已保存。注意：该模型不在当前供应商列表中，可能已失效，建议点「测试连接」验证。'
+      : '已保存并设为默认模型。api key 仅存后端；如需修改重新输入即可。'
   } catch (e: any) {
     error.value = e?.message || '保存失败'
   } finally {
