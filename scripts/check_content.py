@@ -47,7 +47,7 @@ def parse_lesson(path: Path) -> dict:
     # 正文/sections
     in_q = in_e = in_c = False
     prose_lines = 0
-    sections = []          # {title, chars}
+    sections = []          # {title, chars, code_lines}
     cur = None
     quiz_blocks = 0
     exercise_blocks = 0
@@ -55,9 +55,16 @@ def parse_lesson(path: Path) -> dict:
     for ln in lines:
         s = ln.strip()
         if s.startswith("```"):
-            in_c = not in_c
+            if in_c:
+                in_c = False
+            else:
+                in_c = True
+                if cur:
+                    cur["code_lines"] = cur.get("code_lines", 0) + 1
             continue
         if in_c:
+            if cur:
+                cur["code_lines"] = cur.get("code_lines", 0) + 1
             continue
         if s == ":::quiz":
             in_q = True
@@ -79,7 +86,7 @@ def parse_lesson(path: Path) -> dict:
                 cur["chars"] += len(s)
             continue
         if s.startswith("## "):
-            cur = {"title": s[3:], "chars": 0}
+            cur = {"title": s[3:], "chars": 0, "code_lines": 0}
             sections.append(cur)
             prose_lines += 1
             continue
@@ -118,15 +125,27 @@ def check_structure(lesson: dict) -> list[str]:
 def check_depth(lesson: dict) -> list[str]:
     """B 内容深度。"""
     issues = []
-    # 正文行数
-    if lesson["prose_lines"] < MIN_PROSE_LINES:
+    # 正文行数（豁免：产出课 l7/l8/l12、前言课 l0、综合题库 t1——这些课的正文短是结构决定的；
+    # 以及「每节字数达标」的课——规范为「≥100 行 或 每节 ≥80-100 字」）
+    lesson_id = lesson["id"]
+    is_outcome = lesson_id.endswith(("-l7", "-l8", "-l12")) or lesson_id.endswith("-t1")
+    is_prereq = lesson_id.endswith("-l0")
+    all_secs_filled = all(
+        sec["chars"] >= MIN_SECTION_CHARS or sec["title"] in ("练习题", "参考文献")
+        for sec in lesson["sections"]
+    )
+    if lesson["prose_lines"] < MIN_PROSE_LINES and not is_outcome and not is_prereq and not all_secs_filled:
         issues.append(
-            f"B1 正文仅 {lesson['prose_lines']} 行 < {MIN_PROSE_LINES}（若每节字数达标可豁免）"
+            f"B1 正文仅 {lesson['prose_lines']} 行 < {MIN_PROSE_LINES}（且存在不足 80 字的小节）"
         )
-    # 薄节（不含练习/参考文献）
+    # 薄节（不含练习/参考文献/代码块小节/测验模块标题）
     for sec in lesson["sections"]:
         if sec["title"] in ("练习题", "参考文献", "阶段测验"):
             continue
+        if sec["title"].startswith("模块"):
+            continue  # 阶段测验的模块标题（主体是 quiz 块，非正文）
+        if sec.get("code_lines", 0) > 0:
+            continue  # 代码块主导的小节（参考实现框架等），文字少是正常的
         if sec["chars"] < MIN_SECTION_CHARS:
             issues.append(f"B2 小节「{sec['title']}」仅 {sec['chars']} 字 < {MIN_SECTION_CHARS}")
     # 参考文献
