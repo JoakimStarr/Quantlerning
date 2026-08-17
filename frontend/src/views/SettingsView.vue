@@ -176,10 +176,23 @@ watch(modelOpen, (v) => {
 })
 onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
+// 提取 host 用于「是否同一供应商」判断（容错 base_url 尾斜杠/路径差异）
+function hostOf(u: string): string {
+  try {
+    return new URL(u).hostname
+  } catch {
+    return ''
+  }
+}
+
 function applyPreset(p: ProviderPreset) {
+  const sameProvider = !!p.base_url && hostOf(p.base_url) === hostOf(baseUrl.value.trim())
   activePreset.value = p.name
   baseUrl.value = p.base_url
-  model.value = p.model
+  // 已配置同一供应商时保留当前 model；切换供应商或 model 为空才用预设默认值
+  if (!sameProvider || !model.value) {
+    model.value = p.model
+  }
   modelOpen.value = false
   modelList.value = []
   testResult.value = null
