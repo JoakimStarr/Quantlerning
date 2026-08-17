@@ -365,3 +365,13 @@ export async function fetchAIModels(): Promise<{ models: string[]; current: stri
   const { data } = await api.get('/settings/ai/models')
   return data
 }
+
+/** 按表单提交的 base_url/api_key 拉取模型列表（未填项后端回退已保存/环境配置）；失败返回 error 字段 */
+export async function fetchAIModelsByConfig(payload: {
+  base_url?: string
+  api_key?: string
+  model?: string
+}): Promise<{ models: string[]; current: string; error?: string }> {
+  const { data } = await api.post('/settings/ai/models', payload)
+  return data
+}

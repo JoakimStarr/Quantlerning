@@ -28,6 +28,23 @@ class AISettingsPayload(BaseModel):
     fallback_max_tokens: int | None = Field(None, ge=16, le=8192)
 
 
+async def _fetch_models(base_url: str, api_key: str) -> list[str]:
+    """调用 OpenAI 兼容的 GET {base_url}/models 拉取模型 id 列表。
+
+    非 200 抛 AIProviderError；连接失败抛 httpx.HTTPError；JSON 非法抛 JSONDecodeError。
+    """
+    url = base_url.rstrip("/") + "/models"
+    headers = {"Authorization": f"Bearer {api_key}"}
+    async with httpx.AsyncClient(trust_env=False, timeout=15) as client:
+        resp = await client.get(url, headers=headers)
+        if resp.status_code != 200:
+            raise AIProviderError(
+                friendly_ai_error(f"HTTP {resp.status_code}: {resp.text[:200]}")
+            )
+        data = resp.json()
+    return [m.get("id") for m in data.get("data") or [] if m.get("id")]
+
+
 @router.get("/ai")
 async def get_ai_settings():
     """返回当前 AI 配置（api_key 打码）。"""
@@ -51,17 +68,9 @@ async def list_ai_models():
 
     models: list[str] = []
     if cfg.get("api_key"):
-        url = cfg["base_url"].rstrip("/") + "/models"
-        headers = {"Authorization": f"Bearer {cfg['api_key']}"}
         try:
-            async with httpx.AsyncClient(trust_env=False, timeout=15) as client:
-                resp = await client.get(url, headers=headers)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    models = [
-                        m.get("id") for m in data.get("data") or [] if m.get("id")
-                    ]
-        except (httpx.HTTPError, json.JSONDecodeError):
+            models = await _fetch_models(cfg["base_url"], cfg["api_key"])
+        except (AIProviderError, httpx.HTTPError, json.JSONDecodeError):
             models = []
 
     if models:
@@ -72,6 +81,41 @@ async def list_ai_models():
     else:
         models = configured
     return {"models": models, "current": cfg.get("model", "")}
+
+
+@router.post("/ai/models")
+async def fetch_ai_models(payload: AISettingsPayload):
+    """按表单提交的 base_url/api_key 拉取模型列表（未填项回退已保存/环境配置）。
+
+    供设置页「获取模型」按钮使用：保存前即可预览当前输入对应的可用模型。
+    返回 {"models": [...], "current": str}；失败返回 {"models": [], "current": "", "error": msg}。
+    """
+    from app.services.ai.settings_store import get_effective_config
+
+    base = (payload.base_url or "").strip()
+    key = (payload.api_key or "").strip()
+    model = (payload.model or "").strip()
+    if not base or not key:
+        eff = get_effective_config()
+        base = base or eff["base_url"]
+        key = key or eff.get("api_key", "")
+        model = model or eff["model"]
+    if not key:
+        return {"models": [], "current": model, "error": "未配置 API key"}
+
+    try:
+        models = await _fetch_models(base, key)
+    except AIProviderError as e:
+        return {"models": [], "current": model, "error": str(e)}
+    except httpx.HTTPError as e:
+        return {"models": [], "current": model, "error": f"AI 服务连接失败: {e.__class__.__name__}"}
+    except json.JSONDecodeError:
+        return {"models": [], "current": model, "error": "响应不是合法 JSON（可能 base_url 不对）"}
+
+    # 当前输入模型若不在列表（如刚发布/别名），补在最前保证可选中
+    if model and model not in models:
+        models.insert(0, model)
+    return {"models": models, "current": model}
 
 
 @router.put("/ai")

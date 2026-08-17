@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { Check, Star, X } from 'lucide-vue-next'
-import { fetchAISettings, saveAISettings, testAISettings } from '@/api'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { Check, List, RefreshCw, Search, Star, X } from 'lucide-vue-next'
+import { fetchAIModelsByConfig, fetchAISettings, saveAISettings, testAISettings } from '@/api'
 import AppSpinner from '@/components/common/AppSpinner.vue'
 import AppError from '@/components/common/AppError.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
@@ -76,10 +76,61 @@ const tempHint = computed(() => {
   return '高随机：创意优先，但可能不够严谨'
 })
 
+// 模型选择器：点「获取模型」按当前表单 base_url/api_key 拉列表，支持搜索筛选
+const modelList = ref<string[]>([])
+const modelOpen = ref(false)
+const modelQuery = ref('')
+const modelLoading = ref(false)
+const modelError = ref('')
+const modelPopRef = ref<HTMLElement | null>(null)
+
+const filteredModels = computed(() => {
+  const q = modelQuery.value.trim().toLowerCase()
+  if (!q) return modelList.value
+  return modelList.value.filter((m) => m.toLowerCase().includes(q))
+})
+
+async function fetchModels() {
+  modelLoading.value = true
+  modelError.value = ''
+  modelOpen.value = true
+  try {
+    const res = await fetchAIModelsByConfig({
+      base_url: baseUrl.value.trim(),
+      api_key: apiKey.value.trim() || undefined,
+      model: model.value.trim(),
+    })
+    modelList.value = res.models
+    modelError.value = res.error || ''
+  } catch (e: any) {
+    modelError.value = e?.message || '获取模型列表失败'
+    modelList.value = []
+  } finally {
+    modelLoading.value = false
+  }
+}
+
+function pickModel(m: string) {
+  model.value = m
+  testResult.value = null
+  modelOpen.value = false
+}
+
+function onDocClick(e: MouseEvent) {
+  if (modelPopRef.value && !modelPopRef.value.contains(e.target as Node)) modelOpen.value = false
+}
+watch(modelOpen, (v) => {
+  if (v) document.addEventListener('click', onDocClick)
+  else document.removeEventListener('click', onDocClick)
+})
+onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
+
 function applyPreset(p: ProviderPreset) {
   activePreset.value = p.name
   baseUrl.value = p.base_url
   model.value = p.model
+  modelOpen.value = false
+  modelList.value = []
   testResult.value = null
 }
 
@@ -235,7 +286,53 @@ async function test() {
         <div class="field-row">
           <div class="field-group grow">
             <label class="field-label" for="model">模型名称</label>
-            <input id="model" v-model="model" class="field-input" type="text" placeholder="glm-4-flash" spellcheck="false" />
+            <div ref="modelPopRef" class="model-picker">
+              <div class="model-input-wrap">
+                <input
+                  id="model"
+                  v-model="model"
+                  class="field-input"
+                  type="text"
+                  placeholder="glm-4-flash"
+                  spellcheck="false"
+                />
+                <button
+                  type="button"
+                  class="model-fetch-btn"
+                  :disabled="modelLoading"
+                  :title="'从当前 base_url 拉取可用模型列表'"
+                  @click="fetchModels"
+                >
+                  <RefreshCw v-if="modelLoading" :size="13" class="spin" />
+                  <List v-else :size="13" />
+                  {{ modelLoading ? '获取中' : '获取模型' }}
+                </button>
+              </div>
+              <Transition name="drop">
+                <div v-if="modelOpen" class="model-pop">
+                  <div class="model-search">
+                    <Search :size="13" />
+                    <input v-model="modelQuery" placeholder="搜索模型…" spellcheck="false" @click.stop />
+                  </div>
+                  <div v-if="modelError" class="model-pop-error">{{ modelError }}</div>
+                  <div class="model-list">
+                    <button
+                      v-for="m in filteredModels"
+                      :key="m"
+                      type="button"
+                      class="model-item"
+                      :class="{ cur: m === model }"
+                      @click="pickModel(m)"
+                    >
+                      <span class="model-name">{{ m }}</span>
+                    </button>
+                    <div v-if="modelList.length === 0 && !modelError" class="model-empty">
+                      点击「获取模型」从服务商拉取列表；也可直接手动输入模型名称。
+                    </div>
+                  </div>
+                </div>
+              </Transition>
+            </div>
           </div>
           <div class="field-group grow">
             <label class="field-label" for="api-key">API Key</label>
@@ -428,6 +525,94 @@ async function test() {
 .field-input:focus { outline: none; border-color: var(--primary); }
 .field-help { font-size: 12px; color: var(--text-3); margin-top: 5px; line-height: 1.6; }
 .masked { font-family: var(--font-mono); background: var(--bg-hover); padding: 1px 6px; border-radius: 4px; }
+
+/* 模型选择器：输入框 + 获取按钮 + 可搜索下拉 */
+.model-picker { position: relative; }
+.model-input-wrap { position: relative; }
+.model-input-wrap .field-input { padding-right: 92px; }
+.model-fetch-btn {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  bottom: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: var(--bg-hover);
+  color: var(--text-2);
+  font-size: 12px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.model-fetch-btn:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary); }
+.model-fetch-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.spin { animation: rotate 0.8s linear infinite; }
+@keyframes rotate { to { transform: rotate(360deg); } }
+
+.model-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(340px, 78vw);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 30;
+}
+.model-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-3);
+}
+.model-search input {
+  flex: 1;
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 12.5px;
+  color: var(--text-1);
+  font-family: inherit;
+}
+.model-pop-error {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--danger, #dc2626);
+  background: color-mix(in srgb, var(--danger, #dc2626) 6%, transparent);
+  border-bottom: 1px solid var(--border);
+  line-height: 1.5;
+}
+.model-list { max-height: 240px; overflow-y: auto; padding: 4px; }
+.model-item {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.model-item:hover { background: var(--bg-hover); }
+.model-item.cur { background: var(--primary-soft); color: var(--primary); }
+.model-empty { padding: 14px 10px; text-align: center; font-size: 12px; color: var(--text-3); line-height: 1.6; }
+.drop-enter-active, .drop-leave-active { transition: opacity 0.12s, transform 0.12s; }
+.drop-enter-from, .drop-leave-to { opacity: 0; transform: translateY(-6px); }
 
 .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
 .preset-btn {
