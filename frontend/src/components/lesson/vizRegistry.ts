@@ -404,6 +404,11 @@ const registry = {
     desc: '状态→动作→奖励 三要素（真实茅台日线，示意策略）',
     comp: markRaw(defineAsyncComponent(() => import('../simulators/RlTradingLoop.vue'))),
   },
+  pipeline_architecture: {
+    title: '完整 pipeline 架构图',
+    desc: '数据→因子→策略→组合→风控→实盘 六环节交互图',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/PipelineArchitecture.vue'))),
+  },
   frontier: {
     title: '有效前沿拖拽',
     desc: '5 股真实收益：权重滑块 → 实时前沿',
