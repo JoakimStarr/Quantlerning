@@ -7,6 +7,7 @@ import {
 } from 'lucide-vue-next'
 import { fetchCourses, fetchLesson } from '@/api'
 import { isCompleted } from '@/stores/progress'
+import { aiPanelLayout } from '@/stores/aiPanel'
 import { chapterLabel, PHASE_STATUS as phaseStatus } from '@/utils/chapter'
 import { useTheme } from '@/utils/theme'
 
@@ -313,7 +314,8 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
     </aside>
 
     <!-- 右侧内容区（body 滚动，浏览器原生恢复滚动位置） -->
-    <div class="main">
+    <!-- ai-split：AI 面板分栏时正文左移贴靠侧边栏，右侧让位给面板 -->
+    <div class="main" :class="{ 'ai-split': aiPanelLayout.split }">
       <RouterView />
     </div>
   </div>
@@ -497,6 +499,12 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 .main {
   margin-left: var(--sidebar-w);
   padding: 32px 40px 64px;
+  transition: margin-right 0.2s ease;
+}
+
+/* AI 面板分栏：正文左移，右侧让位（460px 面板 + 24px 右侧边距） */
+.main.ai-split {
+  margin-right: 484px;
 }
 
 /* ---------- 移动端适配（≤900px） ---------- */

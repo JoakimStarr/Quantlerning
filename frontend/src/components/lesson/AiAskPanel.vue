@@ -17,6 +17,7 @@ import { unwrapOuterFence } from '@/utils/aiOutput'
 import 'katex/dist/katex.min.css'
 import { fetchAIModels, fetchAISettings, streamChat, type ChatTurn } from '@/api'
 import { useChatHistory } from '@/composables/useChatHistory'
+import { aiPanelLayout } from '@/stores/aiPanel'
 
 // 运行时注入代码块的复制按钮图标（DOM 操作无法用 Vue 组件，内联 lucide Copy 的 SVG）
 const COPY_SVG =
@@ -70,6 +71,15 @@ const input = ref('')
 const thinking = ref(false)
 const error = ref('')
 const abortCtrl = ref<AbortController | null>(null)
+
+// 分栏模式：放大 + 屏幕够宽（≥1280px）时，正文左移、面板独占右侧
+// 窄屏/手机保持浮层，避免图表被挤压
+const splitMedia = window.matchMedia('(min-width: 1280px)')
+function updateSplit() {
+  aiPanelLayout.split = open.value && expanded.value && splitMedia.matches
+}
+watch([open, expanded], updateSplit)
+splitMedia.addEventListener('change', updateSplit)
 
 // 对话消息：assistant 消息的 content 在流式期间持续追加
 const messages = ref<ChatTurn[]>([])
@@ -128,6 +138,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
+  splitMedia.removeEventListener('change', updateSplit)
+  aiPanelLayout.split = false
   history.flushSave()
 })
 
@@ -303,7 +315,7 @@ watch(
 
   <!-- 抽屉面板 -->
   <Transition name="panel">
-    <div v-if="open" class="ask-panel" :class="{ expanded }">
+    <div v-if="open" class="ask-panel" :class="{ expanded, split: aiPanelLayout.split }">
       <header class="panel-head">
         <div class="panel-brand">
           <span class="avatar"><Sparkles :size="15" /></span>
@@ -460,6 +472,15 @@ watch(
 /* 放大模式：高度接近全高，宽度保持小窗不变 */
 .ask-panel.expanded {
   height: calc(100vh - 32px);
+  right: 24px;
+  bottom: 24px;
+}
+
+/* 分栏模式（放大 + 屏幕≥1280px）：面板加宽并上下留边，正文由 App.vue 左移腾位 */
+.ask-panel.split {
+  width: 460px;
+  top: 24px;
+  height: calc(100vh - 48px);
   right: 24px;
   bottom: 24px;
 }
