@@ -72,14 +72,76 @@ const thinking = ref(false)
 const error = ref('')
 const abortCtrl = ref<AbortController | null>(null)
 
-// 分栏模式：放大 + 屏幕够宽（≥1280px）时，正文左移、面板独占右侧
-// 窄屏/手机保持浮层，避免图表被挤压
+// 分栏模式：放大 + 屏幕够宽（≥1280px）时，正文与面板分割剩余空间（可拖拽分隔条）。
+// 窄屏/手机保持浮层，避免图表被挤压。
 const splitMedia = window.matchMedia('(min-width: 1280px)')
+const SIDEBAR_W = 230 // 与 App.vue --sidebar-w 一致，用于计算默认分栏宽度
+const WIDTH_MIN = 340
+const WIDTH_MAX = 640
+
+// 用户拖拽过则持久化宽度；否则按「剩余空间 40%」给默认值（两者共同分割剩余空间）
+const savedSplitWidth = (() => {
+  const v = Number(localStorage.getItem('ql:aiAskSplitWidth'))
+  return Number.isFinite(v) && v >= WIDTH_MIN && v <= WIDTH_MAX ? v : null
+})()
+let splitWidth = savedSplitWidth // 可变：拖拽后更新，供再次展开分栏时恢复
+
+function clampWidth(w: number) {
+  const remaining = window.innerWidth - SIDEBAR_W
+  // 上限留出至少 420px 给正文，避免图表被压太窄
+  return Math.min(Math.max(Math.round(w), WIDTH_MIN), Math.max(WIDTH_MIN, remaining - 420))
+}
+
+function defaultSplitWidth() {
+  return clampWidth((window.innerWidth - SIDEBAR_W) * 0.4)
+}
+
 function updateSplit() {
-  aiPanelLayout.split = open.value && expanded.value && splitMedia.matches
+  const on = open.value && expanded.value && splitMedia.matches
+  if (on) aiPanelLayout.width = splitWidth ?? defaultSplitWidth()
+  aiPanelLayout.split = on
 }
 watch([open, expanded], updateSplit)
 splitMedia.addEventListener('change', updateSplit)
+
+// 面板宽度由状态驱动（分栏时），分隔条拖拽实时调整
+const panelStyle = computed(() =>
+  aiPanelLayout.split ? { width: `${aiPanelLayout.width}px` } : undefined,
+)
+
+function startDrag(e: MouseEvent) {
+  if (!aiPanelLayout.split) return
+  e.preventDefault()
+  aiPanelLayout.dragging = true
+  document.body.style.userSelect = 'none' // 拖拽期间防正文被选中
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', endDrag)
+}
+function onDrag(e: MouseEvent) {
+  // 面板右边距固定 24px，宽度 = 右缘 - 光标 x
+  aiPanelLayout.width = clampWidth(window.innerWidth - 24 - e.clientX)
+}
+function endDrag() {
+  aiPanelLayout.dragging = false
+  document.body.style.userSelect = ''
+  splitWidth = aiPanelLayout.width
+  try {
+    localStorage.setItem('ql:aiAskSplitWidth', String(aiPanelLayout.width))
+  } catch {
+    // 存储不可用：忽略
+  }
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', endDrag)
+}
+function resetSplitWidth() {
+  splitWidth = null
+  try {
+    localStorage.removeItem('ql:aiAskSplitWidth')
+  } catch {
+    // 存储不可用：忽略
+  }
+  aiPanelLayout.width = defaultSplitWidth()
+}
 
 // 对话消息：assistant 消息的 content 在流式期间持续追加
 const messages = ref<ChatTurn[]>([])
@@ -139,7 +201,11 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
   splitMedia.removeEventListener('change', updateSplit)
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', endDrag)
+  document.body.style.userSelect = ''
   aiPanelLayout.split = false
+  aiPanelLayout.dragging = false
   history.flushSave()
 })
 
@@ -315,7 +381,20 @@ watch(
 
   <!-- 抽屉面板 -->
   <Transition name="panel">
-    <div v-if="open" class="ask-panel" :class="{ expanded, split: aiPanelLayout.split }">
+    <div
+      v-if="open"
+      class="ask-panel"
+      :class="{ expanded, split: aiPanelLayout.split, dragging: aiPanelLayout.dragging }"
+      :style="panelStyle"
+    >
+      <!-- 分栏分隔条：拖拽调整正文/面板比例，双击恢复默认 -->
+      <div
+        v-if="aiPanelLayout.split"
+        class="split-drag"
+        title="拖拽调整分栏 · 双击恢复默认"
+        @mousedown="startDrag"
+        @dblclick="resetSplitWidth"
+      ></div>
       <header class="panel-head">
         <div class="panel-brand">
           <span class="avatar"><Sparkles :size="15" /></span>
@@ -476,14 +555,36 @@ watch(
   bottom: 24px;
 }
 
-/* 分栏模式（放大 + 屏幕≥1280px）：面板加宽并上下留边，正文由 App.vue 左移腾位 */
+/* 分栏模式（放大 + 屏幕≥1280px）：面板与正文分割剩余空间，宽度由拖拽/状态驱动 */
 .ask-panel.split {
-  width: 460px;
+  width: 440px; /* 兜底；实际宽度由 inline style（aiPanelLayout.width）覆盖 */
   top: 24px;
   height: calc(100vh - 48px);
   right: 24px;
   bottom: 24px;
 }
+/* 拖拽分隔条期间：宽度跟随光标实时更新，禁用过渡避免拖影 */
+.ask-panel.dragging {
+  transition: none;
+}
+
+/* 分隔条：位于面板左缘，拖拽调整分栏比例 */
+.split-drag {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  z-index: 6;
+}
+.split-drag::before {
+  content: '';
+  position: absolute;
+  left: 3px; top: 0; bottom: 0;
+  width: 2px;
+  background: var(--border);
+  transition: background 0.15s;
+}
+.split-drag:hover::before { background: var(--primary); }
 
 .panel-head {
   display: flex;

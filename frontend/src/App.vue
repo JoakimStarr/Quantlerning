@@ -314,8 +314,12 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
     </aside>
 
     <!-- 右侧内容区（body 滚动，浏览器原生恢复滚动位置） -->
-    <!-- ai-split：AI 面板分栏时正文左移贴靠侧边栏，右侧让位给面板 -->
-    <div class="main" :class="{ 'ai-split': aiPanelLayout.split }">
+    <!-- ai-split：AI 面板分栏时正文与面板分割剩余空间（宽度由分隔条拖拽驱动） -->
+    <div
+      class="main"
+      :class="{ 'ai-split': aiPanelLayout.split, 'ai-dragging': aiPanelLayout.dragging }"
+      :style="aiPanelLayout.split ? { '--ai-panel-w': `${aiPanelLayout.width}px` } : undefined"
+    >
       <RouterView />
     </div>
   </div>
@@ -502,9 +506,13 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   transition: margin-right 0.2s ease;
 }
 
-/* AI 面板分栏：正文左移，右侧让位（460px 面板 + 24px 右侧边距） */
+/* AI 面板分栏：正文让位给面板宽度（--ai-panel-w）+ 面板右侧边距 24px + 间隙 16px，
+   余下空间全部留给正文——与面板共同分割剩余空间 */
 .main.ai-split {
-  margin-right: 484px;
+  margin-right: calc(var(--ai-panel-w, 440px) + 40px);
+}
+.main.ai-split.ai-dragging {
+  transition: none; /* 拖拽分隔条期间实时跟随，禁用过渡 */
 }
 
 /* ---------- 移动端适配（≤900px） ---------- */
