@@ -9,6 +9,7 @@
 | [Datawhale quant-for-beginners](https://github.com/datawhalechina/quant-for-beginners) | 零基础中文量化 Notebook 路线，同样按「Phase 1/2」分章：双均线 → 回测 → 夏普/Beta → 最大回撤/仓位 → 多标的组合，每章一个可运行 Notebook | Phase 1/2 |
 | [Datawhale whale-quant](https://datawhalechina.github.io/whale-quant/) | 量化开源课程：选股（MPT/CAPM/多因子）、择时（双均线/MACD/Granville）、调仓、回测 | Phase 2/3/6 |
 | [XQuant 人人都是量化交易员](https://xingwudao.github.io/xquant-beginner/) | 先猜后验、做→看→疑 方法论；标的池、权重分配、再平衡/止损/止盈、四视角评估、防过拟合 | Phase 2 |
+| [JoinQuant 量化交易零基础入门教程](https://www.joinquant.com/view/community/detail/8ec7aaaa899cf928550f89a104637f22) | 聚宽社区新手教程：从零教 Python 编程，量化与编程结合；策略基本框架、回测含义、未来函数、过拟合、止损实现、策略失效。适合第一章导论与第二章回测的入门导航（平台 API 部分仅供参考） | Phase 1/2 |
 
 ## 中文量化百科与词条索引
 
@@ -54,6 +55,5 @@
 | 资源 | 说明 |
 |---|---|
 | [open-MFE](https://github.com/ebrahimpichka/open-MFE) | 复刻顶尖 MFE 项目的开源课程地图（Berkeley/CMU/Baruch 等），含每门课的开源资源 |
-| [The Open Quant Live Book](https://www.ebook.openquants.com/) | 开源量化参考书：金融数据分析、算法交易、组合选择、econophysics、金融 ML |
 
 > 说明：XQuant 与 whale-quant 已直接引用在 Phase 2 各课参考文献中；本清单其余资源可按需补入对应课程的参考文献小节。
