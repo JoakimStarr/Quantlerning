@@ -364,6 +364,16 @@ const registry = {
     desc: '真实茅台收益：参数/历史/MC 对比',
     comp: markRaw(defineAsyncComponent(() => import('../simulators/VarSimulator.vue'))),
   },
+  greeks_sensitivity: {
+    title: 'Greeks 敏感度曲线',
+    desc: 'Delta/Gamma/Vega/Theta/Rho 随 S 变化的形状',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/GreeksSensitivity.vue'))),
+  },
+  vol_smile: {
+    title: '波动率微笑/偏斜',
+    desc: 'IV vs 行权价曲线（教学示意）',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/VolSmile.vue'))),
+  },
   label_design: {
     title: '标签设计',
     desc: '前瞻收益 > 阈值 → 上涨标签（茅台真实收益 + 周期/阈值滑块）',
