@@ -32,6 +32,9 @@ class ChatRequest(BaseModel):
     lesson_id: str
     section_index: int = 0
     messages: list[ChatMessage] = Field(default_factory=list)
+    # 面板可选：覆盖模型（空=用当前配置）；深度思考开关
+    model: str | None = Field(None, max_length=200)
+    deep: bool = False
 
 
 class JudgeRequest(BaseModel):
@@ -129,13 +132,15 @@ async def chat_stream(payload: ChatRequest):
 
     async def gen():
         try:
-            messages = build_messages(payload.lesson_id, payload.section_index, history)
+            messages = build_messages(
+                payload.lesson_id, payload.section_index, history, deep=payload.deep
+            )
         except ValueError as e:
             yield _sse({"error": str(e)})
             yield _sse({"done": True})
             return
         try:
-            async for delta in stream_chat(messages):
+            async for delta in stream_chat(messages, model=payload.model, deep=payload.deep):
                 yield _sse({"delta": delta})
             yield _sse({"done": True})
         except AINotConfiguredError as e:

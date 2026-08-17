@@ -234,10 +234,17 @@ async function streamSSE(
 
 /**
  * 围绕当前课程小节追问，SSE 流式返回。
+ * @param payload.model 覆盖模型（空=用当前配置）；payload.deep 深度思考开关
  * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
  */
 export async function streamChat(
-  payload: { lesson_id: string; section_index: number; messages: ChatTurn[] },
+  payload: {
+    lesson_id: string
+    section_index: number
+    messages: ChatTurn[]
+    model?: string
+    deep?: boolean
+  },
   onDelta: (text: string) => void,
   signal?: AbortSignal,
 ): Promise<{ error?: string }> {
@@ -350,5 +357,11 @@ export async function testAISettings(payload: {
   temperature?: number | null
 }): Promise<{ ok: boolean; message: string; reply?: string }> {
   const { data } = await api.post('/settings/ai/test', payload)
+  return data
+}
+
+/** 当前提供商可用模型列表（后端已兜底并入主/备用配置模型） */
+export async function fetchAIModels(): Promise<{ models: string[]; current: string }> {
+  const { data } = await api.get('/settings/ai/models')
   return data
 }

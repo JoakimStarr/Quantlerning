@@ -34,6 +34,46 @@ async def get_ai_settings():
     return public_config()
 
 
+@router.get("/ai/models")
+async def list_ai_models():
+    """列出当前提供商可用的模型（GET {base_url}/models）。
+
+    提供商 models 接口不可用/失败时，回退为主配置与备用配置中的模型（去重），
+    保证前端模型下拉总有可选值。返回 {"models": [...], "current": str}。
+    """
+    from app.services.ai.settings_store import get_effective_config, get_fallback_config
+
+    cfg = get_effective_config()
+    configured: list[str] = []
+    for m in (cfg.get("model"), (get_fallback_config() or {}).get("model")):
+        if m and m not in configured:
+            configured.append(m)
+
+    models: list[str] = []
+    if cfg.get("api_key"):
+        url = cfg["base_url"].rstrip("/") + "/models"
+        headers = {"Authorization": f"Bearer {cfg['api_key']}"}
+        try:
+            async with httpx.AsyncClient(trust_env=False, timeout=15) as client:
+                resp = await client.get(url, headers=headers)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    models = [
+                        m.get("id") for m in data.get("data") or [] if m.get("id")
+                    ]
+        except (httpx.HTTPError, json.JSONDecodeError):
+            models = []
+
+    if models:
+        # 提供商列表成功：确保已配置模型也在列表里（缺失则补在最前）
+        for m in reversed(configured):
+            if m not in models:
+                models.insert(0, m)
+    else:
+        models = configured
+    return {"models": models, "current": cfg.get("model", "")}
+
+
 @router.put("/ai")
 async def update_ai_settings(payload: AISettingsPayload):
     """保存 AI 配置；返回保存后的生效配置（api_key 打码）。"""

@@ -67,8 +67,14 @@ def _find_lesson(lesson_id: str) -> dict | None:
     return None
 
 
-def build_messages(lesson_id: str, section_index: int, history: list[dict]) -> list[dict]:
-    """组装请求消息：system（课程+当前小节上下文）+ 最近几轮历史。"""
+def build_messages(
+    lesson_id: str, section_index: int, history: list[dict], deep: bool = False
+) -> list[dict]:
+    """组装请求消息：system（课程+当前小节上下文）+ 最近几轮历史。
+
+    deep=True 时启用「深度思考」：system 提示词要求先拆解问题、考虑常见误区，
+    并放宽字数限制（配合 stream_chat 的 max_tokens 翻倍）。
+    """
     lesson = _find_lesson(lesson_id)
     if lesson is None:
         raise ValueError(f"课程 {lesson_id} 不存在")
@@ -95,6 +101,12 @@ def build_messages(lesson_id: str, section_index: int, history: list[dict]) -> l
         "$\\sigma=\\sqrt{\\frac{1}{n}\\sum (r_i-\\bar r)^2}$；"
         "禁止用 Unicode 字符写公式（如 σ²、√252、Pₜ 这类写法不要用）。"
     )
+    if deep:
+        system += (
+            "\n\n本次提问开启「深度思考」模式：请先拆解问题、考虑常见的理解误区与不同解释，"
+            "再给出结构化结论；可以分点展示推理过程，回答可以更详细、更深入，"
+            "不受上述 300 字限制，但仍需条理清晰、不重复废话。"
+        )
     messages = [{"role": "system", "content": system}]
     # 只保留最近若干轮历史，避免 token 膨胀
     messages.extend(history[-_HISTORY_LIMIT:])
@@ -231,10 +243,13 @@ def build_plan_messages(progress_summary: str) -> list[dict]:
     ]
 
 
-async def _stream_once(messages: list[dict], cfg: dict) -> AsyncGenerator[str, None]:
+async def _stream_once(
+    messages: list[dict], cfg: dict, deep: bool = False
+) -> AsyncGenerator[str, None]:
     """用给定配置发起一次流式调用，逐段 yield 回答文本。
 
     429 限流抛 AIRateLimitError（供上层切换备用模型）；其他非 200 抛 AIProviderError。
+    deep=True 时 max_tokens 翻倍（深度思考需要更多输出空间），上限 4096。
     """
     if not cfg.get("api_key"):
         raise AINotConfiguredError(
@@ -246,12 +261,15 @@ async def _stream_once(messages: list[dict], cfg: dict) -> AsyncGenerator[str, N
         "Authorization": f"Bearer {cfg['api_key']}",
         "Content-Type": "application/json",
     }
+    max_tokens = int(cfg.get("max_tokens") or 1024)
+    if deep:
+        max_tokens = min(max_tokens * 2, 4096)
     payload = {
         "model": cfg["model"],
         "messages": messages,
         "stream": True,
         "temperature": float(cfg.get("temperature") or 0.4),
-        "max_tokens": int(cfg.get("max_tokens") or 1024),
+        "max_tokens": max_tokens,
     }
 
     try:
@@ -287,16 +305,21 @@ async def _stream_once(messages: list[dict], cfg: dict) -> AsyncGenerator[str, N
         raise AIProviderError(f"AI 服务连接失败: {e.__class__.__name__}") from e
 
 
-async def stream_chat(messages: list[dict]) -> AsyncGenerator[str, None]:
+async def stream_chat(
+    messages: list[dict], model: str | None = None, deep: bool = False
+) -> AsyncGenerator[str, None]:
     """流式调用 LLM：先走主配置，限流(429)时自动切换备用模型。
 
+    model 非空时覆盖本次使用的模型（如用户在面板手动选择）；deep=True 启用深度思考。
     备用模型未配置时保持原行为（限流错误透传给前端）。
     """
     from app.services.ai.settings_store import get_effective_config, get_fallback_config
 
     cfg = get_effective_config()
+    if model:
+        cfg["model"] = model
     try:
-        async for delta in _stream_once(messages, cfg):
+        async for delta in _stream_once(messages, cfg, deep=deep):
             yield delta
         return
     except AIRateLimitError:
@@ -304,5 +327,5 @@ async def stream_chat(messages: list[dict]) -> AsyncGenerator[str, None]:
         if not fb:
             raise
         logger.info("主模型限流，切换备用模型 %s", fb.get("model"))
-        async for delta in _stream_once(messages, fb):
+        async for delta in _stream_once(messages, fb, deep=deep):
             yield delta

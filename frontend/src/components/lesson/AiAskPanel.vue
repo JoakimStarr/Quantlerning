@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue'
-import { Copy, Maximize2, Minimize2 } from 'lucide-vue-next'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import {
+  Brain,
+  ChevronDown,
+  Copy,
+  Maximize2,
+  Minimize2,
+  Search,
+  Send,
+  Sparkles,
+  X,
+} from 'lucide-vue-next'
 import { createMarkdown } from '@/utils/markdownIt'
 import { unwrapOuterFence } from '@/utils/aiOutput'
 import 'katex/dist/katex.min.css'
-import { streamChat, type ChatTurn } from '@/api'
+import { fetchAIModels, streamChat, type ChatTurn } from '@/api'
 import { useChatHistory } from '@/composables/useChatHistory'
 
 // 运行时注入代码块的复制按钮图标（DOM 操作无法用 Vue 组件，内联 lucide Copy 的 SVG）
@@ -67,10 +77,80 @@ const inputRef = ref<HTMLTextAreaElement | null>(null)
 
 const maxLen = 2000
 
+// ---------- 深度思考 & 模型选择（全局偏好，localStorage 持久化）----------
+const deep = ref(localStorage.getItem('ql:aiAskDeep') === '1')
+const model = ref(localStorage.getItem('ql:aiAskModel') || '') // '' = 默认（当前配置）
+const models = ref<string[]>([])
+const currentModel = ref('')
+
+// 模型下拉（自定义搜索弹层）
+const modelOpen = ref(false)
+const modelQuery = ref('')
+const modelRef = ref<HTMLElement | null>(null)
+
+const filteredModels = computed(() => {
+  const q = modelQuery.value.trim().toLowerCase()
+  if (!q) return models.value
+  return models.value.filter((m) => m.toLowerCase().includes(q))
+})
+
+const modelLabel = computed(() => {
+  if (model.value) return model.value
+  return currentModel.value ? `默认 · ${currentModel.value}` : '默认模型'
+})
+
+const deepLabel = computed(() => (deep.value ? '深度思考·开' : '深度思考'))
+
 // 历史持久化（按「课程+小节」存 localStorage）
 const history = useChatHistory(() => props.lessonId, () => props.sectionIndex, messages)
 
-onMounted(() => history.restore())
+onMounted(async () => {
+  history.restore()
+  try {
+    const { models: list, current } = await fetchAIModels()
+    models.value = list
+    currentModel.value = current
+    // 之前保存的模型若已不在列表（配置变更），回退默认
+    if (model.value && !list.includes(model.value)) model.value = ''
+  } catch {
+    // 拉不到模型列表不阻塞：仍可用默认模型对话
+  }
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocClick)
+  history.flushSave()
+})
+
+// 模型下拉：展开/收起、点击外部关闭
+function toggleModel() {
+  if (modelOpen.value) closeModel()
+  else {
+    modelOpen.value = true
+    modelQuery.value = ''
+  }
+}
+function closeModel() {
+  modelOpen.value = false
+}
+function onDocClick(e: MouseEvent) {
+  if (modelRef.value && !modelRef.value.contains(e.target as Node)) closeModel()
+}
+watch(modelOpen, (v) => {
+  if (v) document.addEventListener('click', onDocClick)
+  else document.removeEventListener('click', onDocClick)
+})
+function pickModel(m: string) {
+  model.value = m
+  if (m) localStorage.setItem('ql:aiAskModel', m)
+  else localStorage.removeItem('ql:aiAskModel')
+  closeModel()
+}
+function toggleDeep() {
+  deep.value = !deep.value
+  if (deep.value) localStorage.setItem('ql:aiAskDeep', '1')
+  else localStorage.removeItem('ql:aiAskDeep')
+}
 
 // 消息变化（含流式追加）→ DOM 更新后给代码块补复制按钮
 watch(
@@ -145,6 +225,8 @@ async function send() {
         lesson_id: props.lessonId,
         section_index: props.sectionIndex,
         messages: history,
+        model: model.value || undefined,
+        deep: deep.value,
       },
       (delta) => {
         const last = messages.value[messages.value.length - 1]
@@ -195,16 +277,19 @@ watch(
 <template>
   <!-- 悬浮按钮 -->
   <button class="ask-fab" :class="{ active: open }" title="AI 追问" @click="toggle">
-    <span class="fab-ai">AI</span>
+    <Sparkles :size="22" />
   </button>
 
   <!-- 抽屉面板 -->
   <Transition name="panel">
     <div v-if="open" class="ask-panel" :class="{ expanded }">
       <header class="panel-head">
-        <div class="panel-title">
-          <span class="panel-ai">AI 追问</span>
-          <span class="panel-section" :title="sectionTitle">{{ sectionTitle || '当前小节' }}</span>
+        <div class="panel-brand">
+          <span class="avatar"><Sparkles :size="15" /></span>
+          <div class="panel-title-box">
+            <span class="panel-ai">AI 追问</span>
+            <span class="panel-section" :title="sectionTitle">{{ sectionTitle || '当前小节' }}</span>
+          </div>
         </div>
         <div class="panel-actions">
           <button v-if="messages.length" class="panel-clear" title="清空本小节对话" @click="clearHistory">
@@ -214,14 +299,15 @@ watch(
             <Maximize2 v-if="!expanded" :size="14" />
             <Minimize2 v-else :size="14" />
           </button>
-          <button class="panel-close" title="关闭" @click="close">×</button>
+          <button class="panel-close" title="关闭" @click="close"><X :size="16" /></button>
         </div>
       </header>
 
       <div ref="listRef" class="msg-list">
         <div v-if="messages.length === 0" class="msg-empty">
-          正在学习「{{ sectionTitle }}」？
-          <br />针对这个知识点提问，AI 导师会结合本节内容回答。
+          <span class="empty-icon"><Sparkles :size="20" /></span>
+          <p class="empty-title">正在学习「{{ sectionTitle }}」？</p>
+          <p class="empty-sub">针对这个知识点提问，AI 导师会结合本节内容回答。<br />可开启「深度思考」获得更深入的分析。</p>
         </div>
         <div
           v-for="(m, i) in messages"
@@ -229,8 +315,9 @@ watch(
           class="msg"
           :class="m.role === 'user' ? 'msg-user' : 'msg-ai'"
         >
+          <span v-if="m.role === 'assistant'" class="msg-avatar"><Sparkles :size="12" /></span>
           <!-- user 保持纯文本；assistant 渲染 Markdown/LaTeX -->
-          <div v-if="m.role === 'user'" class="bubble">{{ m.content }}</div>
+          <div v-if="m.role === 'user'" class="bubble bubble-user">{{ m.content }}</div>
           <div v-else class="bubble bubble-md">
             <span v-if="m.content" v-html="renderBubble(m.content)"></span>
             <span v-else-if="thinking && i === messages.length - 1" class="typing">▍</span>
@@ -242,18 +329,57 @@ watch(
       <div v-if="error" class="msg-error">{{ error }}</div>
 
       <footer class="panel-input">
-        <textarea
-          ref="inputRef"
-          v-model="input"
-          class="input-box"
-          :placeholder="thinking ? 'AI 思考中…' : '输入你的问题…'"
-          :disabled="thinking"
-          rows="2"
-          @keydown.enter.exact.prevent="send"
-        />
-        <button class="send-btn" :disabled="thinking || !input.trim()" @click="send">
-          {{ thinking ? '…' : '发送' }}
-        </button>
+        <div class="input-wrap">
+          <textarea
+            ref="inputRef"
+            v-model="input"
+            class="input-box"
+            :placeholder="thinking ? 'AI 思考中…' : '输入你的问题…'"
+            :disabled="thinking"
+            rows="2"
+            @keydown.enter.exact.prevent="send"
+          />
+          <button class="send-btn" :disabled="thinking || !input.trim()" title="发送" @click="send">
+            <Send :size="15" />
+          </button>
+        </div>
+        <div class="toolbar">
+          <button class="deep-btn" :class="{ on: deep }" :title="'深度思考：回答前先深入分析、分步推理'" @click="toggleDeep">
+            <Brain :size="13" />
+            {{ deepLabel }}
+          </button>
+          <div ref="modelRef" class="model-select">
+            <button class="model-btn" :title="modelLabel" @click.stop="toggleModel">
+              <span class="model-label">{{ modelLabel }}</span>
+              <ChevronDown :size="13" class="chev" :class="{ open: modelOpen }" />
+            </button>
+            <Transition name="drop">
+              <div v-if="modelOpen" class="model-pop">
+                <div class="model-search">
+                  <Search :size="13" />
+                  <input v-model="modelQuery" placeholder="搜索模型…" @click.stop />
+                </div>
+                <div class="model-list">
+                  <button class="model-item" :class="{ cur: model === '' }" @click="pickModel('')">
+                    <span class="model-name">{{ currentModel ? `默认 · ${currentModel}` : '默认模型' }}</span>
+                    <span class="model-tag">主配置</span>
+                  </button>
+                  <button
+                    v-for="m in filteredModels"
+                    :key="m"
+                    class="model-item"
+                    :class="{ cur: model === m }"
+                    @click="pickModel(m)"
+                  >
+                    <span class="model-name">{{ m }}</span>
+                  </button>
+                  <div v-if="filteredModels.length === 0" class="model-empty">无匹配模型</div>
+                </div>
+              </div>
+            </Transition>
+          </div>
+          <span v-if="deep" class="toolbar-hint">回答将更详细深入</span>
+        </div>
       </footer>
     </div>
   </Transition>
@@ -270,21 +396,16 @@ watch(
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   color: #fff;
   box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 35%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s, background 0.15s;
+  transition: transform 0.15s, background 0.15s, opacity 0.15s;
 }
 .ask-fab:hover { transform: scale(1.06); }
-.ask-fab.active { background: var(--text-3); }
-.fab-ai {
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.5px;
-}
+.ask-fab.active { background: var(--text-3); transform: scale(0.94); }
 
 .ask-panel {
   position: fixed;
@@ -296,8 +417,8 @@ watch(
   height: min(70vh, 560px);
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md, 0 10px 40px rgba(0, 0, 0, 0.18));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -316,57 +437,63 @@ watch(
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 12px 14px;
+  padding: 11px 14px;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-hover);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary-soft) 55%, transparent),
+    transparent
+  );
 }
-.panel-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.panel-ai { font-weight: 600; font-size: 14px; flex-shrink: 0; }
+.panel-brand { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.avatar {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--violet), var(--primary));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.panel-title-box { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.panel-ai { font-weight: 700; font-size: 14px; line-height: 1.2; }
 .panel-section {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--text-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border-left: 1px solid var(--border);
-  padding-left: 8px;
 }
-.panel-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.panel-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 .panel-clear {
   border: none;
   background: none;
   font-size: 12px;
   color: var(--text-3);
   cursor: pointer;
-  padding: 3px 8px;
+  padding: 4px 8px;
   border-radius: var(--radius-sm);
 }
 .panel-clear:hover {
   color: var(--danger, #dc2626);
   background: color-mix(in srgb, var(--danger, #dc2626) 8%, transparent);
 }
+.panel-expand,
 .panel-close {
   border: none;
   background: none;
-  font-size: 20px;
   color: var(--text-3);
   cursor: pointer;
   line-height: 1;
-}
-.panel-close:hover { color: var(--text-1); }
-
-.panel-expand {
-  border: none;
-  background: none;
-  font-size: 16px;
-  color: var(--text-3);
-  cursor: pointer;
-  line-height: 1;
-  padding: 2px 6px;
+  padding: 5px 6px;
   border-radius: var(--radius-sm);
   transition: color 0.12s, background 0.12s;
 }
-.panel-expand:hover { color: var(--primary); background: var(--bg-hover); }
+.panel-expand:hover,
+.panel-close:hover { color: var(--text-1); background: var(--bg-hover); }
 
 .msg-list {
   flex: 1;
@@ -374,7 +501,7 @@ watch(
   padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 .msg-empty {
   margin: auto;
@@ -382,28 +509,60 @@ watch(
   font-size: 13px;
   color: var(--text-3);
   line-height: 1.8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
-.msg { display: flex; }
+.empty-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--violet), var(--primary));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+.empty-title { margin: 0; font-size: 13.5px; color: var(--text-2); font-weight: 600; }
+.empty-sub { margin: 0; font-size: 12.5px; }
+
+.msg { display: flex; align-items: flex-start; gap: 8px; }
 .msg-user { justify-content: flex-end; }
 .msg-ai { justify-content: flex-start; }
+.msg-avatar {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--violet), var(--primary));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
 .bubble {
   max-width: 86%;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
+  padding: 9px 13px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
 }
-.msg-user .bubble {
-  background: var(--primary);
+.msg-user .bubble-user {
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   color: #fff;
-  border-bottom-right-radius: 2px;
+  border-bottom-right-radius: 3px;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 25%, transparent);
 }
-.msg-ai .bubble {
+.msg-ai .bubble-md {
   background: var(--bg-hover);
   color: var(--text-1);
-  border-bottom-left-radius: 2px;
+  border-bottom-left-radius: 3px;
 }
 
 /* AI 回答的 Markdown 渲染：段落/代码/列表/公式 */
@@ -429,12 +588,16 @@ watch(
 .bubble-md :deep(ol) { margin: 0 0 8px; padding-left: 1.4em; }
 .bubble-md :deep(li) { margin-bottom: 2px; }
 .bubble-md :deep(pre) {
-  background: var(--bg-code);
-  color: var(--text-1);
-  border-radius: var(--radius-md);
+  position: relative;
+  background: #0f1420;
+  color: #e6e9ef;
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
   overflow-x: auto;
-  margin: 0 0 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  margin: 0 0 8px;
   font-size: 13px;
   line-height: 1.6;
 }
@@ -443,6 +606,7 @@ watch(
   color: inherit;
   padding: 0;
   font-size: 13px;
+  line-height: 1.6;
 }
 .bubble-md :deep(code) {
   font-family: var(--font-mono);
@@ -450,17 +614,6 @@ watch(
   background: color-mix(in srgb, currentColor 12%, transparent);
   padding: 1px 5px;
   border-radius: 4px;
-}
-.bubble-md :deep(pre) {
-  position: relative;
-  background: #0f1420;
-  color: #e6e9ef;
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  margin: 0 0 8px;
 }
 .bubble-md :deep(.copy-code-btn) {
   position: absolute;
@@ -475,12 +628,6 @@ watch(
 }
 .bubble-md :deep(pre:hover .copy-code-btn) { opacity: 1; }
 .bubble-md :deep(.copy-code-btn:hover) { color: #fff; background: rgba(255, 255, 255, 0.16); }
-.bubble-md :deep(pre code) {
-  background: none;
-  padding: 0;
-  font-size: 12.5px;
-  line-height: 1.5;
-}
 .bubble-md :deep(blockquote) {
   margin: 0 0 8px;
   padding: 6px 10px;
@@ -506,39 +653,176 @@ watch(
 }
 
 .panel-input {
-  display: flex;
-  gap: 8px;
-  padding: 12px 14px;
+  padding: 10px 14px 12px;
   border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
+.input-wrap { position: relative; }
 .input-box {
-  flex: 1;
+  width: 100%;
   resize: none;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--bg-card);
   color: var(--text-1);
-  padding: 8px 10px;
+  padding: 9px 44px 9px 11px;
   font-size: 13.5px;
   line-height: 1.5;
   font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
-.input-box:focus { outline: none; border-color: var(--primary); }
+.input-box:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
+}
 .input-box:disabled { opacity: 0.6; }
 .send-btn {
-  padding: 0 16px;
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 30px;
+  height: 30px;
   border: none;
-  border-radius: var(--radius-sm);
-  background: var(--primary);
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   color: #fff;
-  font-size: 13px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.send-btn:hover:not(:disabled) { transform: scale(1.05); }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.toolbar { display: flex; align-items: center; gap: 8px; min-height: 26px; }
+.deep-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-2);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s;
   flex-shrink: 0;
 }
-.send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.deep-btn:hover { border-color: var(--primary); color: var(--primary); }
+.deep-btn.on {
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  border-color: transparent;
+  color: #fff;
+}
+.toolbar-hint {
+  font-size: 11px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 模型选择下拉 */
+.model-select { position: relative; flex-shrink: 0; min-width: 0; }
+.model-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 220px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-2);
+  font-size: 12px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.model-btn:hover { border-color: var(--primary); color: var(--primary); }
+.model-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.model-btn .chev { flex-shrink: 0; transition: transform 0.15s; }
+.model-btn .chev.open { transform: rotate(180deg); }
+
+.model-pop {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  width: 300px;
+  max-width: 70vw;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.model-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-3);
+}
+.model-search input {
+  flex: 1;
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 12.5px;
+  color: var(--text-1);
+  font-family: inherit;
+}
+.model-list { max-height: 240px; overflow-y: auto; padding: 4px; }
+.model-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--text-1);
+}
+.model-item:hover { background: var(--bg-hover); }
+.model-item.cur { background: var(--primary-soft); color: var(--primary); }
+.model-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.model-tag {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  color: var(--text-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.model-item.cur .model-tag { border-color: transparent; color: inherit; }
+.model-empty { padding: 14px; text-align: center; font-size: 12px; color: var(--text-3); }
 
 .panel-enter-active, .panel-leave-active { transition: opacity 0.15s, transform 0.15s; }
 .panel-enter-from, .panel-leave-to { opacity: 0; transform: translateY(8px); }
+.drop-enter-active, .drop-leave-active { transition: opacity 0.12s, transform 0.12s; }
+.drop-enter-from, .drop-leave-to { opacity: 0; transform: translateY(6px); }
 
 /* 移动端适配 */
 @media (max-width: 900px) {
