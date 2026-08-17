@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, inject, ref } from 'vue'
+import { getInstanceByDom } from 'echarts/core'
 import { Image, MessageSquareText, RotateCcw } from 'lucide-vue-next'
 import { createMarkdown } from '../../utils/markdownIt'
+import { chartDataToText } from '../../utils/chartToText'
 import { ASK_AI_KEY } from '../../utils/aiAskKey'
 import { vizRegistry, type VizKey } from './vizRegistry'
 
@@ -22,20 +24,37 @@ function reset() {
   resetKey.value++
 }
 
+const figRef = ref<HTMLElement | null>(null)
+
 // 「问 AI」：由课程页注入（打开 AI 追问面板并预填问题），图表问 AI 入口
 const askAi = inject(ASK_AI_KEY, undefined)
+
+// 从渲染出的 ECharts 实例提取真实数据文本（模型无视觉，但能读数值）；
+// 非 ECharts 或提取失败时回退为纯元信息
+function extractChartData(): string {
+  try {
+    const el = figRef.value?.querySelector<HTMLElement>('[_echarts_instance_]')
+    if (!el) return ''
+    const inst = getInstanceByDom(el)
+    if (!inst || typeof inst.getOption !== 'function') return ''
+    return chartDataToText(inst.getOption())
+  } catch {
+    return ''
+  }
+}
+
 function askAboutChart() {
   if (!askAi) return
   const paramText = props.params ? JSON.stringify(props.params) : ''
-  const q = [
+  const chartText = extractChartData()
+  const parts = [
     `请讲解这张可视化图：${props.component}`,
     props.caption ? `图注：${props.caption}` : '',
     paramText ? `参数：${paramText}` : '',
-    '我看不懂，请结合当前小节用 2-4 句话讲清楚图表达什么、怎么看。',
   ]
-    .filter(Boolean)
-    .join('。')
-  askAi(q)
+  if (chartText) parts.push(`图表数据（节选）：\n${chartText}`)
+  parts.push('我看不懂，请结合当前小节用 2-4 句话讲清楚图表达什么、怎么看。')
+  askAi(parts.join('。'))
 }
 
 const info = computed(() => vizRegistry[props.component])
@@ -50,7 +69,7 @@ const captionHtml = computed(() =>
 
 <template>
   <!-- 插图式可视化：像书中的图，居中、带图注 -->
-  <figure class="viz-figure">
+  <figure ref="figRef" class="viz-figure">
     <div class="viz-frame">
       <!-- 已实现：渲染真实组件（:key 变化时重挂载，重置交互状态） -->
       <component
