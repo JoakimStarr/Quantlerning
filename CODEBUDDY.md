@@ -207,11 +207,11 @@ H: 提示（可选）
 
 ## 里程碑
 
-> 实际进度（2026-08 验证）：内容分布 phase0=6 / phase1=11 / phase2=10 / phase3=7 / phase4=7 / phase5=8 / phase6=6 课（共 55 课）；simulators 目录 74 个组件全部注册实现，vizRegistry 全量激活。
+> 实际进度（2026-08 验证）：内容分布 phase0=6 / phase1=12 / phase2=9 / phase3=7 / phase4=7 / phase5=8 / phase6=6 课（共 55 课）；simulators 目录 74 个组件全部注册实现，vizRegistry 全量激活。
 
 - M0 ✅ 骨架：前后端、课程地图、内容填充（前言+第一章）
 - M1 ✅ 交互组件批量实现（sharpe/mdd/macd/rsi/capm 等）
-- M2 ✅ 第二章回测内容与可视化（10 课）
+- M2 ✅ 第二章回测内容与可视化（9 课：前言 + 三大策略 + 回测 + 评估 + 成本 + 产出）
 - M3 ✅ 第三章因子内容与可视化（7 课 + ic_distribution / factor_ic / layer_returns / industry_pe / factor_backtest_dashboard）
 - M4 ✅ 第四章衍生品内容与可视化（7 课 + random_walk / bs_price_slider / binomial_tree / monte_carlo_pricing / var_simulator）
 - M5 ✅ 第五章 ML 内容与可视化（8 课 + label_design / overfit_demo / feature_importance / ml_backtest，复用 gradient_field 讲梯度下降）
