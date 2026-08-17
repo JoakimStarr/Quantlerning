@@ -1,14 +1,24 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { Check, List, RefreshCw, Search, Star, X } from 'lucide-vue-next'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import {
+  Bot,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Globe,
+  List,
+  RefreshCw,
+  Search,
+  SlidersHorizontal,
+  X,
+} from 'lucide-vue-next'
 import { fetchAIModelsByConfig, fetchAISettings, saveAISettings, testAISettings } from '@/api'
 import AppSpinner from '@/components/common/AppSpinner.vue'
 import AppError from '@/components/common/AppError.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 
-// AI 模型设置页：连接配置（供应商/base_url/model/api key）+ 生成参数（temperature/max_tokens）
-// 参考主流做法：分「连接」「生成」两个卡片分组，默认模型状态条置顶，测试/保存操作在底部。
-// api key 只存后端，不回显；temperature 影响 AI 追问与应用题批改的随机度。
+// AI 模型设置页：主/备用模型 + 联网搜索 + 生成参数。
+// 显式保存：底部操作栏 + 「未保存修改」提示；api key 只存后端，不回显。
 
 // 内置供应商预设（OpenAI 兼容接口）
 interface ProviderPreset {
@@ -45,13 +55,17 @@ const PRESETS: ProviderPreset[] = [
 ]
 
 const activePreset = ref('')
+const activePresetHint = computed(
+  () => PRESETS.find((p) => p.name === activePreset.value)?.hint || '',
+)
 const baseUrl = ref('')
 const model = ref('')
 const apiKey = ref('')
 const maxTokens = ref(1024)
 const temperature = ref(0.4)
 
-// 备用模型（主模型限流时自动切换）
+// 备用模型（主模型限流时自动切换）；默认折叠
+const fbOpen = ref(false)
 const fbBaseUrl = ref('')
 const fbModel = ref('')
 const fbApiKey = ref('')
@@ -72,6 +86,38 @@ const configured = ref(false)
 const error = ref('')
 const notice = ref('')
 const testResult = ref<{ ok: boolean; message: string; reply?: string } | null>(null)
+
+// 已保存值快照：用于「未保存修改」提示（key 输入框始终清空，非空即视为待保存）
+const savedSnapshot = reactive({
+  baseUrl: '',
+  model: '',
+  maxTokens: 1024,
+  temperature: 0.4,
+  fbBaseUrl: '',
+  fbModel: '',
+  fbMaxTokens: 1024,
+})
+function snapshotCurrent() {
+  savedSnapshot.baseUrl = baseUrl.value
+  savedSnapshot.model = model.value
+  savedSnapshot.maxTokens = maxTokens.value
+  savedSnapshot.temperature = temperature.value
+  savedSnapshot.fbBaseUrl = fbBaseUrl.value
+  savedSnapshot.fbModel = fbModel.value
+  savedSnapshot.fbMaxTokens = fbMaxTokens.value
+}
+const dirty = computed(() => {
+  if (apiKey.value.trim() || fbApiKey.value.trim() || webSearchKey.value.trim()) return true
+  return (
+    baseUrl.value !== savedSnapshot.baseUrl ||
+    model.value !== savedSnapshot.model ||
+    maxTokens.value !== savedSnapshot.maxTokens ||
+    temperature.value !== savedSnapshot.temperature ||
+    fbBaseUrl.value !== savedSnapshot.fbBaseUrl ||
+    fbModel.value !== savedSnapshot.fbModel ||
+    fbMaxTokens.value !== savedSnapshot.fbMaxTokens
+  )
+})
 
 const tempHint = computed(() => {
   const t = temperature.value
@@ -138,6 +184,10 @@ function applyPreset(p: ProviderPreset) {
   modelList.value = []
   testResult.value = null
 }
+function onPresetChange(e: Event) {
+  const p = PRESETS.find((x) => x.name === (e.target as HTMLSelectElement).value)
+  if (p) applyPreset(p)
+}
 
 async function reloadSettings() {
   loading.value = true
@@ -160,6 +210,7 @@ async function reloadSettings() {
     // 匹配预设（按 base_url 前缀）
     const hit = PRESETS.find((p) => p.base_url && cfg.base_url.startsWith(p.base_url.split('/')[2] ?? ''))
     activePreset.value = hit?.name ?? (PRESETS[PRESETS.length - 1].name)
+    snapshotCurrent()
   } catch (e: any) {
     error.value = e?.message || '加载设置失败'
   } finally {
@@ -208,6 +259,7 @@ async function save() {
     webKeyMasked.value = cfg.web_search_key_masked || ''
     webConfigured.value = !!cfg.web_search_configured
     webSearchKey.value = ''
+    snapshotCurrent()
     notice.value = '已保存并设为默认模型。api key 仅存后端；如需修改重新输入即可。'
   } catch (e: any) {
     error.value = e?.message || '保存失败'
@@ -218,6 +270,7 @@ async function save() {
 
 async function test() {
   error.value = ''
+  notice.value = ''
   testResult.value = null
   testing.value = true
   try {
@@ -246,129 +299,207 @@ async function test() {
     <AppError v-else-if="error && !baseUrl && !model" :message="error" @retry="reloadSettings" />
 
     <div v-else class="settings-stack">
-      <!-- 当前默认模型状态 -->
-      <div class="default-banner">
-        <span class="default-icon"><Star :size="14" /></span>
-        <div class="default-info">
-          <span class="default-label">当前默认模型</span>
-          <span class="default-value">{{ model || '（未设置）' }}</span>
-          <span class="default-url">{{ baseUrl }}</span>
+      <!-- 当前配置状态条 -->
+      <div class="status-bar">
+        <span class="status-dot" :class="configured ? 'ok' : 'warn'"></span>
+        <div class="status-info">
+          <span class="status-label">{{ configured ? '已配置' : '未配置 API Key' }}</span>
+          <span class="status-model">{{ model || '（未设置模型）' }}</span>
+          <span class="status-url">{{ baseUrl }}</span>
         </div>
-        <span v-if="configured" class="configured-badge">已配置</span>
-        <span v-else class="configured-badge warn">未配置 key</span>
+        <button class="btn btn-ghost status-test" :disabled="testing || saving" @click="test">
+          {{ testing ? '测试中…' : '测试连接' }}
+        </button>
       </div>
 
-      <!-- 连接配置 -->
+      <!-- 模型：主模型 + 备用模型（折叠） -->
       <section class="settings-card">
-        <div class="card-head">
-          <h2 class="card-title">连接配置</h2>
-          <p class="card-desc">选择供应商预设或手动填写 OpenAI 兼容接口</p>
-        </div>
-
-        <div class="field-group">
-          <label class="field-label">供应商预设</label>
-          <div class="preset-grid">
-            <button
-              v-for="p in PRESETS"
-              :key="p.name"
-              type="button"
-              class="preset-btn"
-              :class="{ active: activePreset === p.name }"
-              @click="applyPreset(p)"
-            >
-              <span class="preset-name">{{ p.name }}</span>
-              <span class="preset-hint">{{ p.hint }}</span>
-            </button>
+        <div class="card-head card-head-icon">
+          <Bot :size="16" class="card-head-ico" />
+          <div>
+            <h2 class="card-title">模型</h2>
+            <p class="card-desc">主模型用于日常回答；备用模型在主模型限流时自动顶上。</p>
           </div>
         </div>
 
         <div class="field-group">
-          <label class="field-label" for="base-url">Base URL</label>
-          <input
-            id="base-url"
-            v-model="baseUrl"
-            class="field-input"
-            type="text"
-            placeholder="https://open.bigmodel.cn/api/paas/v4"
-            spellcheck="false"
-          />
-          <p class="field-help">OpenAI 兼容接口地址，末尾无需斜杠。</p>
+          <label class="field-label" for="preset">供应商预设</label>
+          <select id="preset" class="preset-select" :value="activePreset" @change="onPresetChange">
+            <option v-for="p in PRESETS" :key="p.name" :value="p.name">{{ p.name }}</option>
+          </select>
+          <p class="field-help" v-if="activePresetHint">{{ activePresetHint }}</p>
         </div>
 
-        <div class="field-row">
-          <div class="field-group grow">
-            <label class="field-label" for="model">模型名称</label>
-            <div ref="modelPopRef" class="model-picker">
-              <div class="model-input-wrap">
-                <input
-                  id="model"
-                  v-model="model"
-                  class="field-input"
-                  type="text"
-                  placeholder="glm-4-flash"
-                  spellcheck="false"
-                />
-                <button
-                  type="button"
-                  class="model-fetch-btn"
-                  :disabled="modelLoading"
-                  :title="'从当前 base_url 拉取可用模型列表'"
-                  @click="fetchModels"
-                >
-                  <RefreshCw v-if="modelLoading" :size="13" class="spin" />
-                  <List v-else :size="13" />
-                  {{ modelLoading ? '获取中' : '获取模型' }}
-                </button>
-              </div>
-              <Transition name="drop">
-                <div v-if="modelOpen" class="model-pop">
-                  <div class="model-search">
-                    <Search :size="13" />
-                    <input v-model="modelQuery" placeholder="搜索模型…" spellcheck="false" @click.stop />
-                  </div>
-                  <div v-if="modelError" class="model-pop-error">{{ modelError }}</div>
-                  <div class="model-list">
-                    <button
-                      v-for="m in filteredModels"
-                      :key="m"
-                      type="button"
-                      class="model-item"
-                      :class="{ cur: m === model }"
-                      @click="pickModel(m)"
-                    >
-                      <span class="model-name">{{ m }}</span>
-                    </button>
-                    <div v-if="modelList.length === 0 && !modelError" class="model-empty">
-                      点击「获取模型」从服务商拉取列表；也可直接手动输入模型名称。
+        <!-- 主模型（默认） -->
+        <div class="section-block">
+          <div class="section-title">主模型（默认）</div>
+
+          <div class="field-group">
+            <label class="field-label" for="base-url">Base URL</label>
+            <input
+              id="base-url"
+              v-model="baseUrl"
+              class="field-input"
+              type="text"
+              placeholder="https://open.bigmodel.cn/api/paas/v4"
+              spellcheck="false"
+            />
+            <p class="field-help">OpenAI 兼容接口地址，末尾无需斜杠。</p>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group grow">
+              <label class="field-label" for="model">模型名称</label>
+              <div ref="modelPopRef" class="model-picker">
+                <div class="model-input-wrap">
+                  <input
+                    id="model"
+                    v-model="model"
+                    class="field-input"
+                    type="text"
+                    placeholder="glm-4-flash"
+                    spellcheck="false"
+                  />
+                  <button
+                    type="button"
+                    class="model-fetch-btn"
+                    :disabled="modelLoading"
+                    :title="'从当前 base_url 拉取可用模型列表'"
+                    @click="fetchModels"
+                  >
+                    <RefreshCw v-if="modelLoading" :size="13" class="spin" />
+                    <List v-else :size="13" />
+                    {{ modelLoading ? '获取中' : '获取模型' }}
+                  </button>
+                </div>
+                <Transition name="drop">
+                  <div v-if="modelOpen" class="model-pop">
+                    <div class="model-search">
+                      <Search :size="13" />
+                      <input v-model="modelQuery" placeholder="搜索模型…" spellcheck="false" @click.stop />
+                    </div>
+                    <div v-if="modelError" class="model-pop-error">{{ modelError }}</div>
+                    <div class="model-list">
+                      <button
+                        v-for="m in filteredModels"
+                        :key="m"
+                        type="button"
+                        class="model-item"
+                        :class="{ cur: m === model }"
+                        @click="pickModel(m)"
+                      >
+                        <span class="model-name">{{ m }}</span>
+                      </button>
+                      <div v-if="modelList.length === 0 && !modelError" class="model-empty">
+                        点击「获取模型」从服务商拉取列表；也可直接手动输入模型名称。
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Transition>
+                </Transition>
+              </div>
+            </div>
+            <div class="field-group grow">
+              <label class="field-label" for="api-key">API Key</label>
+              <input
+                id="api-key"
+                v-model="apiKey"
+                class="field-input"
+                type="password"
+                placeholder="输入后保存到后端"
+                autocomplete="off"
+              />
+              <p class="field-help" v-if="configured">
+                已配置：<code class="masked">{{ savedKeyMasked }}</code>（重新输入可更换）
+              </p>
+              <p class="field-help help-warn" v-else>尚未配置 api key——AI 追问与应用题批改将不可用。</p>
             </div>
           </div>
-          <div class="field-group grow">
-            <label class="field-label" for="api-key">API Key</label>
-            <input
-              id="api-key"
-              v-model="apiKey"
-              class="field-input"
-              type="password"
-              placeholder="输入后保存到后端"
-              autocomplete="off"
-            />
-            <p class="field-help" v-if="configured">
-              已配置：<code class="masked">{{ savedKeyMasked }}</code>（重新输入可更换）
-            </p>
-            <p class="field-help" v-else>尚未配置 api key——AI 追问与应用题批改将不可用。</p>
-          </div>
+        </div>
+
+        <!-- 备用模型（折叠） -->
+        <div class="section-block fb-block">
+          <button
+            type="button"
+            class="fb-head"
+            :aria-expanded="fbOpen"
+            @click="fbOpen = !fbOpen"
+          >
+            <ChevronDown v-if="fbOpen" :size="14" class="fb-chev" />
+            <ChevronRight v-else :size="14" class="fb-chev" />
+            <span class="fb-title">备用模型（可选）</span>
+            <span v-if="fbConfigured" class="fb-status ok">已配置 {{ fbKeyMasked }}</span>
+            <span v-else class="fb-status">未配置</span>
+          </button>
+          <Transition name="fb">
+            <div v-if="fbOpen" class="fb-body">
+              <p class="field-help fb-desc">
+                主模型限流（429）时自动切换，避免追问/批改中断。API Key 留空时复用主模型 key。
+              </p>
+              <div class="field-row">
+                <div class="field-group grow">
+                  <label class="field-label" for="fb-base-url">Base URL</label>
+                  <input
+                    id="fb-base-url"
+                    v-model="fbBaseUrl"
+                    class="field-input"
+                    type="text"
+                    placeholder="如 https://opencode.ai/zen/v1"
+                    spellcheck="false"
+                  />
+                </div>
+                <div class="field-group grow">
+                  <label class="field-label" for="fb-model">模型名称</label>
+                  <input
+                    id="fb-model"
+                    v-model="fbModel"
+                    class="field-input"
+                    type="text"
+                    placeholder="如 deepseek-v4-flash-free"
+                    spellcheck="false"
+                  />
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field-group grow">
+                  <label class="field-label" for="fb-api-key">API Key</label>
+                  <input
+                    id="fb-api-key"
+                    v-model="fbApiKey"
+                    class="field-input"
+                    type="password"
+                    placeholder="留空则复用主模型 key"
+                    autocomplete="off"
+                  />
+                  <p class="field-help" v-if="fbConfigured">
+                    已配置：<code class="masked">{{ fbKeyMasked }}</code>（重新输入可更换）
+                  </p>
+                </div>
+                <div class="field-group grow">
+                  <label class="field-label" for="fb-max-tokens">最大输出 token 数</label>
+                  <input
+                    id="fb-max-tokens"
+                    v-model.number="fbMaxTokens"
+                    class="field-input"
+                    type="number"
+                    min="16"
+                    max="8192"
+                    step="16"
+                  />
+                </div>
+              </div>
+            </div>
+          </Transition>
         </div>
       </section>
 
       <!-- 联网搜索（可选） -->
       <section class="settings-card">
-        <div class="card-head">
-          <h2 class="card-title">联网搜索</h2>
-          <p class="card-desc">可选。AI 面板开启「联网」开关后，回答会检索外部实时信息并标注来源。</p>
+        <div class="card-head card-head-icon">
+          <Globe :size="16" class="card-head-ico" />
+          <div>
+            <h2 class="card-title">联网搜索</h2>
+            <p class="card-desc">可选。AI 面板开启「联网」开关后，回答会检索外部实时信息并列出参考文献。</p>
+          </div>
         </div>
 
         <div class="field-group">
@@ -393,9 +524,12 @@ async function test() {
 
       <!-- 生成参数 -->
       <section class="settings-card">
-        <div class="card-head">
-          <h2 class="card-title">生成参数</h2>
-          <p class="card-desc">控制 AI 回答的随机度与长度</p>
+        <div class="card-head card-head-icon">
+          <SlidersHorizontal :size="16" class="card-head-ico" />
+          <div>
+            <h2 class="card-title">生成参数</h2>
+            <p class="card-desc">控制 AI 回答的随机度与长度（作用于主模型）</p>
+          </div>
         </div>
 
         <div class="field-group">
@@ -433,62 +567,6 @@ async function test() {
         </div>
       </section>
 
-      <!-- 备用模型（fallback） -->
-      <section class="settings-card">
-        <div class="card-head">
-          <h2 class="card-title">备用模型</h2>
-          <p class="card-desc">主模型限流（429）时自动切换，避免追问/批改中断。留空则不启用。</p>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group grow">
-            <label class="field-label" for="fb-base-url">Base URL</label>
-            <input
-              id="fb-base-url"
-              v-model="fbBaseUrl"
-              class="field-input"
-              type="text"
-              placeholder="如 https://opencode.ai/zen/v1"
-              spellcheck="false"
-            />
-          </div>
-          <div class="field-group grow">
-            <label class="field-label" for="fb-model">模型名称</label>
-            <input id="fb-model" v-model="fbModel" class="field-input" type="text" placeholder="如 deepseek-v4-flash-free" spellcheck="false" />
-          </div>
-        </div>
-
-        <div class="field-row">
-          <div class="field-group grow">
-            <label class="field-label" for="fb-api-key">API Key</label>
-            <input
-              id="fb-api-key"
-              v-model="fbApiKey"
-              class="field-input"
-              type="password"
-              placeholder="输入后保存到后端"
-              autocomplete="off"
-            />
-            <p class="field-help" v-if="fbConfigured">
-              已配置：<code class="masked">{{ fbKeyMasked }}</code>（重新输入可更换）
-            </p>
-            <p class="field-help" v-else>未配置备用模型——主模型限流时 AI 追问将不可用。</p>
-          </div>
-          <div class="field-group grow">
-            <label class="field-label" for="fb-max-tokens">最大输出 token 数</label>
-            <input
-              id="fb-max-tokens"
-              v-model.number="fbMaxTokens"
-              class="field-input"
-              type="number"
-              min="16"
-              max="8192"
-              step="16"
-            />
-          </div>
-        </div>
-      </section>
-
       <!-- 状态与操作 -->
       <div v-if="error" class="msg-error">{{ error }}</div>
       <div v-if="notice" class="msg-notice">{{ notice }}</div>
@@ -497,13 +575,16 @@ async function test() {
         <div v-if="testResult.reply" class="test-reply">{{ testResult.reply }}</div>
       </div>
 
-      <div class="actions">
-        <button class="btn btn-ghost" :disabled="testing || saving" @click="test">
-          {{ testing ? '测试中…' : '测试连接' }}
-        </button>
-        <button class="btn btn-primary" :disabled="saving" @click="save">
-          {{ saving ? '保存中…' : '保存设置' }}
-        </button>
+      <div class="actions-bar">
+        <span v-if="dirty" class="dirty-hint">有未保存的修改</span>
+        <div class="actions">
+          <button class="btn btn-ghost" :disabled="testing || saving" @click="test">
+            {{ testing ? '测试中…' : '测试连接' }}
+          </button>
+          <button class="btn btn-primary" :disabled="saving" @click="save">
+            {{ saving ? '保存中…' : '保存设置' }}
+          </button>
+        </div>
       </div>
       <p class="actions-help">保存后，课程内的「AI 追问」与应用题批改立即使用该配置。</p>
     </div>
@@ -517,24 +598,34 @@ async function test() {
 
 .settings-stack { display: flex; flex-direction: column; gap: 16px; }
 
-.default-banner {
-  display: flex; align-items: center; gap: 12px;
+/* 当前配置状态条 */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   background: var(--primary-soft);
   border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
+  padding: 12px 16px;
+  flex-wrap: wrap;
 }
-.default-icon { font-size: 20px; color: var(--primary); flex-shrink: 0; }
-.default-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
-.default-label { font-size: 11px; color: var(--text-3); }
-.default-value { font-size: 15px; font-weight: 700; color: var(--primary); }
-.default-url { font-size: 11.5px; color: var(--text-3); font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.configured-badge {
-  flex-shrink: 0; font-size: 12px; font-weight: 600;
-  padding: 3px 10px; border-radius: 999px;
-  background: var(--success-soft); color: var(--success);
+.status-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--warning) 25%, transparent);
 }
-.configured-badge.warn { background: var(--warning-soft); color: var(--warning); }
+.status-dot.ok {
+  background: var(--success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 25%, transparent);
+}
+.status-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.status-label { font-size: 11px; color: var(--text-3); }
+.status-model { font-size: 15px; font-weight: 700; color: var(--primary); }
+.status-url { font-size: 11.5px; color: var(--text-3); font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status-test { flex-shrink: 0; }
 
 .settings-card {
   background: var(--bg-card);
@@ -546,6 +637,8 @@ async function test() {
 .card-head { margin-bottom: 18px; }
 .card-title { font-size: 16px; margin: 0 0 2px; }
 .card-desc { font-size: 12.5px; color: var(--text-3); margin: 0; }
+.card-head-icon { display: flex; align-items: flex-start; gap: 10px; }
+.card-head-ico { color: var(--primary); margin-top: 2px; flex-shrink: 0; }
 
 .field-group { margin-bottom: 18px; }
 .field-group:last-child { margin-bottom: 0; }
@@ -563,7 +656,75 @@ async function test() {
 }
 .field-input:focus { outline: none; border-color: var(--primary); }
 .field-help { font-size: 12px; color: var(--text-3); margin-top: 5px; line-height: 1.6; }
+.field-help.help-warn { color: var(--warning); }
 .masked { font-family: var(--font-mono); background: var(--bg-hover); padding: 1px 6px; border-radius: 4px; }
+
+/* 卡片内分区（主模型 / 备用模型） */
+.section-block {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-bottom: 18px;
+}
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 12px;
+}
+
+/* 供应商预设下拉 */
+.preset-select {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 13.5px;
+  font-family: inherit;
+  color: var(--text-1);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.preset-select:focus { outline: none; border-color: var(--primary); }
+
+/* 备用模型折叠面板 */
+.fb-block { margin-bottom: 0; }
+.fb-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.12s, background 0.12s;
+}
+.fb-head:hover { border-color: var(--primary); background: var(--bg-hover); }
+.fb-chev { color: var(--text-3); flex-shrink: 0; }
+.fb-title { font-size: 13px; font-weight: 600; color: var(--text-1); }
+.fb-status {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fb-status.ok { color: var(--success); }
+.fb-body {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-hover) 40%, transparent);
+  padding: 14px;
+}
+.fb-desc { margin-top: 0; margin-bottom: 12px; }
+.fb-enter-active, .fb-leave-active { transition: opacity 0.15s, transform 0.15s; }
+.fb-enter-from, .fb-leave-to { opacity: 0; transform: translateY(-6px); }
 
 /* 模型选择器：输入框 + 获取按钮 + 可搜索下拉 */
 .model-picker { position: relative; }
@@ -653,18 +814,6 @@ async function test() {
 .drop-enter-active, .drop-leave-active { transition: opacity 0.12s, transform 0.12s; }
 .drop-enter-from, .drop-leave-to { opacity: 0; transform: translateY(-6px); }
 
-.preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
-.preset-btn {
-  text-align: left; padding: 10px 12px;
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-  background: var(--bg-card); cursor: pointer; transition: all 0.12s;
-  display: flex; flex-direction: column; gap: 3px;
-}
-.preset-btn:hover { border-color: var(--primary); }
-.preset-btn.active { border-color: var(--primary); background: var(--primary-soft); }
-.preset-name { font-size: 13px; font-weight: 600; color: var(--text-1); }
-.preset-hint { font-size: 11px; color: var(--text-3); line-height: 1.4; }
-
 .slider-head { display: flex; align-items: baseline; justify-content: space-between; }
 .slider-head .field-label { margin-bottom: 2px; }
 .slider-value {
@@ -681,6 +830,27 @@ async function test() {
 .msg-test.bad { color: var(--danger, #dc2626); background: color-mix(in srgb, var(--danger, #dc2626) 6%, transparent); }
 .test-reply { margin-top: 4px; color: var(--text-2); }
 
+.actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dirty-hint {
+  font-size: 12px;
+  color: var(--warning);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.dirty-hint::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warning);
+}
 .actions { display: flex; justify-content: flex-end; gap: 10px; }
 .actions-help { font-size: 12px; color: var(--text-3); text-align: right; margin: 8px 0 0; }
 .btn { font-size: 13px; padding: 7px 18px; border-radius: var(--radius-sm); cursor: pointer; border: none; }
