@@ -183,6 +183,10 @@ const pendingContext = ref('')
 const modelOpen = ref(false)
 const modelQuery = ref('')
 const modelRef = ref<HTMLElement | null>(null)
+const inputPanelRef = ref<HTMLElement | null>(null)
+// 弹层打开时的 left 偏移（px）：按按钮实际位置计算，贴住按钮且不越出面板；null 走 CSS 兜底
+const modelPopLeft = ref<number | null>(null)
+const POP_W = 300 // 与 .model-pop width 一致
 
 const filteredModels = computed(() => {
   const q = modelQuery.value.trim().toLowerCase()
@@ -234,10 +238,25 @@ function toggleModel() {
   else {
     modelOpen.value = true
     modelQuery.value = ''
+    positionModelPop()
   }
 }
 function closeModel() {
   modelOpen.value = false
+}
+/** 弹层以 .panel-input 为定位上下文：left 按按钮右缘对齐，再钳制在面板内，
+    避免按钮换行到左侧时弹层向左越界被裁、或离按钮太远。 */
+function positionModelPop() {
+  if (!modelRef.value || !inputPanelRef.value) {
+    modelPopLeft.value = null
+    return
+  }
+  const btn = modelRef.value.getBoundingClientRect()
+  const panel = inputPanelRef.value.getBoundingClientRect()
+  const rightInPanel = btn.right - panel.left
+  const innerRight = panel.width - 14 // 面板内右缘（与 padding 一致）
+  const left = Math.min(Math.max(rightInPanel - POP_W, 14), Math.max(14, innerRight - POP_W))
+  modelPopLeft.value = left
 }
 function onDocClick(e: MouseEvent) {
   if (modelRef.value && !modelRef.value.contains(e.target as Node)) closeModel()
@@ -505,7 +524,7 @@ watch(
 
       <div v-if="error" class="msg-error">{{ error }}</div>
 
-      <footer class="panel-input">
+      <footer ref="inputPanelRef" class="panel-input">
         <div class="input-row">
           <textarea
             ref="inputRef"
@@ -563,7 +582,11 @@ watch(
               <ChevronDown :size="13" class="chev" :class="{ open: modelOpen }" />
             </button>
             <Transition name="drop">
-              <div v-if="modelOpen" class="model-pop">
+              <div
+                v-if="modelOpen"
+                class="model-pop"
+                :style="modelPopLeft !== null ? { left: modelPopLeft + 'px', right: 'auto' } : undefined"
+              >
                 <div class="model-search">
                   <Search :size="13" />
                   <input v-model="modelQuery" placeholder="搜索模型…" @click.stop />
