@@ -1052,7 +1052,9 @@ watch(
 .tb-spacer { flex: 1; }
 
 /* 模型选择下拉 */
-.model-select { position: relative; flex-shrink: 0; min-width: 0; }
+/* 模型选择下拉：不加 position，让弹层（.model-pop）以 .panel-input 为定位上下文，
+   避免小窗工具条换行时弹层锚在按钮上向左越界被裁 */
+.model-select { flex-shrink: 0; min-width: 0; }
 .model-btn {
   display: inline-flex;
   align-items: center;
