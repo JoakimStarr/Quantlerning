@@ -10,7 +10,6 @@ import {
   TooltipComponent,
   LegendComponent,
   DataZoomComponent,
-  TitleComponent,
 } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import { donchianSignal, shiftPosition, strategyNav, stats, backtestArrays } from '@/utils/strategies'
@@ -24,7 +23,6 @@ use([
   TooltipComponent,
   LegendComponent,
   DataZoomComponent,
-  TitleComponent,
 ])
 
 // 唐奇安通道（真实茅台 2020-2026）：通道带 + 通道宽度 + 净值对比
@@ -119,29 +117,9 @@ const option = computed(() => {
     },
     legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', '上轨', '下轨', '买入', '卖出', '通道宽度', '策略净值', '买入持有'] },
     grid: [
-      { left: 56, right: 24, top: 48, height: '30%' },
+      { left: 56, right: 24, top: 32, height: '30%' },
       { left: 56, right: 24, top: '50%', height: '14%' },
       { left: 56, right: 24, top: '71%', height: '14%' },
-    ],
-    title: [
-      {
-        text: '① K线与通道带（元）',
-        left: 56,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-      {
-        text: '② 通道宽度 = 上轨 − 下轨（元）',
-        left: 56,
-        top: '46%',
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-      {
-        text: '③ 策略净值 vs 买入持有（起点 100）',
-        left: 56,
-        top: '67%',
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
     ],
     dataZoom: [
       {

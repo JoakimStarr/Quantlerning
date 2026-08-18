@@ -5,11 +5,11 @@ import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, ScatterChart, CandlestickChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import { sma, shiftPosition, strategyNav, stats, backtestArrays } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, ScatterChart, CandlestickChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent])
+use([CanvasRenderer, LineChart, ScatterChart, CandlestickChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
 // 策略解剖：真实行情 + 双均线信号 → 持仓映射 → 净值与回测指标（p2-l1）
 
@@ -90,29 +90,9 @@ const option = computed(() => {
       data: ['收盘价', maFast, maSlow, '买入', '卖出', '持仓', '策略净值', '买入持有'],
     },
     grid: [
-      { left: 56, right: 24, top: 60, height: '36%' },
+      { left: 56, right: 24, top: 32, height: '36%' },
       { left: 56, right: 24, top: '53%', height: '12%' },
       { left: 56, right: 24, top: '68%', height: '22%' },
-    ],
-    title: [
-      {
-        text: '① K线与买卖信号（元）',
-        left: 56,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-      {
-        text: '② 持仓状态（0/1）',
-        left: 56,
-        top: '49%',
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-      {
-        text: '③ 策略净值 vs 买入持有（起点 100）',
-        left: 56,
-        top: '64%',
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
     ],
     dataZoom: [
       {

@@ -5,7 +5,7 @@ import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, ScatterChart, CandlestickChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import {
   sma,
@@ -17,7 +17,7 @@ import {
   backtestArrays,
 } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, ScatterChart, CandlestickChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent, TitleComponent])
+use([CanvasRenderer, LineChart, ScatterChart, CandlestickChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent])
 
 // 趋势跟踪模拟器：均线交叉 / 唐奇安通道，真实茅台 2020-2026
 
@@ -94,22 +94,8 @@ const option = computed(() => {
       data: strategy.value === 'donchian' ? ['收盘价', '买入', '卖出', '策略净值', '买入持有'] : ['收盘价', `MA${effFast.value}`, `MA${slow.value}`, '买入', '卖出', '策略净值', '买入持有'],
     },
     grid: [
-      { left: 52, right: 24, top: 46, height: '40%' },
+      { left: 52, right: 24, top: 32, height: '40%' },
       { left: 52, right: 24, top: '50%', height: '30%' },
-    ],
-    title: [
-      {
-        text: strategy.value === 'donchian' ? '① K线与唐奇安通道（元）' : '① K线与均线（元）',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-      {
-        text: '② 策略净值 vs 买入持有（起点 100）',
-        left: 52,
-        top: '46%',
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
     ],
     dataZoom: [
       {
