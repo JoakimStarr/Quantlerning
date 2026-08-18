@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import ThemedChart from '@/components/common/ThemedChart.vue'
-import { C } from '@/utils/chartTheme'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, BarChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
 import { usePortfolioDaily } from '@/composables/usePortfolioDaily'
 import { covarianceMatrix, portfolioVol } from '@/utils/portfolio'
 import { navFromReturns } from '@/utils/ml'
 
-use([CanvasRenderer, LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent])
+use([CanvasRenderer, LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent])
 
 // 组合风控仪表盘：5 股真实 2024 收益组合
 // 1) 压力测试：2008 式崩盘（-50%）、2020 疫情（-30%）、2015 股灾（-40%）、2024 回撤（-20%）→ 组合损益
@@ -115,7 +115,46 @@ const stopOption = computed(() => {
   if (!r) return {}
   return {
     animation: false,
-    grid: { left: 56, right: 24, top: 36, bottom: 44 },
+    grid: { left: 56, right: 24, top: 40, bottom: 44 },
+    title: [
+      {
+        text: '组合止损净值对比（起点 100）',
+        left: 56,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
+    ],
     tooltip: { trigger: 'axis' },
     legend: { top: 0, textStyle: { fontSize: 11 } },
     xAxis: { type: 'category', data: dates.value.map((d) => d.slice(5)), axisLabel: { fontSize: 9, hideOverlap: true } },

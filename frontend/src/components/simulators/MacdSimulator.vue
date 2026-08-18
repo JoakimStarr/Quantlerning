@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import ThemedChart from '@/components/common/ThemedChart.vue'
-import { C } from '@/utils/chartTheme'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, BarChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, MarkLineComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, MarkLineComponent, TitleComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import { macd } from '@/utils/indicators'
 
-use([CanvasRenderer, LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, MarkLineComponent])
+use([CanvasRenderer, LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, MarkLineComponent, TitleComponent])
 
 // MACD 模拟器：真实行情 + 快/慢/信号线参数可调
 // DIF = EMA(fast) − EMA(slow)，DEA = DIF 的 signal 日 EMA，柱 = (DIF−DEA)×2
@@ -60,17 +60,26 @@ const option = computed(() => {
       formatter: (ps: any[]) => {
         const first = ps[0]
         const parts = [`<b>${first.name}</b>`]
-        for (const p of ps) {
-          if (p.value === '-' || p.value === undefined) continue
-          parts.push(`${p.marker}${p.seriesName}: ${typeof p.value === 'number' ? p.value : p.value}`)
+        const num = (p: any) => (Array.isArray(p.value) ? p.value[1] : p.value)
+        const main = ps.filter((p: any) => p.seriesName !== 'MACD' && num(p) !== '-' && num(p) !== undefined)
+        const hist = ps.find((p: any) => p.seriesName === 'MACD')
+        const hV = hist ? num(hist) : undefined
+        if (main.length) {
+          parts.push('价格与 MACD 线：')
+          for (const p of main) parts.push(`　${p.marker}${p.seriesName}: ${num(p)}`)
         }
+        if (hist && hV !== '-' && hV !== undefined) parts.push(`MACD 柱：　${hist.marker}${hV}`)
         return parts.join('<br/>')
       },
     },
     legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', 'DIF', 'DEA', 'MACD'] },
     grid: [
-      { left: 56, right: 24, top: 40, height: '48%' },
+      { left: 56, right: 24, top: 48, height: '48%' },
       { left: 56, right: 24, top: '68%', height: '22%' },
+    ],
+    title: [
+      { text: '① 价格 + MACD 线（元）', left: 56, top: 8, textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text } },
+      { text: '② MACD 柱（DIF − DEA）', left: 56, top: '64%', textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text } },
     ],
     xAxis: [
       { type: 'category', data: dates.value, gridIndex: 0, axisLabel: { show: false }, axisPointer: { label: { show: false } } },
@@ -80,7 +89,30 @@ const option = computed(() => {
       { type: 'value', gridIndex: 0, scale: true, axisLabel: { fontSize: 11 } },
       { type: 'value', gridIndex: 1, axisLabel: { fontSize: 10 } },
     ],
-    dataZoom: [{ type: 'inside', xAxisIndex: [0, 1], start: 0, end: 100 }],
+    dataZoom: [
+      { type: 'inside', xAxisIndex: [0, 1], start: 0, end: 100 },
+      {
+        type: 'slider',
+        xAxisIndex: [0, 1],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
+    ],
     series: [
       {
         name: '收盘价',

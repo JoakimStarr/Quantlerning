@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import ThemedChart from '@/components/common/ThemedChart.vue'
-import { C } from '@/utils/chartTheme'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import { buildFeatures, standardize, trainLogistic, logitPredict, probToPos, mlxStats, navFromReturns } from '@/utils/ml'
 import { maCrossSignal, shiftPosition } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent])
+use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent, TitleComponent])
 
 // 阶段产出：ML 策略 vs 传统策略（茅台真实数据，walk-forward）
 // ML：前 70% 训练逻辑回归 → 预测后 30% 涨跌概率 → 概率仓位
@@ -107,8 +107,47 @@ const navOption = computed(() => {
   return {
     animation: false,
     grid: { left: 56, right: 24, top: 36, bottom: 44 },
+    title: [
+      {
+        text: '测试段净值对比（起点 100）',
+        left: 52,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
     tooltip: { trigger: 'axis' },
     legend: { top: 0, textStyle: { fontSize: 11 } },
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
+    ],
     xAxis: { type: 'category', data: r.testDates.map((d) => d.slice(5)), axisLabel: { fontSize: 9, hideOverlap: true } },
     yAxis: { type: 'value', name: '净值', nameLocation: 'middle', nameGap: 40, scale: true, axisLabel: { fontSize: 10 } },
     series: [
@@ -125,8 +164,47 @@ const posOption = computed(() => {
   return {
     animation: false,
     grid: { left: 56, right: 24, top: 36, bottom: 44 },
+    title: [
+      {
+        text: 'ML 概率预测与仓位',
+        left: 52,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
     tooltip: { trigger: 'axis' },
     legend: { top: 0, textStyle: { fontSize: 11 } },
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
+    ],
     xAxis: { type: 'category', data: r.testDates.map((d) => d.slice(5)), axisLabel: { fontSize: 9, hideOverlap: true } },
     yAxis: { type: 'value', name: '仓位', nameLocation: 'middle', nameGap: 36, min: 0, max: 1, axisLabel: { fontSize: 10 } },
     series: [

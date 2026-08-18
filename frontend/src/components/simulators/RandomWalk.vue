@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import ThemedChart from '@/components/common/ThemedChart.vue'
-import { C } from '@/utils/chartTheme'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 
-use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent])
+use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent])
 
 // 几何布朗运动 vs 真实茅台 2024 净值
 // 教学点：随机游走的核心假设是「独立增量」——未来波动不可预测，但统计性质（漂移+波动）可度量
@@ -110,8 +110,47 @@ const option = computed(() => {
   return {
     animation: false,
     grid: { left: 52, right: 24, top: 36, bottom: 40 },
+    title: [
+      {
+        text: '模拟 GBM 路径 vs 真实茅台（起点 100）',
+        left: 52,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
     tooltip: { trigger: 'axis' },
     legend: { top: 0, textStyle: { fontSize: 11 } },
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
+    ],
     xAxis: { type: 'category', data: x, name: '交易日', nameLocation: 'middle', nameGap: 28, axisLabel: { fontSize: 10 } },
     yAxis: { type: 'value', name: '净值（起点=100）', nameLocation: 'middle', nameGap: 44, scale: true, axisLabel: { fontSize: 10 } },
     series,

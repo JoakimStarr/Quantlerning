@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import ThemedChart from '@/components/common/ThemedChart.vue'
-import { C } from '@/utils/chartTheme'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, ScatterChart, BarChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import { polyFit, mse } from '@/utils/ml'
 
-use([CanvasRenderer, LineChart, ScatterChart, BarChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent])
+use([CanvasRenderer, LineChart, ScatterChart, BarChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent, TitleComponent])
 
 // 过拟合演示：用真实茅台 2024 净值拟合多项式
 // 教学点：阶数越高，训练集误差越小（记忆噪声），验证集误差先降后升（偏差-方差权衡）
@@ -92,8 +92,47 @@ const fitOption = computed(() => {
   return {
     animation: false,
     grid: { left: 56, right: 24, top: 36, bottom: 44 },
+    title: [
+      {
+        text: '多项式拟合与真实净值（起点 100）',
+        left: 52,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
     tooltip: { trigger: 'item' },
     legend: { top: 0, textStyle: { fontSize: 11 } },
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
+    ],
     xAxis: { type: 'category', data: dates.map((d, i) => i === cut ? `${d}\n（验证起点）` : d), axisLabel: { fontSize: 9, hideOverlap: true, interval: 40 } },
     yAxis: { type: 'value', name: '净值', nameLocation: 'middle', nameGap: 40, axisLabel: { fontSize: 10 } },
     series: [

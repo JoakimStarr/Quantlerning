@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import ThemedChart from '@/components/common/ThemedChart.vue'
-import { C } from '@/utils/chartTheme'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import {
   maCrossSignal,
@@ -18,7 +18,7 @@ import {
   backtestArrays,
 } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent])
+use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent])
 
 // 五策略净值对比（真实茅台 2020-2026）：买入持有 / 均线 / 回归 / 动量 / 唐奇安
 const props = defineProps<{
@@ -71,6 +71,14 @@ const option = computed(() => {
   return {
     animation: true,
     grid: { left: 52, right: 24, top: 36, bottom: 44 },
+    title: [
+      {
+        text: '五策略净值对比（起点 100）',
+        left: 52,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
     tooltip: {
       trigger: 'axis',
       formatter: (ps: any[]) => {
@@ -80,6 +88,37 @@ const option = computed(() => {
       },
     },
     legend: { top: 0, textStyle: { fontSize: 11 } },
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
+    ],
     xAxis: { type: 'category', data: dates, axisLabel: { fontSize: 10, hideOverlap: true } },
     yAxis: { type: 'value', name: '净值（起点=100）', nameLocation: 'middle', nameGap: 44, scale: true, axisLabel: { fontSize: 10 } },
     series: rows.value.map((r) => ({

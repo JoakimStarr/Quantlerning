@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import ThemedChart from '@/components/common/ThemedChart.vue'
-import { C } from '@/utils/chartTheme'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, HeatmapChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, VisualMapComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, VisualMapComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import {
   maCrossSignal,
@@ -17,7 +17,7 @@ import {
   backtestArrays,
 } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, HeatmapChart, GridComponent, TooltipComponent, LegendComponent, VisualMapComponent])
+use([CanvasRenderer, LineChart, HeatmapChart, GridComponent, TooltipComponent, LegendComponent, VisualMapComponent, DataZoomComponent, TitleComponent])
 
 // 三策略相关性矩阵 + 等权组合（真实茅台 2020-2026）
 // 教学点：策略收益相关性低 → 组合后波动下降、夏普提升——分散化在策略层的体现
@@ -180,8 +180,47 @@ const navOption = computed(() => {
   return {
     animation: true,
     grid: { left: 52, right: 24, top: 36, bottom: 44 },
+    title: [
+      {
+        text: '三策略与等权组合净值（起点 100）',
+        left: 52,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
     tooltip: { trigger: 'axis' },
     legend: { top: 0, textStyle: { fontSize: 11 } },
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
+    ],
     xAxis: { type: 'category', data: dates, axisLabel: { fontSize: 10, hideOverlap: true } },
     yAxis: { type: 'value', name: '净值（起点=100）', nameLocation: 'middle', nameGap: 44, scale: true, axisLabel: { fontSize: 10 } },
     series,

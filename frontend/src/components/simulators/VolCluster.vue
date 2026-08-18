@@ -5,10 +5,10 @@ import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 
-use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
+use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent])
 
 // 真实茅台 2024：日收益柱状 + 20/60 日滚动年化波动曲线
 // 直观看到「波动聚集」——大波动扎堆，平静后接平静
@@ -44,19 +44,61 @@ const option = computed(() => {
   const { dDates, rets, vol20, vol60 } = series.value
   return {
     animation: true,
-    grid: [{ left: 52, right: 20, top: 40, height: '52%' }, { left: 52, right: 20, top: '70%', height: '22%' }],
+    grid: [
+      { left: 52, right: 20, top: 48, height: '52%' },
+      { left: 52, right: 20, top: '70%', height: '22%' },
+    ],
+    title: [
+      { text: '① 日收益（%）', left: 52, top: 8, textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text } },
+      { text: '② 滚动年化波动（%）', left: 52, top: '66%', textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text } },
+    ],
     tooltip: {
       trigger: 'axis',
       formatter: (ps: any[]) => {
         const arr = Array.isArray(ps) ? ps : [ps]
-        return arr.map((p: any) => {
-          const v = Array.isArray(p.value) ? p.value[1] : p.value
-          return `${p.seriesName}：${v == null || Number.isNaN(v) ? '—' : Number(v).toFixed(2)}`
-        }).join('<br/>')
+        const num = (p: any) => (Array.isArray(p.value) ? p.value[1] : p.value)
+        const ret = arr.find((p: any) => p.seriesName === '日收益')
+        const vols = arr.filter((p: any) => p.seriesName.endsWith('滚动波动'))
+        const parts: string[] = []
+        if (ret) {
+          const v = num(ret)
+          parts.push(`日收益：　${ret.marker}${v == null || Number.isNaN(Number(v)) ? '—' : Number(v).toFixed(2)}%`)
+        }
+        if (vols.length) {
+          parts.push('滚动年化波动：')
+          for (const p of vols) {
+            const v = num(p)
+            parts.push(`　${p.marker}${p.seriesName}: ${v == null || Number.isNaN(Number(v)) ? '—' : Number(v).toFixed(2)}%`)
+          }
+        }
+        return parts.join('<br/>')
       },
     },
     legend: { top: 0, textStyle: { fontSize: 12 } },
-    dataZoom: [{ type: 'inside', xAxisIndex: [0, 1] }],
+    dataZoom: [
+      { type: 'inside', xAxisIndex: [0, 1] },
+      {
+        type: 'slider',
+        xAxisIndex: [0, 1],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
+    ],
     xAxis: [
       { type: 'category', data: dDates, gridIndex: 0, axisLabel: { fontSize: 10, hideOverlap: true } },
       { type: 'category', data: dDates, gridIndex: 1, axisLabel: { show: false } },

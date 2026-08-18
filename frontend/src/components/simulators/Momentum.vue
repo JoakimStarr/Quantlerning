@@ -5,11 +5,11 @@ import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkAreaComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, MarkAreaComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import { momentumSignal, shiftPosition, strategyNav, stats, backtestArrays } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkAreaComponent])
+use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkAreaComponent, DataZoomComponent, TitleComponent])
 
 // 时序动量（真实茅台 2020-2026）：过去 N 日涨则持有
 const props = defineProps<{
@@ -46,19 +46,71 @@ const option = computed(() => {
     tooltip: {
       trigger: 'axis',
       formatter: (ps: any[]) => {
+        const pr = ps.find((p: any) => p.seriesName === '收盘价')
+        const mom = ps.find((p: any) => p.seriesName === '过去收益')
         const nav = ps.find((p: any) => p.seriesName === '策略净值')
         const bh = ps.find((p: any) => p.seriesName === '买入持有')
-        const pr = ps.find((p: any) => p.seriesName === '过去收益')
-        const parts = [nav ? `策略净值 ${Number(nav.value[1]).toFixed(1)}` : pr?.name ?? '']
-        if (bh) parts.push(`买入持有 ${Number(bh.value[1]).toFixed(1)}`)
-        if (pr && pr.value[1] !== '-') parts.push(`过去${lookback.value}日收益 ${pr.value[1]}%`)
+        const name = pr?.name ?? nav?.name ?? ''
+        const parts: string[] = []
+        if (name) parts.push(`<b>${name}</b>`)
+        if (pr || mom) parts.push('价格 + 持仓信号：')
+        if (pr) parts.push(`　收盘 ${pr.value[1]} 元`)
+        if (mom && mom.value[1] !== '-') parts.push(`　过去${lookback.value}日收益 ${mom.value[1]}%`)
+        if (nav || bh) parts.push('净值对比（起点 100）：')
+        if (nav) parts.push(`　策略净值 ${Number(nav.value[1]).toFixed(1)}`)
+        if (bh) parts.push(`　买入持有 ${Number(bh.value[1]).toFixed(1)}`)
         return parts.join('<br/>')
       },
     },
     legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', '策略净值', '买入持有', '过去收益'] },
     grid: [
-      { left: 52, right: 24, top: 40, height: '58%' },
+      { left: 52, right: 24, top: 44, height: '58%' },
       { left: 52, right: 24, top: '72%', height: '16%' },
+    ],
+    title: [
+      {
+        text: '① 价格 + 持仓信号（元）',
+        left: 52,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+      {
+        text: '② 策略净值 vs 买入持有（起点 100）',
+        left: 52,
+        top: '68%',
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0, 1],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0, 1],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
     ],
     xAxis: [
       { type: 'category', data: c.arr.dates, gridIndex: 0, axisLabel: { show: false }, axisPointer: { label: { show: false } } },

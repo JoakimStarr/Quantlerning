@@ -4,15 +4,15 @@
 // 交互：调动作策略（涨则买/跌则买/随机）看净值曲线差异，体会「奖励设计决定行为」
 import { computed, ref } from 'vue'
 import ThemedChart from '@/components/common/ThemedChart.vue'
-import { C } from '@/utils/chartTheme'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, BarChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import { mean, std, navFromReturns } from '@/utils/ml'
 
-use([CanvasRenderer, LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent])
+use([CanvasRenderer, LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent, TitleComponent])
 
 const props = defineProps<{
   params?: Record<string, unknown>
@@ -60,12 +60,74 @@ const option = computed(() => {
   const xs = dates.value
   return {
     animation: false,
+    axisPointer: { link: [{ xAxisIndex: 'all' }] },
     grid: [
-      { left: 52, right: 20, top: 30, height: '52%' },
-      { left: 52, right: 20, top: '68%', height: '22%' },
+      { left: 52, right: 24, top: 44, height: '52%' },
+      { left: 52, right: 24, top: '68%', height: '22%' },
     ],
-    tooltip: { trigger: 'axis' },
+    tooltip: {
+      trigger: 'axis',
+      formatter: (ps: any[]) => {
+        const nav = ps.find((p: any) => p.seriesName === '策略净值')
+        const bh = ps.find((p: any) => p.seriesName === '买入持有')
+        const pst = ps.find((p: any) => p.seriesName === '仓位（动作）')
+        const name = nav?.name ?? ''
+        const parts: string[] = []
+        if (name) parts.push(`<b>${name}</b>`)
+        if (nav || bh) parts.push('净值对比（起点 1）：')
+        if (nav) parts.push(`　策略净值 ${Number(nav.value[1]).toFixed(3)}`)
+        if (bh) parts.push(`　买入持有 ${Number(bh.value[1]).toFixed(3)}`)
+        if (pst) parts.push('仓位（动作）（0/1）：')
+        if (pst) parts.push(`　${pst.value[1] === 1 ? '满仓' : '空仓'}`)
+        return parts.join('<br/>')
+      },
+    },
     legend: { top: 0, textStyle: { fontSize: 11 } },
+    title: [
+      {
+        text: '① 策略净值 vs 买入持有（起点 1）',
+        left: 52,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+      {
+        text: '② 仓位（动作）（0/1）',
+        left: 52,
+        top: '64%',
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0, 1],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0, 1],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
+    ],
     xAxis: [
       { type: 'category', data: xs, axisLabel: { fontSize: 10, formatter: (v: string) => v.slice(5) } },
       { type: 'category', data: xs, axisLabel: { show: false } },

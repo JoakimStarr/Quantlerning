@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import ThemedChart from '@/components/common/ThemedChart.vue'
-import { C } from '@/utils/chartTheme'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, ScatterChart, BarChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
 import { usePortfolioDaily } from '@/composables/usePortfolioDaily'
 import { cointegrationTest, pairTradingSignal, spreadNav } from '@/utils/portfolio'
 import { shiftPosition } from '@/utils/strategies'
 import { mlxStats } from '@/utils/ml'
 
-use([CanvasRenderer, LineChart, ScatterChart, BarChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent])
+use([CanvasRenderer, LineChart, ScatterChart, BarChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent, TitleComponent])
 
 // 配对交易：真实 A 股对数价格回归 + 残差 ADF 协整检验 + 价差 z-score 均值回归信号
 // 真实配对：招商银行-兴业银行（ADF -3.62）、贵州茅台-泸州老窖（ADF -3.14）
@@ -61,9 +61,64 @@ const spreadOption = computed(() => {
   const shortOpen = a.zscore.map((z, i) => (i > 0 && a.sig[i] === -1 && a.sig[i - 1] !== -1 ? [i, z] : null)).filter(Boolean) as any
   return {
     animation: false,
-    grid: { left: 56, right: 24, top: 36, bottom: 44 },
-    tooltip: { trigger: 'axis' },
+    grid: { left: 56, right: 24, top: 44, bottom: 20 },
+    tooltip: {
+      trigger: 'axis',
+      formatter: (ps: any[]) => {
+        const spread = ps.find((p: any) => p.seriesName === '标准化价差')
+        const long = ps.find((p: any) => p.seriesName === '做多价差开仓')
+        const short = ps.find((p: any) => p.seriesName === '做空价差开仓')
+        const name = spread?.name ?? ''
+        const z = spread ? (Array.isArray(spread.value) ? spread.value[1] : spread.value) : null
+        const parts: string[] = []
+        if (name) parts.push(`<b>${name}</b>`)
+        if (spread) parts.push('价差 z-score：')
+        if (z !== null) parts.push(`　z-score ${z}`)
+        if (long) parts.push(`　▲ 做多价差开仓（+${entry.value}σ）`)
+        if (short) parts.push(`　▼ 做空价差开仓（-${entry.value}σ）`)
+        return parts.join('<br/>')
+      },
+    },
     legend: { top: 0, textStyle: { fontSize: 11 } },
+    title: [
+      {
+        text: '① 价差 z-score（σ）',
+        left: 56,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
+    ],
     xAxis: { type: 'category', data: a.dates.map((d) => d.slice(5)), axisLabel: { fontSize: 9, hideOverlap: true } },
     yAxis: { type: 'value', name: '价差 z-score', nameLocation: 'middle', nameGap: 40, axisLabel: { fontSize: 10 } },
     series: [
@@ -95,9 +150,63 @@ const navOption = computed(() => {
   if (!a) return {}
   return {
     animation: false,
-    grid: { left: 56, right: 24, top: 36, bottom: 44 },
-    tooltip: { trigger: 'axis' },
+    grid: { left: 56, right: 24, top: 44, bottom: 20 },
+    tooltip: {
+      trigger: 'axis',
+      formatter: (ps: any[]) => {
+        const nav = ps.find((p: any) => p.seriesName === '价差策略')
+        const bh = ps.find((p: any) => p.seriesName === '价差买入持有')
+        const name = nav?.name ?? ''
+        const nv = nav ? (Array.isArray(nav.value) ? nav.value[1] : nav.value) : null
+        const bv = bh ? (Array.isArray(bh.value) ? bh.value[1] : bh.value) : null
+        const parts: string[] = []
+        if (name) parts.push(`<b>${name}</b>`)
+        if (nav || bh) parts.push('净值对比（起点 100）：')
+        if (nv !== null) parts.push(`　价差策略 ${Number(nv).toFixed(2)}`)
+        if (bv !== null) parts.push(`　价差买入持有 ${Number(bv).toFixed(2)}`)
+        return parts.join('<br/>')
+      },
+    },
     legend: { top: 0, textStyle: { fontSize: 11 } },
+    title: [
+      {
+        text: '② 价差策略净值 vs 价差买入持有（起点 100）',
+        left: 56,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
+    ],
     xAxis: { type: 'category', data: a.dates.map((d) => d.slice(5)), axisLabel: { fontSize: 9, hideOverlap: true } },
     yAxis: { type: 'value', name: '净值', nameLocation: 'middle', nameGap: 40, scale: true, axisLabel: { fontSize: 10 } },
     series: [

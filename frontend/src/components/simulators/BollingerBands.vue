@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import ThemedChart from '@/components/common/ThemedChart.vue'
-import { C } from '@/utils/chartTheme'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkPointComponent } from 'echarts/components'
+import {
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  MarkPointComponent,
+  DataZoomComponent,
+  TitleComponent,
+} from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import { sma, rollingStd } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkPointComponent])
+use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkPointComponent, DataZoomComponent, TitleComponent])
 
 // 布林带（真实茅台 2020-2026）：中轨 + ±kσ，z-score 触轨提示
 const props = defineProps<{
@@ -60,6 +67,45 @@ const option = computed(() => {
     },
     legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', '中轨', '上轨', '下轨'] },
     grid: { left: 52, right: 24, top: 40, bottom: 44 },
+    title: [
+      {
+        text: '价格 + 布林带（元）',
+        left: 52,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
+    ],
     xAxis: { type: 'category', data: dates0, axisLabel: { fontSize: 10, hideOverlap: true } },
     yAxis: { type: 'value', scale: true, axisLabel: { fontSize: 11 } },
     series: [
