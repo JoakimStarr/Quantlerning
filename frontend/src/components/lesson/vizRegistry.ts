@@ -289,6 +289,11 @@ const registry = {
     desc: '均线交叉 / 唐奇安通道回测对比',
     comp: markRaw(defineAsyncComponent(() => import('../simulators/TrendFollow.vue'))),
   },
+  donchian_channel: {
+    title: '唐奇安通道',
+    desc: '通道带 + 通道宽度 + 净值对比（真实茅台）',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/DonchianChannel.vue'))),
+  },
   bollinger_bands: {
     title: '布林带',
     desc: '中轨 + ±kσ，触轨回归信号',
