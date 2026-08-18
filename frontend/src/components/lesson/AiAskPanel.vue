@@ -980,6 +980,7 @@ watch(
 }
 
 .panel-input {
+  position: relative; /* 模型下拉弹层的定位上下文：锚定面板右下，避免小窗换行时被裁 */
   padding: 10px 14px 12px;
   border-top: 1px solid var(--border);
   display: flex;
@@ -1077,10 +1078,11 @@ watch(
 
 .model-pop {
   position: absolute;
-  right: 0;
+  right: 14px; /* 锚定 footer 右缘（与输入框对齐），而不是按钮——小窗工具条换行时不被裁切 */
   bottom: calc(100% + 8px);
   width: 300px;
   max-width: 70vw;
+  z-index: 10;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
