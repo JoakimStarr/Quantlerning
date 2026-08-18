@@ -143,7 +143,7 @@ const table = computed(() =>
             </tr>
           </tbody>
         </table>
-        <p class="note">真实数据：QuantLab factor 回测引擎输出（benchmark 为沪深 300 虚线）。回测口径与第二章一致：不含首日、复权收益。</p>
+        <p class="note">真实数据：QuantLab factor 回测引擎输出（benchmark 为沪深 300 虚线）。回测口径与第三章一致：不含首日、复权收益。</p>
       </div>
     </template>
   </div>

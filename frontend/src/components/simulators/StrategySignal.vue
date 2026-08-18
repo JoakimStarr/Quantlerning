@@ -11,7 +11,7 @@ import { sma, shiftPosition, strategyNav, stats, backtestArrays } from '@/utils/
 
 use([CanvasRenderer, LineChart, ScatterChart, CandlestickChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
-// 策略解剖：真实行情 + 双均线信号 → 持仓映射 → 净值与回测指标（p2-l1）
+// 策略解剖：真实行情 + 双均线信号 → 持仓映射 → 净值与回测指标（p3-l1）
 
 const props = defineProps<{
   params?: Record<string, unknown>

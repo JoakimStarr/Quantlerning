@@ -259,7 +259,7 @@ const fmt = (v: number, suffix = '%') => `${(v * 100).toFixed(2)}${suffix}`
           </tbody>
         </table>
       </div>
-      <p class="note">真实锚点：贵州茅台 SH600519 2024。方法：前 {{ (trainRatio * 100).toFixed(0) }}% 训练逻辑回归（8 个技术特征，L2=0.01），后 {{ (100 - trainRatio * 100).toFixed(0) }}% 测试，信号次日生效。教学点：ML 模型在单只股票上未必跑赢简单均线——「模型有用 ≠ 策略赚钱」，这正是第五章要反复强调的。</p>
+      <p class="note">真实锚点：贵州茅台 SH600519 2024。方法：前 {{ (trainRatio * 100).toFixed(0) }}% 训练逻辑回归（8 个技术特征，L2=0.01），后 {{ (100 - trainRatio * 100).toFixed(0) }}% 测试，信号次日生效。教学点：ML 模型在单只股票上未必跑赢简单均线——「模型有用 ≠ 策略赚钱」，这正是第六章要反复强调的。</p>
     </template>
   </div>
 </template>

@@ -115,7 +115,7 @@ const best = computed(() => com.value?.best)
     <template v-else-if="com">
       <div class="result" v-if="best">
         本窗口最优 <strong>MA{{ best.f }}/{{ best.s }}</strong>，年化 {{ (best.v * 100).toFixed(1) }}% ——
-        但它只是「这 6 年数据上的局部亮点」，换个窗口可能完全不成立（p2-l7 的过拟合）。
+        但它只是「这 6 年数据上的局部亮点」，换个窗口可能完全不成立（p3-l7 的过拟合）。
       </div>
       <ThemedChart class="chart" :option="option" autoresize />
     </template>
