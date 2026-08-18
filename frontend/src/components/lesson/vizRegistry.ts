@@ -304,6 +304,16 @@ const registry = {
     desc: '营收/净利柱状 + 可切换比率指标（真实 quantlab 财务数据）',
     comp: markRaw(defineAsyncComponent(() => import('../simulators/FinancialTrends.vue'))),
   },
+  dupont_compare: {
+    title: '三公司杜邦对比',
+    desc: '净利率/周转/乘数/ROE 真实杜邦分解对比（茅台/五粮液/招行）',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/DuPontCompare.vue'))),
+  },
+  pe_band: {
+    title: 'PE 历史分位带',
+    desc: '个股 PE(TTM) 历史区间 + 均值带 + 当前分位（真实 quantlab 日线）',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/PeBand.vue'))),
+  },
   momentum: {
     title: '时序动量',
     desc: '过去 N 日涨则持有',
