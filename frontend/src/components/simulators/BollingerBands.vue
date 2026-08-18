@@ -28,7 +28,6 @@ const { data, loading, error } = useStockDaily(code, start.value, end.value)
 
 const period = ref(20)
 const k = ref(2)
-const priceStyle = ref<'line' | 'candle'>('line')
 
 const dates = computed(() => data.value?.map((d) => d.date) ?? [])
 const closes = computed(() => data.value?.map((d) => d.close) ?? [])
@@ -56,29 +55,18 @@ const option = computed(() => {
   if (!com.value) return {}
   const dates0 = dates.value
   const band = (v: (number | null)[]) => v.map((x, i) => [dates0[i], x === null ? '-' : +x.toFixed(1)])
-  const price = closes.value.map((v, i) => [dates0[i], v])
-  const priceSeries =
-    priceStyle.value === 'candle'
-      ? {
-          name: '股价',
-          type: 'candlestick' as const,
-          data: ohlc.value,
-          itemStyle: {
-            color: C.value.danger,
-            color0: C.value.success,
-            borderColor: C.value.danger,
-            borderColor0: C.value.success,
-            borderWidth: 1,
-          },
-        }
-      : {
-          name: '股价',
-          type: 'line' as const,
-          data: price,
-          smooth: true,
-          symbol: 'none',
-          lineStyle: { width: 1.5, color: C.value.primary },
-        }
+  const priceSeries = {
+    name: '股价',
+    type: 'candlestick' as const,
+    data: ohlc.value,
+    itemStyle: {
+      color: C.value.danger,
+      color0: C.value.success,
+      borderColor: C.value.danger,
+      borderColor0: C.value.success,
+      borderWidth: 1,
+    },
+  }
   return {
     animation: true,
     tooltip: {
@@ -88,13 +76,8 @@ const option = computed(() => {
         const touch = ps.find((q: any) => q.seriesName === '触下轨' || q.seriesName === '触上轨')
         if (!p && !touch) return ''
         if (!p) return `${touch.name}<br/>${touch.seriesName}`
-        let html: string
-        if (p.seriesType === 'candlestick') {
-          const [o, c, l, h] = p.value as number[]
-          html = `${p.name}<br/>开 ${o} / 收 ${c}<br/>高 ${h} / 低 ${l}`
-        } else {
-          html = `${p.name}<br/>收盘 ${p.value[1]}`
-        }
+        const [o, c, l, h] = p.value as number[]
+        let html = `${p.name}<br/>开 ${o} / 收 ${c}<br/>高 ${h} / 低 ${l}`
         if (touch) html += `<br/>${touch.seriesName}`
         return html
       },
@@ -188,13 +171,6 @@ const touchHighCount = computed(() => com.value?.touchHigh.length ?? 0)
       <ThemedChart class="chart" :option="option" autoresize />
       <div class="controls">
         <div class="control-row">
-          <span class="control-label">价格样式</span>
-          <div class="seg">
-            <button :class="{ active: priceStyle === 'line' }" @click="priceStyle = 'line'">折线</button>
-            <button :class="{ active: priceStyle === 'candle' }" @click="priceStyle = 'candle'">K线</button>
-          </div>
-        </div>
-        <div class="control-row">
           <span class="control-label">周期 N</span>
           <input v-model.number="period" type="range" min="5" max="60" step="1" class="slider" />
           <span class="control-value">{{ period }}</span>
@@ -225,8 +201,5 @@ const touchHighCount = computed(() => com.value?.touchHigh.length ?? 0)
 .control-label { width: 72px; font-size: 13px; color: var(--text-2); flex-shrink: 0; }
 .slider { flex: 1; accent-color: var(--primary); cursor: pointer; }
 .control-value { width: 56px; font-size: 13px; font-weight: 600; color: var(--primary); text-align: right; flex-shrink: 0; }
-.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-.seg button { padding: 4px 14px; font-size: 13px; background: transparent; color: var(--text-2); border: none; cursor: pointer; }
-.seg button.active { background: var(--primary); color: #fff; font-weight: 600; }
 .hint { margin-top: 10px; font-size: 12px; color: var(--text-3); line-height: 1.7; }
 </style>
