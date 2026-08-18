@@ -151,7 +151,7 @@ function askSelected() {
   window.getSelection()?.removeAllRanges()
   if (!text) return
   // 选中段落（含 LaTeX 公式）作为问题预填，AI 会结合当前小节回答
-  askPanelRef.value?.ask(`请解释我选中的这段话，讲清楚每个符号和概念的含义（公式用 LaTeX 保留）：\n${text}`)
+  askPanelRef.value?.ask(`请解释我选中的这段话，讲清楚每个符号和概念的含义：\n${text}`)
 }
 
 async function load(id: string) {
