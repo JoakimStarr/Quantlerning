@@ -37,6 +37,30 @@ export async function searchStock(q: string) {
   return data
 }
 
+// ---------- 财务指标 ----------
+export interface FinancialPeriod {
+  report_date: string
+  available_date: string
+  [field: string]: number | string
+}
+
+export interface StockFinancials {
+  code: string
+  units: Record<string, string>
+  periods: FinancialPeriod[]
+}
+
+const stockFinancialsCache = new Map<string, StockFinancials>()
+
+export async function fetchStockFinancials(code: string, limit = 24) {
+  const key = `${code.toLowerCase()}_${limit}`
+  const hit = stockFinancialsCache.get(key)
+  if (hit) return hit
+  const { data } = await api.get(`/data/stock/${code}/financials`, { params: { limit } })
+  stockFinancialsCache.set(key, data as StockFinancials)
+  return data as StockFinancials
+}
+
 // 个股日线模块级缓存：同 (code,start,end) 只请求一次
 // 缓存下沉到 API 层，让 useStockDaily / usePortfolioDaily 共享同一份数据
 const stockDailyCache = new Map<string, StockDaily[]>()

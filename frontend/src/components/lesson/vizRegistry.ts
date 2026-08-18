@@ -299,6 +299,11 @@ const registry = {
     desc: '中轨 + ±kσ，触轨回归信号',
     comp: markRaw(defineAsyncComponent(() => import('../simulators/BollingerBands.vue'))),
   },
+  financial_trends: {
+    title: '财务比率趋势',
+    desc: '营收/净利柱状 + 可切换比率指标（真实 quantlab 财务数据）',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/FinancialTrends.vue'))),
+  },
   momentum: {
     title: '时序动量',
     desc: '过去 N 日涨则持有',
