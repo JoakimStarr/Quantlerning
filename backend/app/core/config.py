@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     opencodezen_api_key: str = ""
     opencodezen_base_url: str = "https://opencode.ai/zen/v1"
     opencodezen_model: str = "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"
-    opencodezen_max_tokens: int = 1024
+    opencodezen_max_tokens: int = 4096
     opencodezen_temperature: float = 0.4
 
     # 联网搜索（Tavily API；可选，设置页可填）

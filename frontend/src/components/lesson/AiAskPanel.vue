@@ -161,6 +161,13 @@ const inputRef = ref<HTMLTextAreaElement | null>(null)
 
 const maxLen = 2000
 
+// 空状态「建议问题」：点击即发送，降低提问门槛
+const suggestions = ['用一句话概括本节核心', '结合真实数据举个例子', '讲解文中的公式', '和前面的内容有什么关系']
+function askSuggestion(q: string) {
+  input.value = q
+  void send()
+}
+
 // ---------- 深度思考 & 引导式 & 模型选择 & 联网搜索（全局偏好，localStorage 持久化）----------
 const deep = ref(localStorage.getItem('ql:aiAskDeep') === '1')
 const guided = ref(localStorage.getItem('ql:aiAskGuide') === '1')
@@ -332,7 +339,7 @@ async function send() {
   input.value = ''
   const question: ChatTurn = { role: 'user', content: text.slice(0, maxLen) }
   messages.value.push(question)
-  messages.value.push({ role: 'assistant', content: '' })
+  messages.value.push({ role: 'assistant', content: '', guided: guided.value })
 
   thinking.value = true
   const ctrl = new AbortController()
@@ -458,6 +465,9 @@ watch(
           <span class="empty-icon"><Sparkles :size="20" /></span>
           <p class="empty-title">正在学习「{{ sectionTitle }}」？</p>
           <p class="empty-sub">针对这个知识点提问，AI 导师会结合本节内容回答。<br />可开启「深度思考」深入分析，「引导式」启发思考，或「联网」检索外部实时信息。</p>
+          <div class="sugg">
+            <button v-for="q in suggestions" :key="q" class="sugg-chip" @click="askSuggestion(q)">{{ q }}</button>
+          </div>
         </div>
         <div
           v-for="(m, i) in messages"
@@ -468,21 +478,27 @@ watch(
           <span v-if="m.role === 'assistant'" class="msg-avatar"><Sparkles :size="12" /></span>
           <!-- user 保持纯文本；assistant 渲染 Markdown/LaTeX -->
           <div v-if="m.role === 'user'" class="bubble bubble-user">{{ m.content }}</div>
-          <div v-else class="bubble bubble-md">
-            <span v-if="m.content" v-html="renderBubble(m.content)"></span>
-            <span v-else-if="thinking && i === messages.length - 1" class="typing">▍</span>
-            <!-- 联网搜索来源：正文用 [1][2] 编号引用，这里列出可点击的参考文献 -->
-            <div v-if="m.sources?.length" class="refs">
-              <div class="refs-title"><Link2 :size="12" /> 参考文献</div>
-              <ul class="refs-list">
-                <li v-for="(s, si) in m.sources" :key="si" class="refs-item">
-                  <span class="refs-num">[{{ si + 1 }}]</span>
-                  <a :href="s.url" target="_blank" rel="noreferrer" class="refs-link" :title="s.title">{{ s.title }}</a>
-                  <span class="refs-host">{{ hostOf(s.url) }}</span>
-                </li>
-              </ul>
+          <div v-else class="msg-ai-body">
+            <div class="msg-meta">
+              <span class="msg-role">AI 导师</span>
+              <span v-if="m.guided" class="msg-badge guide">引导</span>
             </div>
-            <button v-if="m.content" class="copy-btn" title="复制回答" @click="copyMessage(m.content)"><Copy :size="13" /></button>
+            <div class="bubble bubble-md">
+              <span v-if="m.content" v-html="renderBubble(m.content)"></span>
+              <span v-else-if="thinking && i === messages.length - 1" class="typing">▍</span>
+              <!-- 联网搜索来源：正文用 [1][2] 编号引用，这里列出可点击的参考文献 -->
+              <div v-if="m.sources?.length" class="refs">
+                <div class="refs-title"><Link2 :size="12" /> 参考文献</div>
+                <ul class="refs-list">
+                  <li v-for="(s, si) in m.sources" :key="si" class="refs-item">
+                    <span class="refs-num">[{{ si + 1 }}]</span>
+                    <a :href="s.url" target="_blank" rel="noreferrer" class="refs-link" :title="s.title">{{ s.title }}</a>
+                    <span class="refs-host">{{ hostOf(s.url) }}</span>
+                  </li>
+                </ul>
+              </div>
+              <button v-if="m.content" class="copy-btn" title="复制回答" @click="copyMessage(m.content)"><Copy :size="13" /></button>
+            </div>
           </div>
         </div>
       </div>
@@ -606,7 +622,7 @@ watch(
   z-index: 100;
   width: 400px;
   max-width: calc(100vw - 32px);
-  height: min(70vh, 560px);
+  height: min(80vh, 640px);
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -614,14 +630,15 @@ watch(
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width 0.2s ease, height 0.2s ease;
+  transition: width 0.2s ease, height 0.2s ease, top 0.2s ease;
 }
 
-/* 放大模式：高度接近全高，宽度保持小窗不变 */
+/* 放大模式：四周对称留白（24px），避免上下不对称显得奇怪 */
 .ask-panel.expanded {
-  height: calc(100vh - 32px);
+  top: 24px;
   right: 24px;
   bottom: 24px;
+  height: calc(100vh - 48px);
 }
 
 /* 分栏模式（放大 + 屏幕≥1280px）：面板与正文分割剩余空间，宽度由拖拽/状态驱动 */
@@ -751,10 +768,43 @@ watch(
 }
 .empty-title { margin: 0; font-size: 13.5px; color: var(--text-2); font-weight: 600; }
 .empty-sub { margin: 0; font-size: 12.5px; }
+.sugg { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 12px; }
+.sugg-chip {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-2);
+  font-size: 12px;
+  padding: 5px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sugg-chip:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
 
 .msg { display: flex; align-items: flex-start; gap: 8px; }
 .msg-user { justify-content: flex-end; }
 .msg-ai { justify-content: flex-start; }
+.msg-ai-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  max-width: 86%;
+}
+.msg-meta { display: flex; align-items: center; gap: 6px; padding-left: 2px; }
+.msg-role { font-size: 11px; font-weight: 600; color: var(--text-3); }
+.msg-badge {
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.msg-badge.guide {
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+  border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent);
+}
 .msg-avatar {
   flex-shrink: 0;
   width: 26px;
@@ -787,6 +837,8 @@ watch(
   color: var(--text-1);
   border-bottom-left-radius: 3px;
 }
+/* AI 气泡宽度由 msg-ai-body 上限控制，不再自身限宽 */
+.msg-ai-body .bubble { max-width: 100%; }
 
 /* AI 回答的 Markdown 渲染：段落/代码/列表/公式 */
 .bubble-md {
@@ -1098,7 +1150,7 @@ watch(
     bottom: 78px;
     width: calc(100vw - 16px);
     max-width: calc(100vw - 16px);
-    height: min(78dvh, 560px);
+    height: min(82dvh, 640px);
   }
 }
 </style>

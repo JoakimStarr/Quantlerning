@@ -183,9 +183,12 @@ def build_messages(
         f"当前小节：{section.get('title', '')}\n\n"
         f"本节课程内容（节选）：\n{body}\n\n"
         "请围绕该知识点回答用户问题。回答要准确、清晰，可配合具体例子说明；"
-        "不要编造数字或数据；问题超出本小节但相关时可简要联系；回答尽量控制在 300 字以内。"
+        "不要编造数字或数据；问题超出本小节但相关时可简要联系；"
+        "回答一般控制在 500 字以内，复杂问题可适当展开，切勿为了凑字数反复重复。"
         "数学公式必须用行内 LaTeX 书写，用单个美元符包裹，例如 $E[X]=\\sum_i x_i P(X=x_i)$、"
         "$\\sigma=\\sqrt{\\frac{1}{n}\\sum (r_i-\\bar r)^2}$；"
+        "块级公式用双美元符 $$...$$；"
+        "公式与变量说明一律不要放进代码块（```）里，代码块只用于代码片段。"
         "禁止用 Unicode 字符写公式（如 σ²、√252、Pₜ 这类写法不要用）。"
     )
     # 跨小节：问题关键词命中其他小节时注入片段（轻量 RAG，回答「和前面 X 的关系」类问题）
@@ -194,9 +197,9 @@ def build_messages(
         system += f"\n\n与本问题相关的其他小节内容（供参考）：\n{related}"
     if deep:
         system += (
-            "\n\n本次提问开启「深度思考」模式：请先拆解问题、考虑常见的理解误区与不同解释，"
-            "再给出结构化结论；可以分点展示推理过程，回答可以更详细、更深入，"
-            "不受上述 300 字限制，但仍需条理清晰、不重复废话。"
+        "\n\n本次提问开启「深度思考」模式：请先拆解问题、考虑常见的理解误区与不同解释，"
+        "再给出结构化结论；可以分点展示推理过程，回答可以更详细、更深入，"
+        "不受上述 500 字限制，但仍需条理清晰、不重复废话。"
         )
     if guided:
         system += (
@@ -520,7 +523,7 @@ async def _stream_once(
     """用给定配置发起一次流式调用，逐段 yield 回答文本。
 
     429 限流抛 AIRateLimitError（供上层切换备用模型）；其他非 200 抛 AIProviderError。
-    deep=True 时 max_tokens 翻倍（深度思考需要更多输出空间），上限 4096。
+    deep=True 时 max_tokens 翻倍（深度思考需要更多输出空间），上限 8192。
     """
     if not cfg.get("api_key"):
         raise AINotConfiguredError(
@@ -532,9 +535,9 @@ async def _stream_once(
         "Authorization": f"Bearer {cfg['api_key']}",
         "Content-Type": "application/json",
     }
-    max_tokens = int(cfg.get("max_tokens") or 1024)
+    max_tokens = int(cfg.get("max_tokens") or 4096)
     if deep:
-        max_tokens = min(max_tokens * 2, 4096)
+        max_tokens = min(max_tokens * 2, 8192)
     payload = {
         "model": cfg["model"],
         "messages": messages,

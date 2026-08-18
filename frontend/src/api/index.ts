@@ -247,6 +247,8 @@ export interface ChatTurn {
   content: string
   /** 仅 assistant 消息：联网搜索的来源清单（渲染为回答下方「参考文献」） */
   sources?: ChatSource[]
+  /** 仅 assistant 消息：该回答是否以「引导式」模式生成（气泡显示「引导」徽标） */
+  guided?: boolean
 }
 
 /**

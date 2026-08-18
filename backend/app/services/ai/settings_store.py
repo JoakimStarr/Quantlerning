@@ -73,9 +73,9 @@ def _load() -> dict:
 def _normalize(cfg: dict) -> dict:
     """类型安全归一化（max_tokens / temperature 钳制）。"""
     try:
-        cfg["max_tokens"] = int(cfg["max_tokens"] or 1024)
+        cfg["max_tokens"] = int(cfg["max_tokens"] or 4096)
     except (TypeError, ValueError):
-        cfg["max_tokens"] = 1024
+        cfg["max_tokens"] = 4096
     try:
         cfg["temperature"] = float(cfg["temperature"] if cfg.get("temperature") is not None else 0.4)
     except (TypeError, ValueError):
@@ -112,9 +112,9 @@ def get_fallback_config() -> dict | None:
     if not fb.get("api_key"):
         fb["api_key"] = main.get("api_key") or ""
     try:
-        fb["max_tokens"] = int(fb.get("max_tokens") or main.get("max_tokens") or 1024)
+        fb["max_tokens"] = int(fb.get("max_tokens") or main.get("max_tokens") or 4096)
     except (TypeError, ValueError):
-        fb["max_tokens"] = 1024
+        fb["max_tokens"] = 4096
     return fb
 
 
