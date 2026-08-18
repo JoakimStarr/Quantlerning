@@ -314,6 +314,21 @@ const registry = {
     desc: '个股 PE(TTM) 历史区间 + 均值带 + 当前分位（真实 quantlab 日线）',
     comp: markRaw(defineAsyncComponent(() => import('../simulators/PeBand.vue'))),
   },
+  profit_cash_compare: {
+    title: '利润 vs 现金流对比',
+    desc: '净利润与经营现金流逐年柱状对比 + 净现比（真实 quantlab 财务数据）',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/ProfitCashCompare.vue'))),
+  },
+  moat_compare: {
+    title: '护城河宽窄对比',
+    desc: '两家公司 ROE/毛利率十年双线对比（真实 quantlab 财务数据）',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/MoatCompare.vue'))),
+  },
+  dcf_components: {
+    title: 'DCF 价值构成',
+    desc: '显式期现值 vs 终值现值占比（教学示意，可调参数）',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/DcfComponents.vue'))),
+  },
   momentum: {
     title: '时序动量',
     desc: '过去 N 日涨则持有',
