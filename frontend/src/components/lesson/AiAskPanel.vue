@@ -620,7 +620,7 @@ watch(
   right: 24px;
   bottom: 88px;
   z-index: 100;
-  width: 460px;
+  width: 400px;
   max-width: calc(100vw - 32px);
   height: min(82vh, 680px);
   background: var(--bg-card);
