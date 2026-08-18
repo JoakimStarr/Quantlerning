@@ -5,11 +5,27 @@ import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkPointComponent } from 'echarts/components'
+import {
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  MarkPointComponent,
+  DataZoomComponent,
+  TitleComponent,
+} from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import { donchianSignal, shiftPosition, strategyNav, stats, backtestArrays } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkPointComponent])
+use([
+  CanvasRenderer,
+  LineChart,
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  MarkPointComponent,
+  DataZoomComponent,
+  TitleComponent,
+])
 
 // 唐奇安通道（真实茅台 2020-2026）：通道带 + 通道宽度 + 净值对比
 const props = defineProps<{
@@ -92,21 +108,74 @@ const option = computed(() => {
         const bh = ps.find((p: any) => p.seriesName === '买入持有')
         const name = priceS?.name ?? nav?.name ?? ''
         const parts: string[] = []
-        if (name) parts.push(name)
-        if (priceS) parts.push(`收盘 ${priceS.value[1]}`)
-        if (up && up.value[1] !== '-') parts.push(`上轨 ${up.value[1]}`)
-        if (lo && lo.value[1] !== '-') parts.push(`下轨 ${lo.value[1]}`)
-        if (w) parts.push(`通道宽度 ${w.value[1]}`)
-        if (nav) parts.push(`策略净值 ${nav.value[1]}`)
-        if (bh) parts.push(`买入持有 ${bh.value[1]}`)
+        if (name) parts.push(`<b>${name}</b>`)
+        if (priceS) parts.push('价格与通道带：')
+        if (priceS) parts.push(`　收盘 ${priceS.value[1]} 元`)
+        if (up && up.value[1] !== '-') parts.push(`　上轨 ${up.value[1]} 元（突破买入）`)
+        if (lo && lo.value[1] !== '-') parts.push(`　下轨 ${lo.value[1]} 元（跌破离场）`)
+        if (w) parts.push(`通道宽度：${w.value[1]} 元（上轨 − 下轨，收窄=蓄势）`)
+        if (nav || bh) parts.push('净值对比（起点 100）：')
+        if (nav) parts.push(`　策略净值 ${nav.value[1]}`)
+        if (bh) parts.push(`　买入持有 ${bh.value[1]}`)
         return parts.join('<br/>')
       },
     },
     legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', '上轨', '下轨', '通道宽度', '策略净值', '买入持有'] },
     grid: [
-      { left: 52, right: 24, top: 36, height: '34%' },
-      { left: 52, right: 24, top: '52%', height: '16%' },
-      { left: 52, right: 24, top: '76%', height: '18%' },
+      { left: 56, right: 24, top: 48, height: '30%' },
+      { left: 56, right: 24, top: '50%', height: '14%' },
+      { left: 56, right: 24, top: '71%', height: '14%' },
+    ],
+    title: [
+      {
+        text: '① 价格与通道带（元）',
+        left: 56,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+      {
+        text: '② 通道宽度 = 上轨 − 下轨（元）',
+        left: 56,
+        top: '46%',
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+      {
+        text: '③ 策略净值 vs 买入持有（起点 100）',
+        left: 56,
+        top: '67%',
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0, 1, 2],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0, 1, 2],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
     ],
     xAxis: [
       { type: 'category', data: dates, gridIndex: 0, axisLabel: { show: false }, axisPointer: { label: { show: false } } },
@@ -234,9 +303,9 @@ const option = computed(() => {
           <span class="control-value">{{ donM }}</span>
         </div>
         <p class="hint">
-          上图：价格突破上轨（绿虚线）标「买」、跌破下轨（红虚线）标「卖」，通道带是过去 N/M 日的波动范围；
-          中图：通道宽度 = 上轨 − 下轨，收窄意味着波动压缩、蓄势待发；下图：策略净值（橙）对比买入持有（灰虚线）。
-          N/M 越大通道越宽、交易越少也越「迟钝」。
+          三个面板时间轴联动，可用鼠标滚轮缩放、拖动底部时间轴选择区间放大看细节。
+          ① 价格 + 通道带（绿虚线上轨/红虚线下轨）：价格走出通道触发「买/卖」；② 通道宽度 = 上轨 − 下轨，收窄意味着波动压缩、蓄势待发；
+          ③ 策略净值（橙）对比买入持有（灰虚线），净值起点均为 100。N/M 越大通道越宽、交易越少也越「迟钝」。
         </p>
       </div>
     </template>
@@ -245,8 +314,8 @@ const option = computed(() => {
 
 <style scoped>
 .dc { padding: 16px; }
-.status { height: 460px; display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 14px; }
-.chart { height: 470px; }
+.status { height: 470px; display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 14px; }
+.chart { height: 490px; }
 .result { display: flex; gap: 22px; margin-bottom: 12px; padding: 12px 16px; background: var(--primary-soft); border-radius: var(--radius-sm); flex-wrap: wrap; }
 .result-item { display: flex; flex-direction: column; gap: 2px; }
 .result-label { font-size: 12px; color: var(--text-3); }

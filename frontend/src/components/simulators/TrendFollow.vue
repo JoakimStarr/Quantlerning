@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import ThemedChart from '@/components/common/ThemedChart.vue'
-import { C } from '@/utils/chartTheme'
+import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkPointComponent, MarkLineComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent, LegendComponent, MarkPointComponent, MarkLineComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import {
   sma,
@@ -17,7 +17,7 @@ import {
   backtestArrays,
 } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkPointComponent, MarkLineComponent])
+use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkPointComponent, MarkLineComponent, DataZoomComponent, TitleComponent])
 
 // 趋势跟踪模拟器：均线交叉 / 唐奇安通道，真实茅台 2020-2026
 
@@ -72,12 +72,21 @@ const option = computed(() => {
     tooltip: {
       trigger: 'axis',
       formatter: (ps: any[]) => {
+        const price = ps.find((p: any) => p.seriesName === '收盘价')
+        const mas = ps.filter((p: any) => p.seriesName?.startsWith('MA'))
         const nav = ps.find((p: any) => p.seriesName === '策略净值')
         const bh = ps.find((p: any) => p.seriesName === '买入持有')
-        const price = ps.find((p: any) => p.seriesName === '收盘价')
-        const parts = [price ? `${price.name}<br/>收盘 ${price.value[1]}` : nav?.name ?? '']
-        if (nav) parts.push(`策略净值 ${Number(nav.value[1]).toFixed(1)}`)
-        if (bh) parts.push(`买入持有 ${Number(bh.value[1]).toFixed(1)}`)
+        const name = price?.name ?? nav?.name ?? ''
+        const parts: string[] = []
+        if (name) parts.push(`<b>${name}</b>`)
+        if (price) {
+          parts.push('价格 + 均线（元）：')
+          parts.push(`　收盘 ${price.value[1]}`)
+          for (const m of mas) if (m.value[1] !== '-') parts.push(`　${m.seriesName} ${m.value[1]}`)
+        }
+        if (nav || bh) parts.push('净值对比（起点 100）：')
+        if (nav) parts.push(`　策略净值 ${Number(nav.value[1]).toFixed(1)}`)
+        if (bh) parts.push(`　买入持有 ${Number(bh.value[1]).toFixed(1)}`)
         return parts.join('<br/>')
       },
     },
@@ -87,8 +96,53 @@ const option = computed(() => {
       data: strategy.value === 'donchian' ? ['收盘价', '策略净值', '买入持有'] : ['收盘价', `MA${effFast.value}`, `MA${slow.value}`, '策略净值', '买入持有'],
     },
     grid: [
-      { left: 52, right: 24, top: 40, height: '46%' },
-      { left: 52, right: 24, top: '58%', height: '30%' },
+      { left: 52, right: 24, top: 46, height: '40%' },
+      { left: 52, right: 24, top: '50%', height: '30%' },
+    ],
+    title: [
+      {
+        text: strategy.value === 'donchian' ? '① 价格 + 唐奇安通道（元）' : '① 价格 + 均线（元）',
+        left: 52,
+        top: 8,
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+      {
+        text: '② 策略净值 vs 买入持有（起点 100）',
+        left: 52,
+        top: '46%',
+        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
+      },
+    ],
+    dataZoom: [
+      {
+        type: 'inside',
+        xAxisIndex: [0, 1],
+        start: 0,
+        end: 100,
+        zoomOnMouseWheel: true,
+        moveOnMouseMove: true,
+      },
+      {
+        type: 'slider',
+        xAxisIndex: [0, 1],
+        start: 0,
+        end: 100,
+        bottom: 2,
+        height: 16,
+        borderColor: C.value.grid,
+        backgroundColor: 'transparent',
+        fillerColor: withAlpha(C.value.primary, 0.15),
+        handleStyle: { color: C.value.primary },
+        textStyle: { color: C.value.text, fontSize: 10 },
+        dataBackground: {
+          lineStyle: { color: C.value.slate, opacity: 0.5 },
+          areaStyle: { color: withAlpha(C.value.slate, 0.1) },
+        },
+        selectedDataBackground: {
+          lineStyle: { color: C.value.primary, opacity: 0.6 },
+          areaStyle: { color: withAlpha(C.value.primary, 0.12) },
+        },
+      },
     ],
     xAxis: [
       { type: 'category', data: c.dates, gridIndex: 0, axisLabel: { show: false }, axisPointer: { label: { show: false } } },
@@ -212,7 +266,7 @@ const option = computed(() => {
             <input v-model.number="donM" type="range" min="5" max="40" step="1" class="slider" />
             <span class="control-value">{{ donM }}</span>
           </div>
-          <p class="hint">突破过去 N 日最高买入，跌破过去 M 日最低离场。参数越大越「迟钝」，交易越少。</p>
+          <p class="hint">突破过去 N 日最高买入，跌破过去 M 日最低离场。参数越大越「迟钝」，交易越少。两面板时间轴联动，可滚轮缩放、拖动底部时间轴放大看细节。</p>
         </template>
         <template v-else>
           <div class="control-row">
@@ -225,7 +279,7 @@ const option = computed(() => {
             <input v-model.number="slow" type="range" min="10" max="250" step="1" class="slider" />
             <span class="control-value">{{ slow }}</span>
           </div>
-          <p class="hint">买入持有（灰虚线）波动大；策略（橙）靠「少在场」控制回撤。参数越短越灵敏。</p>
+          <p class="hint">买入持有（灰虚线）波动大；策略（橙）靠「少在场」控制回撤。参数越短越灵敏。两面板时间轴联动，可滚轮缩放、拖动底部时间轴放大看细节。</p>
         </template>
       </div>
     </template>
@@ -234,8 +288,8 @@ const option = computed(() => {
 
 <style scoped>
 .tf { padding: 16px; }
-.status { height: 420px; display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 14px; }
-.chart { height: 430px; }
+.status { height: 480px; display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 14px; }
+.chart { height: 480px; }
 .result { display: flex; gap: 22px; margin-bottom: 12px; padding: 12px 16px; background: var(--primary-soft); border-radius: var(--radius-sm); flex-wrap: wrap; }
 .result-item { display: flex; flex-direction: column; gap: 2px; }
 .result-label { font-size: 12px; color: var(--text-3); }
