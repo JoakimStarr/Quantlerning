@@ -13,12 +13,13 @@ Quantlerning 是一个渐进式量化学习网站——「可视化动态的一�
 ## 常用命令
 
 ```bash
-# 启动前后端（推荐）
+# 启动前后端（推荐）：默认静默后台启动，不占用终端，日志在 /tmp/quantlerning/
 ./start.sh
 
-# 后台稳定重启（直接 ./start.sh & 会让 vite 被进程组清理杀掉，务必用 setsid 脱离会话）
-setsid nohup ./start.sh > /tmp/quantlerning-start.log 2>&1 < /dev/null &
-# 停止：kill 掉 start.sh/uvicorn(8100)/vite(5173) 对应 PID，勿动 QuantLab(8000/3000)
+# 其他参数：
+./start.sh -f          # 前台启动，占用终端，Ctrl+C 停止
+./start.sh --stop      # 停止后台运行的后端/前端
+./start.sh --status    # 查看运行状态
 
 # 或分别启动
 cd backend && ../.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8100 --reload
