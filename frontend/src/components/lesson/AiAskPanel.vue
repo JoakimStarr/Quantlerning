@@ -184,8 +184,8 @@ const modelOpen = ref(false)
 const modelQuery = ref('')
 const modelRef = ref<HTMLElement | null>(null)
 const inputPanelRef = ref<HTMLElement | null>(null)
-// 弹层打开时的 left 偏移（px）：按按钮实际位置计算，贴住按钮且不越出面板；null 走 CSS 兜底
-const modelPopLeft = ref<number | null>(null)
+// 弹层打开时的对齐（相对按钮）：left 偏移让弹层贴住按钮且不越出面板；null 走 CSS 兜底
+const modelPopAlign = ref<{ left: number } | null>(null)
 const POP_W = 300 // 与 .model-pop width 一致
 
 const filteredModels = computed(() => {
@@ -244,19 +244,21 @@ function toggleModel() {
 function closeModel() {
   modelOpen.value = false
 }
-/** 弹层以 .panel-input 为定位上下文：left 按按钮右缘对齐，再钳制在面板内，
-    避免按钮换行到左侧时弹层向左越界被裁、或离按钮太远。 */
+/** 弹层以按钮（.model-select）为定位上下文：垂直贴住按钮上方，
+    水平用 left 偏移让弹层右缘对齐按钮右缘，再钳制在面板内——避免换行到左侧时被裁。 */
 function positionModelPop() {
   if (!modelRef.value || !inputPanelRef.value) {
-    modelPopLeft.value = null
+    modelPopAlign.value = null
     return
   }
   const btn = modelRef.value.getBoundingClientRect()
   const panel = inputPanelRef.value.getBoundingClientRect()
+  const leftInPanel = btn.left - panel.left
   const rightInPanel = btn.right - panel.left
   const innerRight = panel.width - 14 // 面板内右缘（与 padding 一致）
-  const left = Math.min(Math.max(rightInPanel - POP_W, 14), Math.max(14, innerRight - POP_W))
-  modelPopLeft.value = left
+  // 期望弹层在面板内的 left：默认让右缘贴按钮右缘，同时钳在 [14, 面板右缘-300]
+  const desiredPanelLeft = Math.min(Math.max(rightInPanel - POP_W, 14), Math.max(14, innerRight - POP_W))
+  modelPopAlign.value = { left: desiredPanelLeft - leftInPanel }
 }
 function onDocClick(e: MouseEvent) {
   if (modelRef.value && !modelRef.value.contains(e.target as Node)) closeModel()
@@ -585,7 +587,7 @@ watch(
               <div
                 v-if="modelOpen"
                 class="model-pop"
-                :style="modelPopLeft !== null ? { left: modelPopLeft + 'px', right: 'auto' } : undefined"
+                :style="modelPopAlign ? { left: modelPopAlign.left + 'px', right: 'auto' } : undefined"
               >
                 <div class="model-search">
                   <Search :size="13" />
@@ -1003,7 +1005,7 @@ watch(
 }
 
 .panel-input {
-  position: relative; /* 模型下拉弹层的定位上下文：锚定面板右下，避免小窗换行时被裁 */
+  position: relative;
   padding: 10px 14px 12px;
   border-top: 1px solid var(--border);
   display: flex;
@@ -1075,9 +1077,8 @@ watch(
 .tb-spacer { flex: 1; }
 
 /* 模型选择下拉 */
-/* 模型选择下拉：不加 position，让弹层（.model-pop）以 .panel-input 为定位上下文，
-   避免小窗工具条换行时弹层锚在按钮上向左越界被裁 */
-.model-select { flex-shrink: 0; min-width: 0; }
+/* 模型选择下拉：以按钮为定位上下文（弹层垂直贴住按钮上方、水平由 JS 对齐） */
+.model-select { position: relative; flex-shrink: 0; min-width: 0; }
 .model-btn {
   display: inline-flex;
   align-items: center;
@@ -1103,7 +1104,7 @@ watch(
 
 .model-pop {
   position: absolute;
-  right: 14px; /* 锚定 footer 右缘（与输入框对齐），而不是按钮——小窗工具条换行时不被裁切 */
+  right: 0; /* 兜底：贴按钮右缘；实际 left 由 JS 按面板内钳制计算 */
   bottom: calc(100% + 8px);
   width: 300px;
   max-width: 70vw;
@@ -1174,15 +1175,30 @@ watch(
 .drop-enter-active, .drop-leave-active { transition: opacity 0.12s, transform 0.12s; }
 .drop-enter-from, .drop-leave-to { opacity: 0; transform: translateY(6px); }
 
-/* 移动端适配 */
+/* 移动端适配：全屏聊天体验（无圆角无边框，盖住整个视口） */
 @media (max-width: 900px) {
-  .ask-fab { right: 14px; bottom: 14px; }
-  .ask-panel {
-    right: 8px;
-    bottom: 78px;
-    width: calc(100vw - 16px);
-    max-width: calc(100vw - 16px);
-    height: min(82dvh, 680px);
+  .ask-fab { right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); }
+  /* 面板打开时盖住 FAB，避免右下角两个悬浮物 */
+  .ask-fab.active { display: none; }
+
+  .ask-panel,
+  .ask-panel.expanded,
+  .ask-panel.split {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    right: auto;
+    bottom: auto;
+    border: none;
+    border-radius: 0;
   }
+  /* 全屏下「放大」按钮无意义，隐藏 */
+  .panel-expand { display: none; }
+  /* 刘海/底部安全区 */
+  .panel-head { padding-top: calc(11px + env(safe-area-inset-top)); }
+  .panel-input { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .msg-list { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
 }
 </style>
