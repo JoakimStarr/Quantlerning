@@ -111,7 +111,7 @@ const option = computed(() => {
       {
         type: 'inside',
         xAxisIndex: [0],
-        start: 0,
+        start: 69.8,
         end: 100,
         zoomOnMouseWheel: true,
         moveOnMouseMove: true,
@@ -119,7 +119,7 @@ const option = computed(() => {
       {
         type: 'slider',
         xAxisIndex: [0],
-        start: 0,
+        start: 69.8,
         end: 100,
         bottom: 2,
         height: 16,
