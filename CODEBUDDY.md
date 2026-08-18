@@ -70,7 +70,7 @@ curl http://localhost:8100/api/v1/health
 
 ### 内容管线（重点理解）
 
-**课程元数据** `backend/app/services/content/courses.py`：定义 COURSES（phase 0-6，每课 id/title/concepts）。Phase 0 显示为「前言」，Phase 1 为「第一章」等。
+**课程元数据** `backend/app/services/content/courses.py`：定义 COURSES（phase 0-7，每课 id/title/concepts）。Phase 0 显示为「前言」，Phase 1 为「第一章」等。
 
 **课程内容源**：内容以 **Markdown 文件**存放在 `backend/app/content/phase{0,1,...}/`，每课一个 `.md`。格式：
 
@@ -226,6 +226,7 @@ python scripts/check_content.py p5-l3    # 指定课
 | `GET /api/v1/data/search?q=` | 个股搜索（代码/名称，如 600519/茅台） |
 | `GET /api/v1/data/stock/{code}/daily` | 个股日线（code 大小写不敏感，如 sh600519；前端有模块级缓存） |
 | `GET /api/v1/data/stock/{code}/valuation` | 个股估值序列（PE/PB 等） |
+| `GET /api/v1/data/stock/{code}/financials` | 个股财务指标（financial_indicator 长表转宽表，按报告期倒序，含 available_date 披露日防前视；17 字段） |
 | `GET /api/v1/data/index/{code}/daily` | 指数/ETF 日线行情 |
 | `GET /api/v1/data/indices` | 指数元数据清单 |
 | `GET /api/v1/data/macro/indicators` | 宏观指标列表 |
@@ -250,15 +251,26 @@ python scripts/check_content.py p5-l3    # 指定课
 
 ## 里程碑
 
-> 实际进度（2026-08 验证）：内容分布 phase0=6 / phase1=12 / phase2=9 / phase3=7 / phase4=7 / phase5=8 / phase6=6 课（共 55 课）；simulators 目录 74 个组件全部注册实现，vizRegistry 全量激活。
+> 实际进度（2026-08-18 验证）：内容分布 phase0=6 / phase1=12 / **phase2=8** / phase3=9 / phase4=7 / phase5=7 / phase6=8 / phase7=6 课（共 63 课）；simulators 目录 75 个组件全部注册实现，vizRegistry 全量激活。
 
 - M0 ✅ 骨架：前后端、课程地图、内容填充（前言+第一章）
 - M1 ✅ 交互组件批量实现（sharpe/mdd/macd/rsi/capm 等）
-- M2 ✅ 第二章回测内容与可视化（9 课：前言 + 三大策略 + 回测 + 评估 + 成本 + 产出）
-- M3 ✅ 第三章因子内容与可视化（7 课 + ic_distribution / factor_ic / layer_returns / industry_pe / factor_backtest_dashboard）
-- M4 ✅ 第四章衍生品内容与可视化（7 课 + random_walk / bs_price_slider / binomial_tree / monte_carlo_pricing / var_simulator）
-- M5 ✅ 第五章 ML 内容与可视化（8 课 + label_design / overfit_demo / feature_importance / ml_backtest，复用 gradient_field 讲梯度下降）
-- M6 ✅ 第六章组合优化与实盘（6 课 + 5 模拟器：frontier / risk_parity / black_litterman / pair_trading / portfolio_risk）
+- M2 ✅ 第三章回测内容与可视化（9 课：前言 + 三大策略 + 回测 + 评估 + 成本 + 产出）
+- M3 ✅ 第四章因子内容与可视化（7 课 + ic_distribution / factor_ic / layer_returns / industry_pe / factor_backtest_dashboard）
+- M4 ✅ 第五章衍生品内容与可视化（7 课 + random_walk / bs_price_slider / binomial_tree / monte_carlo_pricing / var_simulator）
+- M5 ✅ 第六章 ML 内容与可视化（8 课 + label_design / overfit_demo / feature_importance / ml_backtest，复用 gradient_field 讲梯度下降）
+- M6 ✅ 第七章组合优化与实盘（6 课 + 5 模拟器：frontier / risk_parity / black_litterman / pair_trading / portfolio_risk）
+- M7 ✅ **新第二章「基本面分析」**（2026-08-18 插入，8 课：报表/杜邦/现金流质量/DCF/相对估值/护城河/阶段产出 + financial_trends 真实财务模拟器；原第二~六章顺延为第三~七章）
+
+### 第二章真实锚点（财务指标 + 三公司对比，quantlab financial_indicator 表）
+
+- **接口**：`GET /api/v1/data/stock/{code}/financials`（长表转宽表，含 report_date / available_date 披露日防前视；17 个字段：revenue/netprofit/netprofit_deduct/roe/roa/gross_margin/net_margin/ocf/ocf_to_np/eps/bvps/debt_ratio/current_ratio/quick_ratio/equity_multiplier/netprofit_yoy/revenue_yoy）
+- **2024 年报**（本章主力对比年）：茅台 营收 1741 亿/净利 862 亿（+15.4%）/ROE 36.0%/毛利率 91.9%/净利率 52.3%/负债率 19.0%/净现比 1.07；五粮液 892 亿/319 亿/ROE 23.4%/毛利率 77.1%/净利率 37.2%/负债率 27.5%；招商银行 3375 亿/1484 亿/ROE 14.5%/毛利率 53.0%/净利率 44.3%/负债率 89.8%
+- **杜邦 2024**：茅台 ROE 36.0% = 净利率 52.3% × 周转 0.54 × 杠杆 1.27；五粮液 23.4% = 37.2% × 0.47 × 1.35；招行 14.5% = 44.3% × 0.03 × 11.76（跨行业看模式：银行高杠杆是商业模式）
+- **净现比**（茅台年报）：2021 1.22 / 2022 0.59 / 2023 0.89 / 2024 1.07 / 2025 0.75——单年波动是白酒打款节奏，连续多年 <1 才是警讯
+- **扣非净利**：茅台扣非≈净利（差 <1 亿），利润无非经常性损益撑门面
+- **相对估值**（2026-08-10）：茅台 PE(TTM) 20.4 / PB 6.2；五粮液 PE 23.5 / PB 2.3——PE 便宜 + PB 贵 = 高 ROE 已被定价，是教学点
+- 教学定位：DCF/DDM/杜邦示意输入对齐茅台量级但明确标注「教学示意」；财务报表数字一律真实（financial_indicator 表），不编造
 
 ### 第四章真实锚点（模型 + 真实数据）
 
