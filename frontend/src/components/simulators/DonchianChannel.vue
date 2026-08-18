@@ -4,12 +4,11 @@ import ThemedChart from '@/components/common/ThemedChart.vue'
 import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { LineChart } from 'echarts/charts'
+import { LineChart, ScatterChart, CandlestickChart } from 'echarts/charts'
 import {
   GridComponent,
   TooltipComponent,
   LegendComponent,
-  MarkPointComponent,
   DataZoomComponent,
   TitleComponent,
 } from 'echarts/components'
@@ -19,10 +18,11 @@ import { donchianSignal, shiftPosition, strategyNav, stats, backtestArrays } fro
 use([
   CanvasRenderer,
   LineChart,
+  ScatterChart,
+  CandlestickChart,
   GridComponent,
   TooltipComponent,
   LegendComponent,
-  MarkPointComponent,
   DataZoomComponent,
   TitleComponent,
 ])
@@ -88,12 +88,9 @@ const option = computed(() => {
   if (!com.value) return {}
   const c = com.value
   const dates = c.arr.dates
-  const price = c.arr.closes.map((v, i) => [dates[i], v])
   const band = (v: (number | null)[]) => v.map((x, i) => [dates[i], x === null ? '-' : +x.toFixed(1)])
   // 通道填充：下轨系列用「下轨−上轨」堆叠在「上轨」之上，填出 [上轨, 下轨] 区间
   const fill = c.lower.map((v, i) => (v === null || c.upper[i] === null ? '-' : +(v - c.upper[i]!).toFixed(1)))
-  const buyp = c.buyIdx.map((i) => ({ coord: [dates[i], c.arr.closes[i]], value: '买', itemStyle: { color: C.value.success } }))
-  const sellp = c.sellIdx.map((i) => ({ coord: [dates[i], c.arr.closes[i]], value: '卖', itemStyle: { color: C.value.danger } }))
   return {
     animation: true,
     axisPointer: { link: [{ xAxisIndex: 'all' }] },
@@ -109,7 +106,7 @@ const option = computed(() => {
         const name = priceS?.name ?? nav?.name ?? ''
         const parts: string[] = []
         if (name) parts.push(`<b>${name}</b>`)
-        if (priceS) parts.push('价格与通道带：')
+        if (priceS) parts.push('K线与通道带：')
         if (priceS) parts.push(`　收盘 ${priceS.value[1]} 元`)
         if (up && up.value[1] !== '-') parts.push(`　上轨 ${up.value[1]} 元（突破买入）`)
         if (lo && lo.value[1] !== '-') parts.push(`　下轨 ${lo.value[1]} 元（跌破离场）`)
@@ -120,7 +117,7 @@ const option = computed(() => {
         return parts.join('<br/>')
       },
     },
-    legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', '上轨', '下轨', '通道宽度', '策略净值', '买入持有'] },
+    legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', '上轨', '下轨', '买入', '卖出', '通道宽度', '策略净值', '买入持有'] },
     grid: [
       { left: 56, right: 24, top: 48, height: '30%' },
       { left: 56, right: 24, top: '50%', height: '14%' },
@@ -128,7 +125,7 @@ const option = computed(() => {
     ],
     title: [
       {
-        text: '① 价格与通道带（元）',
+        text: '① K线与通道带（元）',
         left: 56,
         top: 8,
         textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
@@ -150,7 +147,7 @@ const option = computed(() => {
       {
         type: 'inside',
         xAxisIndex: [0, 1, 2],
-        start: 0,
+        start: 69.8,
         end: 100,
         zoomOnMouseWheel: true,
         moveOnMouseMove: true,
@@ -158,7 +155,7 @@ const option = computed(() => {
       {
         type: 'slider',
         xAxisIndex: [0, 1, 2],
-        start: 0,
+        start: 69.8,
         end: 100,
         bottom: 2,
         height: 16,
@@ -190,15 +187,40 @@ const option = computed(() => {
     series: [
       {
         name: '收盘价',
-        type: 'line',
+        type: 'candlestick',
         xAxisIndex: 0,
         yAxisIndex: 0,
-        data: price,
-        smooth: true,
-        symbol: 'none',
-        lineStyle: { width: 1.5, color: C.value.primary },
-        itemStyle: { color: C.value.primary },
-        markPoint: { symbolSize: 40, label: { fontSize: 10, color: '#fff' }, data: [...buyp, ...sellp] },
+        data: c.arr.opens.map((o, i) => [o, c.arr.closes[i], c.arr.lows[i], c.arr.highs[i]]),
+        itemStyle: {
+          color: C.value.danger,
+          color0: C.value.success,
+          borderColor: C.value.danger,
+          borderColor0: C.value.success,
+          borderWidth: 1,
+        },
+      },
+      {
+        name: '买入',
+        type: 'scatter',
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        data: c.buyIdx.map((i) => [dates[i], c.arr.lows[i]]),
+        symbol: 'triangle',
+        symbolSize: 9,
+        itemStyle: { color: C.value.success },
+        z: 3,
+      },
+      {
+        name: '卖出',
+        type: 'scatter',
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        data: c.sellIdx.map((i) => [dates[i], c.arr.highs[i]]),
+        symbol: 'triangle',
+        symbolRotate: 180,
+        symbolSize: 9,
+        itemStyle: { color: C.value.danger },
+        z: 3,
       },
       {
         name: '上轨',
@@ -304,7 +326,7 @@ const option = computed(() => {
         </div>
         <p class="hint">
           三个面板时间轴联动，可用鼠标滚轮缩放、拖动底部时间轴选择区间放大看细节。
-          ① 价格 + 通道带（绿虚线上轨/红虚线下轨）：价格走出通道触发「买/卖」；② 通道宽度 = 上轨 − 下轨，收窄意味着波动压缩、蓄势待发；
+          ① K线与通道带（绿虚线上轨/红虚线下轨）：价格走出通道触发「买入/卖出」；② 通道宽度 = 上轨 − 下轨，收窄意味着波动压缩、蓄势待发；
           ③ 策略净值（橙）对比买入持有（灰虚线），净值起点均为 100。N/M 越大通道越宽、交易越少也越「迟钝」。
         </p>
       </div>

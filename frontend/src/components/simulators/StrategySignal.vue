@@ -4,12 +4,12 @@ import ThemedChart from '@/components/common/ThemedChart.vue'
 import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkPointComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
+import { LineChart, ScatterChart, CandlestickChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import { sma, shiftPosition, strategyNav, stats, backtestArrays } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkPointComponent, DataZoomComponent, TitleComponent])
+use([CanvasRenderer, LineChart, ScatterChart, CandlestickChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent])
 
 // 策略解剖：真实行情 + 双均线信号 → 持仓映射 → 净值与回测指标（p2-l1）
 
@@ -57,25 +57,6 @@ const option = computed(() => {
   const s = c.s.map((v, i) => [c.arr.dates[i], v === null ? '-' : +v.toFixed(1)])
   const maFast = `MA${effFast.value}`
   const maSlow = `MA${slow.value}`
-  // 买卖点：小三角贴价格线，标签带底色错开到线外，避免遮住价格/均线
-  const buyp = c.buyIdx.map((i) => ({
-    coord: [c.arr.dates[i], c.arr.closes[i]],
-    value: '买',
-    symbol: 'triangle',
-    symbolOffset: [0, 6],
-    symbolRotate: 0,
-    label: { position: 'top', backgroundColor: C.value.success },
-    itemStyle: { color: C.value.success },
-  }))
-  const sellp = c.sellIdx.map((i) => ({
-    coord: [c.arr.dates[i], c.arr.closes[i]],
-    value: '卖',
-    symbol: 'triangle',
-    symbolRotate: 180,
-    symbolOffset: [0, -6],
-    label: { position: 'bottom', backgroundColor: C.value.danger },
-    itemStyle: { color: C.value.danger },
-  }))
   return {
     animation: true,
     axisPointer: { link: [{ xAxisIndex: 'all' }] },
@@ -91,7 +72,7 @@ const option = computed(() => {
         const name = hp?.name ?? nv?.name ?? ''
         const parts: string[] = []
         if (name) parts.push(`<b>${name}</b>`)
-        if (hp || fv || sv) parts.push('价格 + 买卖信号：')
+        if (hp || fv || sv) parts.push('K线与买卖信号：')
         if (hp) parts.push(`　收盘 ${hp.value[1]} 元`)
         if (fv) parts.push(`　${maFast} ${fv.value[1]}`)
         if (sv) parts.push(`　${maSlow} ${sv.value[1]}`)
@@ -106,7 +87,7 @@ const option = computed(() => {
     legend: {
       top: 0,
       textStyle: { fontSize: 12 },
-      data: ['收盘价', maFast, maSlow, '持仓', '策略净值', '买入持有'],
+      data: ['收盘价', maFast, maSlow, '买入', '卖出', '持仓', '策略净值', '买入持有'],
     },
     grid: [
       { left: 56, right: 24, top: 60, height: '36%' },
@@ -115,7 +96,7 @@ const option = computed(() => {
     ],
     title: [
       {
-        text: '① 价格 + 买卖信号（元）',
+        text: '① K线与买卖信号（元）',
         left: 56,
         top: 8,
         textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
@@ -137,7 +118,7 @@ const option = computed(() => {
       {
         type: 'inside',
         xAxisIndex: [0, 1, 2],
-        start: 0,
+        start: 69.8,
         end: 100,
         zoomOnMouseWheel: true,
         moveOnMouseMove: true,
@@ -145,7 +126,7 @@ const option = computed(() => {
       {
         type: 'slider',
         xAxisIndex: [0, 1, 2],
-        start: 0,
+        start: 69.8,
         end: 100,
         bottom: 2,
         height: 16,
@@ -201,19 +182,40 @@ const option = computed(() => {
     series: [
       {
         name: '收盘价',
-        type: 'line',
+        type: 'candlestick',
         xAxisIndex: 0,
         yAxisIndex: 0,
-        data: c.arr.closes.map((v, i) => [c.arr.dates[i], v]),
-        smooth: true,
-        symbol: 'none',
-        lineStyle: { width: 1.5, color: C.value.primary },
-        itemStyle: { color: C.value.primary },
-        markPoint: {
-          symbolSize: 13,
-          label: { fontSize: 8, color: '#fff', fontWeight: 600, padding: [1, 3], borderRadius: 2 },
-          data: [...buyp, ...sellp],
+        data: c.arr.opens.map((o, i) => [o, c.arr.closes[i], c.arr.lows[i], c.arr.highs[i]]),
+        itemStyle: {
+          color: C.value.danger,
+          color0: C.value.success,
+          borderColor: C.value.danger,
+          borderColor0: C.value.success,
+          borderWidth: 1,
         },
+      },
+      {
+        name: '买入',
+        type: 'scatter',
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        data: c.buyIdx.map((i) => [c.arr.dates[i], c.arr.lows[i]]),
+        symbol: 'triangle',
+        symbolSize: 9,
+        itemStyle: { color: C.value.success },
+        z: 3,
+      },
+      {
+        name: '卖出',
+        type: 'scatter',
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        data: c.sellIdx.map((i) => [c.arr.dates[i], c.arr.highs[i]]),
+        symbol: 'triangle',
+        symbolRotate: 180,
+        symbolSize: 9,
+        itemStyle: { color: C.value.danger },
+        z: 3,
       },
       {
         name: maFast,
@@ -324,7 +326,7 @@ const option = computed(() => {
           <span class="control-value">{{ slow }}</span>
         </div>
         <p class="hint">
-          信号（金叉/死叉）→ 持仓（次日生效）→ 成交（次日开盘）：三段式缺一不可。上图买卖点、中图持仓、下图净值（橙）对比买入持有（灰虚线），回测指标随参数实时更新。
+          信号（金叉/死叉）→ 持仓（次日生效）→ 成交（次日开盘）：三段式缺一不可。上图 K 线与买卖点（▲ 买入标在最低价下方、▼ 卖出标在最高价上方）、中图持仓、下图净值（橙）对比买入持有（灰虚线），回测指标随参数实时更新。
         </p>
       </div>
     </template>

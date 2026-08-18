@@ -4,8 +4,8 @@ import ThemedChart from '@/components/common/ThemedChart.vue'
 import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { LineChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, LegendComponent, MarkPointComponent, MarkLineComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
+import { LineChart, ScatterChart, CandlestickChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent, TitleComponent } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import {
   sma,
@@ -17,7 +17,7 @@ import {
   backtestArrays,
 } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkPointComponent, MarkLineComponent, DataZoomComponent, TitleComponent])
+use([CanvasRenderer, LineChart, ScatterChart, CandlestickChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent, TitleComponent])
 
 // 趋势跟踪模拟器：均线交叉 / 唐奇安通道，真实茅台 2020-2026
 
@@ -64,8 +64,6 @@ const com = computed(() => {
 const option = computed(() => {
   if (!com.value) return {}
   const c = com.value
-  const buyp = c.buyIdx.map((i) => ({ coord: [c.dates[i], c.closes[i]], value: '买', itemStyle: { color: C.value.success } }))
-  const sellp = c.sellIdx.map((i) => ({ coord: [c.dates[i], c.closes[i]], value: '卖', itemStyle: { color: C.value.danger } }))
   return {
     animation: true,
     axisPointer: { link: [{ xAxisIndex: 'all' }] },
@@ -80,7 +78,7 @@ const option = computed(() => {
         const parts: string[] = []
         if (name) parts.push(`<b>${name}</b>`)
         if (price) {
-          parts.push('价格 + 均线（元）：')
+          parts.push('K线与均线（元）：')
           parts.push(`　收盘 ${price.value[1]}`)
           for (const m of mas) if (m.value[1] !== '-') parts.push(`　${m.seriesName} ${m.value[1]}`)
         }
@@ -93,7 +91,7 @@ const option = computed(() => {
     legend: {
       top: 0,
       textStyle: { fontSize: 12 },
-      data: strategy.value === 'donchian' ? ['收盘价', '策略净值', '买入持有'] : ['收盘价', `MA${effFast.value}`, `MA${slow.value}`, '策略净值', '买入持有'],
+      data: strategy.value === 'donchian' ? ['收盘价', '买入', '卖出', '策略净值', '买入持有'] : ['收盘价', `MA${effFast.value}`, `MA${slow.value}`, '买入', '卖出', '策略净值', '买入持有'],
     },
     grid: [
       { left: 52, right: 24, top: 46, height: '40%' },
@@ -101,7 +99,7 @@ const option = computed(() => {
     ],
     title: [
       {
-        text: strategy.value === 'donchian' ? '① 价格 + 唐奇安通道（元）' : '① 价格 + 均线（元）',
+        text: strategy.value === 'donchian' ? '① K线与唐奇安通道（元）' : '① K线与均线（元）',
         left: 52,
         top: 8,
         textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
@@ -117,7 +115,7 @@ const option = computed(() => {
       {
         type: 'inside',
         xAxisIndex: [0, 1],
-        start: 0,
+        start: 69.8,
         end: 100,
         zoomOnMouseWheel: true,
         moveOnMouseMove: true,
@@ -125,7 +123,7 @@ const option = computed(() => {
       {
         type: 'slider',
         xAxisIndex: [0, 1],
-        start: 0,
+        start: 69.8,
         end: 100,
         bottom: 2,
         height: 16,
@@ -155,17 +153,42 @@ const option = computed(() => {
     series: [
       {
         name: '收盘价',
-        type: 'line',
+        type: 'candlestick',
         xAxisIndex: 0,
         yAxisIndex: 0,
-        data: c.closes.map((v, i) => [c.dates[i], v]),
-        smooth: true,
-        symbol: 'none',
-        lineStyle: { width: 1.5, color: C.value.primary },
-        itemStyle: { color: C.value.primary },
-        markPoint: { symbolSize: 42, label: { fontSize: 10, color: '#fff' }, data: [...buyp, ...sellp] },
+        data: c.arr.opens.map((o, i) => [o, c.arr.closes[i], c.arr.lows[i], c.arr.highs[i]]),
+        itemStyle: {
+          color: C.value.danger,
+          color0: C.value.success,
+          borderColor: C.value.danger,
+          borderColor0: C.value.success,
+          borderWidth: 1,
+        },
       },
-...(strategy.value === 'donchian'
+      {
+        name: '买入',
+        type: 'scatter',
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        data: c.buyIdx.map((i) => [c.dates[i], c.arr.lows[i]]),
+        symbol: 'triangle',
+        symbolSize: 9,
+        itemStyle: { color: C.value.success },
+        z: 3,
+      },
+      {
+        name: '卖出',
+        type: 'scatter',
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        data: c.sellIdx.map((i) => [c.dates[i], c.arr.highs[i]]),
+        symbol: 'triangle',
+        symbolRotate: 180,
+        symbolSize: 9,
+        itemStyle: { color: C.value.danger },
+        z: 3,
+      },
+      ...(strategy.value === 'donchian'
         ? []
         : [
             {

@@ -237,6 +237,7 @@ export function stats(ret: number[], pos: number[]): StrategyStats {
 export function backtestArrays(rows: StockDaily[]) {
   return {
     dates: rows.map((d) => d.date),
+    opens: rows.map((d) => d.open),
     closes: rows.map((d) => d.close),
     highs: rows.map((d) => d.high),
     lows: rows.map((d) => d.low),
