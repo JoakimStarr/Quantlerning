@@ -4,19 +4,18 @@ import ThemedChart from '@/components/common/ThemedChart.vue'
 import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { LineChart } from 'echarts/charts'
+import { LineChart, ScatterChart } from 'echarts/charts'
 import {
   GridComponent,
   TooltipComponent,
   LegendComponent,
-  MarkPointComponent,
   DataZoomComponent,
   TitleComponent,
 } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import { sma, rollingStd } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkPointComponent, DataZoomComponent, TitleComponent])
+use([CanvasRenderer, LineChart, ScatterChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent])
 
 // 布林带（真实茅台 2020-2026）：中轨 + ±kσ，z-score 触轨提示
 const props = defineProps<{
@@ -62,10 +61,13 @@ const option = computed(() => {
       formatter: (ps: any[]) => {
         const p = ps.find((q: any) => q.seriesName === '收盘价')
         if (!p) return ''
-        return `${p.name}<br/>收盘 ${p.value[1]}`
+        let html = `${p.name}<br/>收盘 ${p.value[1]}`
+        const touch = ps.find((q: any) => q.seriesName === '触下轨' || q.seriesName === '触上轨')
+        if (touch) html += `<br/>${touch.seriesName}`
+        return html
       },
     },
-    legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', '中轨', '上轨', '下轨'] },
+    legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', '中轨', '上轨', '下轨', '触下轨', '触上轨'] },
     grid: { left: 52, right: 24, top: 40, bottom: 44 },
     title: [
       {
@@ -116,18 +118,29 @@ const option = computed(() => {
         smooth: true,
         symbol: 'none',
         lineStyle: { width: 1.5, color: C.value.primary },
-        markPoint: {
-          symbolSize: 40,
-          label: { fontSize: 10, color: '#fff' },
-          data: [
-            ...com.value.touchLow.map((i) => ({ coord: [dates0[i], closes.value[i]], value: '触下轨', itemStyle: { color: C.value.success } })),
-            ...com.value.touchHigh.map((i) => ({ coord: [dates0[i], closes.value[i]], value: '触上轨', itemStyle: { color: C.value.danger } })),
-          ],
-        },
       },
       { name: '中轨', type: 'line', data: band(com.value.mid), symbol: 'none', lineStyle: { width: 1, color: C.value.slateStrong, type: 'dashed' } },
       { name: '上轨', type: 'line', data: band(com.value.upper), symbol: 'none', lineStyle: { width: 1, color: C.value.danger, opacity: 0.7 } },
       { name: '下轨', type: 'line', data: band(com.value.lower), symbol: 'none', lineStyle: { width: 1, color: C.value.success, opacity: 0.7 } },
+      {
+        name: '触下轨',
+        type: 'scatter',
+        data: com.value.touchLow.map((i) => [dates0[i], closes.value[i]]),
+        symbol: 'triangle',
+        symbolRotate: 180,
+        symbolSize: 9,
+        itemStyle: { color: C.value.success },
+        z: 3,
+      },
+      {
+        name: '触上轨',
+        type: 'scatter',
+        data: com.value.touchHigh.map((i) => [dates0[i], closes.value[i]]),
+        symbol: 'triangle',
+        symbolSize: 9,
+        itemStyle: { color: C.value.danger },
+        z: 3,
+      },
     ],
   }
 })
