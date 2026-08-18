@@ -33,6 +33,16 @@ async def stock_valuation(code: str, db: AsyncSession = Depends(get_db)):
     return await queries.get_stock_valuation(db, code)
 
 
+@router.get("/stock/{code}/financials")
+async def stock_financials(
+    code: str,
+    limit: int = Query(24, ge=1, le=120),
+    db: AsyncSession = Depends(get_db),
+):
+    """个股财务指标（按报告期宽表，含披露日，可避免前视偏差）。"""
+    return await queries.get_stock_financials(db, code, limit)
+
+
 @router.get("/indices")
 async def indices(
     index_type: str = Query("all", pattern="^(all|index|etf)$"),

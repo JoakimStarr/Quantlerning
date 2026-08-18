@@ -61,6 +61,36 @@ async def get_stock_daily(
     ]
 
 
+async def get_stock_financials(
+    db: AsyncSession, code: str, limit: int = 24
+) -> dict:
+    """个股财务指标（financial_indicator 长表 → 按报告期宽表）。
+
+    返回 {code, units, periods}：periods 按报告期倒序（最新在前），
+    每个报告期含 available_date（披露日，用于避免前视偏差）与全部字段值；
+    units 为字段名 → 单位（如 % / 元）。
+    """
+    q = text(
+        """
+        SELECT report_date, field_name, value, unit, available_date
+        FROM financial_indicator
+        WHERE LOWER(code) = :code
+        ORDER BY report_date DESC, field_name
+        """
+    )
+    rows = await db.execute(q, {"code": code.lower()})
+    units: dict[str, str] = {}
+    by_date: dict[str, dict] = {}
+    for r in rows:
+        rd = str(r.report_date)
+        if rd not in by_date:
+            by_date[rd] = {"report_date": rd, "available_date": str(r.available_date)}
+        by_date[rd][r.field_name] = r.value
+        units.setdefault(r.field_name, r.unit)
+    periods = list(by_date.values())[:limit]
+    return {"code": code.lower(), "units": units, "periods": periods}
+
+
 async def get_index_daily(
     db: AsyncSession, code: str, start: date, end: date, limit: int = 5000
 ) -> list[dict]:
