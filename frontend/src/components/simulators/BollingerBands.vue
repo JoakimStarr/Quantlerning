@@ -32,6 +32,8 @@ const priceStyle = ref<'line' | 'candle'>('line')
 
 const dates = computed(() => data.value?.map((d) => d.date) ?? [])
 const closes = computed(() => data.value?.map((d) => d.close) ?? [])
+const lows = computed(() => data.value?.map((d) => d.low) ?? [])
+const highs = computed(() => data.value?.map((d) => d.high) ?? [])
 const ohlc = computed(() => data.value?.map((d) => [d.open, d.close, d.low, d.high]) ?? [])
 
 const com = computed(() => {
@@ -98,14 +100,11 @@ const option = computed(() => {
       },
     },
     legend: { top: 0, textStyle: { fontSize: 12 }, data: ['股价', '中轨', '上轨', '下轨', '触下轨', '触上轨'] },
-    grid: [
-      { left: 52, right: 24, top: 32, bottom: 118 },
-      { left: 52, right: 24, top: 'auto', bottom: 44, height: 30 },
-    ],
+    grid: { left: 52, right: 24, top: 32, bottom: 44 },
     dataZoom: [
       {
         type: 'inside',
-        xAxisIndex: [0, 1],
+        xAxisIndex: [0],
         start: 69.8,
         end: 100,
         zoomOnMouseWheel: true,
@@ -113,7 +112,7 @@ const option = computed(() => {
       },
       {
         type: 'slider',
-        xAxisIndex: [0, 1],
+        xAxisIndex: [0],
         start: 69.8,
         end: 100,
         bottom: 2,
@@ -133,55 +132,30 @@ const option = computed(() => {
         },
       },
     ],
-    xAxis: [
-      { type: 'category', data: dates0, gridIndex: 0, axisLabel: { fontSize: 10, hideOverlap: true } },
-      {
-        type: 'category',
-        data: dates0,
-        gridIndex: 1,
-        axisLabel: { show: false },
-        axisTick: { show: false },
-        axisLine: { show: false },
-        splitLine: { show: false },
-      },
-    ],
-    yAxis: [
-      { type: 'value', scale: true, gridIndex: 0, axisLabel: { fontSize: 11 } },
-      {
-        type: 'value',
-        gridIndex: 1,
-        min: 0,
-        max: 1,
-        show: false,
-        splitLine: { show: true, lineStyle: { color: C.value.grid, opacity: 0.6 } },
-      },
-    ],
+    xAxis: { type: 'category', data: dates0, axisLabel: { fontSize: 10, hideOverlap: true } },
+    yAxis: { type: 'value', scale: true, axisLabel: { fontSize: 11 } },
     series: [
       priceSeries,
       { name: '中轨', type: 'line', data: band(com.value.mid), symbol: 'none', lineStyle: { width: 1, color: C.value.slateStrong, type: 'dashed' } },
       { name: '上轨', type: 'line', data: band(com.value.upper), symbol: 'none', lineStyle: { width: 1, color: C.value.danger, opacity: 0.7 } },
       { name: '下轨', type: 'line', data: band(com.value.lower), symbol: 'none', lineStyle: { width: 1, color: C.value.success, opacity: 0.7 } },
       {
+        name: '触上轨',
+        type: 'scatter',
+        data: com.value.touchHigh.map((i) => [dates0[i], lows.value[i]]),
+        symbol: 'triangle',
+        symbolSize: 9,
+        itemStyle: { color: C.value.danger },
+        z: 3,
+      },
+      {
         name: '触下轨',
         type: 'scatter',
-        xAxisIndex: 1,
-        yAxisIndex: 1,
-        data: com.value.touchLow.map((i) => [dates0[i], 0]),
+        data: com.value.touchLow.map((i) => [dates0[i], highs.value[i]]),
         symbol: 'triangle',
         symbolRotate: 180,
         symbolSize: 9,
         itemStyle: { color: C.value.success },
-        z: 3,
-      },
-      {
-        name: '触上轨',
-        type: 'scatter',
-        xAxisIndex: 1,
-        yAxisIndex: 1,
-        data: com.value.touchHigh.map((i) => [dates0[i], 0]),
-        symbol: 'triangle',
-        symbolSize: 9,
-        itemStyle: { color: C.value.danger },
         z: 3,
       },
     ],
@@ -231,7 +205,7 @@ const touchHighCount = computed(() => com.value?.touchHigh.length ?? 0)
           <span class="control-value">{{ k.toFixed(1) }}σ</span>
         </div>
         <p class="hint">
-          价格反复穿越轨道 → 回归信号。下方信号条中，▼ 标跌破下轨（触下轨）、▲ 标升破上轨（触上轨）；周期越短、k 越小，触轨越频繁。
+          价格反复穿越轨道 → 回归信号。▲ 标在触上轨日的 K 线最低价下方、▼ 标在触下轨日的最高价上方，不遮挡蜡烛；周期越短、k 越小，触轨越频繁。
         </p>
       </div>
     </template>
