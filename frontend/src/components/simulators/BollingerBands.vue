@@ -4,7 +4,7 @@ import ThemedChart from '@/components/common/ThemedChart.vue'
 import { C, withAlpha } from '@/utils/chartTheme'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { LineChart, ScatterChart } from 'echarts/charts'
+import { LineChart, ScatterChart, CandlestickChart } from 'echarts/charts'
 import {
   GridComponent,
   TooltipComponent,
@@ -15,7 +15,7 @@ import {
 import { useStockDaily } from '@/composables/useStockDaily'
 import { sma, rollingStd } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, ScatterChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent])
+use([CanvasRenderer, LineChart, ScatterChart, CandlestickChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent])
 
 // 布林带（真实茅台 2020-2026）：中轨 + ±kσ，z-score 触轨提示
 const props = defineProps<{
@@ -29,9 +29,11 @@ const { data, loading, error } = useStockDaily(code, start.value, end.value)
 
 const period = ref(20)
 const k = ref(2)
+const priceStyle = ref<'line' | 'candle'>('line')
 
 const dates = computed(() => data.value?.map((d) => d.date) ?? [])
 const closes = computed(() => data.value?.map((d) => d.close) ?? [])
+const ohlc = computed(() => data.value?.map((d) => [d.open, d.close, d.low, d.high]) ?? [])
 
 const com = computed(() => {
   if (!data.value) return null
@@ -54,20 +56,48 @@ const option = computed(() => {
   const dates0 = dates.value
   const band = (v: (number | null)[]) => v.map((x, i) => [dates0[i], x === null ? '-' : +x.toFixed(1)])
   const price = closes.value.map((v, i) => [dates0[i], v])
+  const priceSeries =
+    priceStyle.value === 'candle'
+      ? {
+          name: '股价',
+          type: 'candlestick' as const,
+          data: ohlc.value,
+          itemStyle: {
+            color: C.value.danger,
+            color0: C.value.success,
+            borderColor: C.value.danger,
+            borderColor0: C.value.success,
+            borderWidth: 1,
+          },
+        }
+      : {
+          name: '股价',
+          type: 'line' as const,
+          data: price,
+          smooth: true,
+          symbol: 'none',
+          lineStyle: { width: 1.5, color: C.value.primary },
+        }
   return {
     animation: true,
     tooltip: {
       trigger: 'axis',
       formatter: (ps: any[]) => {
-        const p = ps.find((q: any) => q.seriesName === '收盘价')
+        const p = ps.find((q: any) => q.seriesName === '股价')
         if (!p) return ''
-        let html = `${p.name}<br/>收盘 ${p.value[1]}`
+        let html: string
+        if (p.seriesType === 'candlestick') {
+          const [o, c, l, h] = p.value as number[]
+          html = `${p.name}<br/>开 ${o} / 收 ${c}<br/>高 ${h} / 低 ${l}`
+        } else {
+          html = `${p.name}<br/>收盘 ${p.value[1]}`
+        }
         const touch = ps.find((q: any) => q.seriesName === '触下轨' || q.seriesName === '触上轨')
         if (touch) html += `<br/>${touch.seriesName}`
         return html
       },
     },
-    legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', '中轨', '上轨', '下轨', '触下轨', '触上轨'] },
+    legend: { top: 0, textStyle: { fontSize: 12 }, data: ['股价', '中轨', '上轨', '下轨', '触下轨', '触上轨'] },
     grid: { left: 52, right: 24, top: 40, bottom: 44 },
     title: [
       {
@@ -111,14 +141,7 @@ const option = computed(() => {
     xAxis: { type: 'category', data: dates0, axisLabel: { fontSize: 10, hideOverlap: true } },
     yAxis: { type: 'value', scale: true, axisLabel: { fontSize: 11 } },
     series: [
-      {
-        name: '收盘价',
-        type: 'line',
-        data: price,
-        smooth: true,
-        symbol: 'none',
-        lineStyle: { width: 1.5, color: C.value.primary },
-      },
+      priceSeries,
       { name: '中轨', type: 'line', data: band(com.value.mid), symbol: 'none', lineStyle: { width: 1, color: C.value.slateStrong, type: 'dashed' } },
       { name: '上轨', type: 'line', data: band(com.value.upper), symbol: 'none', lineStyle: { width: 1, color: C.value.danger, opacity: 0.7 } },
       { name: '下轨', type: 'line', data: band(com.value.lower), symbol: 'none', lineStyle: { width: 1, color: C.value.success, opacity: 0.7 } },
@@ -171,6 +194,13 @@ const touchHighCount = computed(() => com.value?.touchHigh.length ?? 0)
       <ThemedChart class="chart" :option="option" autoresize />
       <div class="controls">
         <div class="control-row">
+          <span class="control-label">价格样式</span>
+          <div class="seg">
+            <button :class="{ active: priceStyle === 'line' }" @click="priceStyle = 'line'">折线</button>
+            <button :class="{ active: priceStyle === 'candle' }" @click="priceStyle = 'candle'">K线</button>
+          </div>
+        </div>
+        <div class="control-row">
           <span class="control-label">周期 N</span>
           <input v-model.number="period" type="range" min="5" max="60" step="1" class="slider" />
           <span class="control-value">{{ period }}</span>
@@ -201,5 +231,8 @@ const touchHighCount = computed(() => com.value?.touchHigh.length ?? 0)
 .control-label { width: 72px; font-size: 13px; color: var(--text-2); flex-shrink: 0; }
 .slider { flex: 1; accent-color: var(--primary); cursor: pointer; }
 .control-value { width: 56px; font-size: 13px; font-weight: 600; color: var(--primary); text-align: right; flex-shrink: 0; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.seg button { padding: 4px 14px; font-size: 13px; background: transparent; color: var(--text-2); border: none; cursor: pointer; }
+.seg button.active { background: var(--primary); color: #fff; font-weight: 600; }
 .hint { margin-top: 10px; font-size: 12px; color: var(--text-3); line-height: 1.7; }
 </style>
