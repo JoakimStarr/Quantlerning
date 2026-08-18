@@ -16,7 +16,12 @@ const props = defineProps<{
 }>()
 
 const code = computed(() => (typeof props.params?.code === 'string' ? props.params.code : 'sh600519'))
-const limit = computed(() => (typeof props.params?.limit === 'number' ? props.params.limit : 24))
+const limit = computed(() => {
+  const v = props.params?.limit
+  if (typeof v === 'number') return v
+  if (typeof v === 'string' && /^\d+$/.test(v.trim())) return parseInt(v.trim(), 10)
+  return 24
+})
 
 const fin = ref<StockFinancials | null>(null)
 const loading = ref(true)
