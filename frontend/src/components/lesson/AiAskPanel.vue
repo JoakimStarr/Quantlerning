@@ -83,12 +83,12 @@ const thinking = ref(false)
 const error = ref('')
 const abortCtrl = ref<AbortController | null>(null)
 
-// 分栏模式：放大 + 屏幕够宽（≥1280px）时，正文与面板分割剩余空间（可拖拽分隔条）。
+// 分栏模式：放大 + 屏幕够宽（≥1024px）时，正文与面板分割剩余空间（可拖拽分隔条）。
 // 窄屏/手机保持浮层，避免图表被挤压。
-const splitMedia = window.matchMedia('(min-width: 1280px)')
+const splitMedia = window.matchMedia('(min-width: 1024px)')
 const SIDEBAR_W = 230 // 与 App.vue --sidebar-w 一致，用于计算默认分栏宽度
-const WIDTH_MIN = 340
-const WIDTH_MAX = 640
+const WIDTH_MIN = 360
+const WIDTH_MAX = 720
 
 // 用户拖拽过则持久化宽度；否则按「剩余空间 40%」给默认值（两者共同分割剩余空间）
 const savedSplitWidth = (() => {
@@ -104,7 +104,7 @@ function clampWidth(w: number) {
 }
 
 function defaultSplitWidth() {
-  return clampWidth((window.innerWidth - SIDEBAR_W) * 0.4)
+  return clampWidth((window.innerWidth - SIDEBAR_W) * 0.45)
 }
 
 function updateSplit() {
@@ -620,9 +620,9 @@ watch(
   right: 24px;
   bottom: 88px;
   z-index: 100;
-  width: 400px;
+  width: 460px;
   max-width: calc(100vw - 32px);
-  height: min(80vh, 640px);
+  height: min(82vh, 680px);
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -641,9 +641,14 @@ watch(
   height: calc(100vh - 48px);
 }
 
-/* 分栏模式（放大 + 屏幕≥1280px）：面板与正文分割剩余空间，宽度由拖拽/状态驱动 */
+/* 放大但未进入分栏（屏幕 <1024px）：浮层适当加宽，避免 460px 长条 */
+.ask-panel.expanded:not(.split) {
+  width: min(540px, calc(100vw - 32px));
+}
+
+/* 分栏模式（放大 + 屏幕≥1024px）：面板与正文分割剩余空间，宽度由拖拽/状态驱动 */
 .ask-panel.split {
-  width: 440px; /* 兜底；实际宽度由 inline style（aiPanelLayout.width）覆盖 */
+  width: 480px; /* 兜底；实际宽度由 inline style（aiPanelLayout.width）覆盖 */
   top: 24px;
   height: calc(100vh - 48px);
   right: 24px;
@@ -1150,7 +1155,7 @@ watch(
     bottom: 78px;
     width: calc(100vw - 16px);
     max-width: calc(100vw - 16px);
-    height: min(82dvh, 640px);
+    height: min(82dvh, 680px);
   }
 }
 </style>
