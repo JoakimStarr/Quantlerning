@@ -10,12 +10,11 @@ import {
   TooltipComponent,
   LegendComponent,
   DataZoomComponent,
-  TitleComponent,
 } from 'echarts/components'
 import { useStockDaily } from '@/composables/useStockDaily'
 import { sma, rollingStd } from '@/utils/strategies'
 
-use([CanvasRenderer, LineChart, ScatterChart, CandlestickChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, TitleComponent])
+use([CanvasRenderer, LineChart, ScatterChart, CandlestickChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
 
 // 布林带（真实茅台 2020-2026）：中轨 + ±kσ，z-score 触轨提示
 const props = defineProps<{
@@ -84,7 +83,9 @@ const option = computed(() => {
       trigger: 'axis',
       formatter: (ps: any[]) => {
         const p = ps.find((q: any) => q.seriesName === '股价')
-        if (!p) return ''
+        const touch = ps.find((q: any) => q.seriesName === '触下轨' || q.seriesName === '触上轨')
+        if (!p && !touch) return ''
+        if (!p) return `${touch.name}<br/>${touch.seriesName}`
         let html: string
         if (p.seriesType === 'candlestick') {
           const [o, c, l, h] = p.value as number[]
@@ -92,25 +93,19 @@ const option = computed(() => {
         } else {
           html = `${p.name}<br/>收盘 ${p.value[1]}`
         }
-        const touch = ps.find((q: any) => q.seriesName === '触下轨' || q.seriesName === '触上轨')
         if (touch) html += `<br/>${touch.seriesName}`
         return html
       },
     },
     legend: { top: 0, textStyle: { fontSize: 12 }, data: ['股价', '中轨', '上轨', '下轨', '触下轨', '触上轨'] },
-    grid: { left: 52, right: 24, top: 40, bottom: 44 },
-    title: [
-      {
-        text: '价格 + 布林带（元）',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
+    grid: [
+      { left: 52, right: 24, top: 32, bottom: 118 },
+      { left: 52, right: 24, top: 'auto', bottom: 44, height: 30 },
     ],
     dataZoom: [
       {
         type: 'inside',
-        xAxisIndex: [0],
+        xAxisIndex: [0, 1],
         start: 69.8,
         end: 100,
         zoomOnMouseWheel: true,
@@ -118,7 +113,7 @@ const option = computed(() => {
       },
       {
         type: 'slider',
-        xAxisIndex: [0],
+        xAxisIndex: [0, 1],
         start: 69.8,
         end: 100,
         bottom: 2,
@@ -138,8 +133,29 @@ const option = computed(() => {
         },
       },
     ],
-    xAxis: { type: 'category', data: dates0, axisLabel: { fontSize: 10, hideOverlap: true } },
-    yAxis: { type: 'value', scale: true, axisLabel: { fontSize: 11 } },
+    xAxis: [
+      { type: 'category', data: dates0, gridIndex: 0, axisLabel: { fontSize: 10, hideOverlap: true } },
+      {
+        type: 'category',
+        data: dates0,
+        gridIndex: 1,
+        axisLabel: { show: false },
+        axisTick: { show: false },
+        axisLine: { show: false },
+        splitLine: { show: false },
+      },
+    ],
+    yAxis: [
+      { type: 'value', scale: true, gridIndex: 0, axisLabel: { fontSize: 11 } },
+      {
+        type: 'value',
+        gridIndex: 1,
+        min: 0,
+        max: 1,
+        show: false,
+        splitLine: { show: true, lineStyle: { color: C.value.grid, opacity: 0.6 } },
+      },
+    ],
     series: [
       priceSeries,
       { name: '中轨', type: 'line', data: band(com.value.mid), symbol: 'none', lineStyle: { width: 1, color: C.value.slateStrong, type: 'dashed' } },
@@ -148,7 +164,9 @@ const option = computed(() => {
       {
         name: '触下轨',
         type: 'scatter',
-        data: com.value.touchLow.map((i) => [dates0[i], closes.value[i]]),
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        data: com.value.touchLow.map((i) => [dates0[i], 0]),
         symbol: 'triangle',
         symbolRotate: 180,
         symbolSize: 9,
@@ -158,7 +176,9 @@ const option = computed(() => {
       {
         name: '触上轨',
         type: 'scatter',
-        data: com.value.touchHigh.map((i) => [dates0[i], closes.value[i]]),
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        data: com.value.touchHigh.map((i) => [dates0[i], 0]),
         symbol: 'triangle',
         symbolSize: 9,
         itemStyle: { color: C.value.danger },
@@ -211,7 +231,7 @@ const touchHighCount = computed(() => com.value?.touchHigh.length ?? 0)
           <span class="control-value">{{ k.toFixed(1) }}σ</span>
         </div>
         <p class="hint">
-          价格反复穿越轨道 → 回归信号。跌破下轨标「触下轨」、升破上轨标「触上轨」；周期越短、k 越小，触轨越频繁。
+          价格反复穿越轨道 → 回归信号。下方信号条中，▼ 标跌破下轨（触下轨）、▲ 标升破上轨（触上轨）；周期越短、k 越小，触轨越频繁。
         </p>
       </div>
     </template>
