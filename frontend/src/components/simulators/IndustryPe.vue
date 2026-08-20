@@ -82,7 +82,7 @@ const option = computed(() => {
     <div v-if="loading" class="status">数据加载中…</div>
     <div v-else-if="error" class="status">数据不可用</div>
     <template v-else-if="data">
-      <p class="note">真实数据：{{ data.date }} 全市场 {{ data.count }} 个申万一级行业的 PE(TTM) 中位数。货币金融 5.4、地产 9.3，而成长行业动辄 30+——跨行业直接比 PE 会得出「银行便宜」的错误结论。</p>
+      <p class="note">真实数据：{{ data.date }} 全市场 {{ data.count }} 个申万一级行业的 PE(TTM) 中位数。货币金融 5.4、土木建筑 9.2，而成长行业动辄 30+——跨行业直接比 PE 会得出「银行便宜」的错误结论。</p>
       <ThemedChart class="chart" :option="option" autoresize />
     </template>
   </div>

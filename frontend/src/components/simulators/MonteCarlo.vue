@@ -21,7 +21,7 @@ const { data } = useStockDaily(code, '2024-01-01', '2024-12-31')
 
 const S = ref(100)
 const K = ref(100)
-const sigma = ref(0.2)
+const sigma = ref(0.2755) // 默认锚定真实锚点：茅台 2024 年化波动 27.55%（quantlab 官方口径）
 const T = ref(1)
 const r = ref(0.03)
 const nPaths = ref(1000)

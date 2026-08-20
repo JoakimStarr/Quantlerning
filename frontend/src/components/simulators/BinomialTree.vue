@@ -143,7 +143,7 @@ const convOption = computed(() => {
       <span class="chip" :class="{ pos: Math.abs(call - bsRef) < 0.1 }">误差 <strong>{{ Math.abs(call - bsRef).toFixed(2) }}</strong></span>
     </div>
     <ThemedChart class="chart tree" :option="treeOption" autoresize />
-    <p class="note">左图：N=5 的二叉树节点；右图：步数 N 从 1 到 30，二叉树价格（蓝）逐步收敛到 BS 价格（红虚线）。真实锚点：r 参考 LPR 1Y 3.0%（示意）。</p>
+    <p class="note">上图：N 步二叉树节点（步数滑块控制，节点随 N 变密）；下图：收敛曲线——N 从 1 到 30，二叉树价格（蓝）逐步收敛到 BS 价格（红虚线）。真实锚点：r 参考 LPR 1Y 3.0%（示意）。</p>
     <ThemedChart class="chart conv" :option="convOption" autoresize />
   </div>
 </template>
