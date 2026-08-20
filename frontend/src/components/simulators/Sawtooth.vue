@@ -24,7 +24,7 @@ const end = computed(() => (typeof props.params?.end === 'string' ? props.params
 const { data, loading, error } = useStockDaily(code, start.value, end.value)
 
 const SLOWS = [20, 40, 60, 90, 120]
-const slowIdx = ref(2) // 默认 MA60
+const slowIdx = ref(0) // 默认 MA20：该档位下样本内锯齿最明显，且覆盖正文 MA10/MA11 例子
 const slow = computed(() => SLOWS[slowIdx.value])
 // 样本外起点（与课程「2020-2026 全窗口、2024 起为样本外」口径一致）
 const SPLIT_DATE = '2024-01-01'
@@ -98,6 +98,8 @@ const mainOption = computed(() => {
   const c = com.value
   if (!c) return {}
   const isNeigh = (f: number) => Math.abs(f - c.bestF) / c.bestF <= 0.2
+  // 柱数少时直接标出数值（锯齿跳变可读数）；柱数多时只靠 tooltip，避免重叠
+  const showLabel = c.fasts.length <= 20
   const data = c.fasts.map((f, i) => ({
     value: +(c.annsIn[i] * 100).toFixed(2),
     itemStyle: { color: f === c.bestF ? C.value.success : isNeigh(f) ? C.value.warning : C.value.slate },
@@ -124,7 +126,7 @@ const mainOption = computed(() => {
         return `MA${f}：年化 ${v}%${tag}`
       },
     },
-    xAxis: { type: 'category', data: c.fasts.map((f) => `MA${f}`), axisLabel: { fontSize: 10, interval: 4, hideOverlap: true } },
+    xAxis: { type: 'category', data: c.fasts.map((f) => `MA${f}`), axisLabel: { fontSize: 10, interval: showLabel ? 0 : 4, hideOverlap: true } },
     yAxis: {
       type: 'value',
       name: '年化 %',
@@ -137,8 +139,17 @@ const mainOption = computed(() => {
       {
         name: '样本内年化',
         type: 'bar',
-        barMaxWidth: 22,
+        barMaxWidth: showLabel ? 26 : 22,
         data,
+        label: showLabel
+          ? {
+              show: true,
+              position: 'top',
+              fontSize: 9,
+              color: C.value.text,
+              formatter: (p: any) => `${(p.value as number).toFixed(1)}%`,
+            }
+          : { show: false },
         markPoint: {
           symbol: 'pin',
           symbolSize: 40,
@@ -160,6 +171,7 @@ const mainOption = computed(() => {
 const outerOption = computed(() => {
   const c = com.value
   if (!c) return {}
+  const showLabel = c.fasts.length <= 20
   const data = c.fasts.map((f, i) => ({
     value: +(c.annsOut[i] * 100).toFixed(2),
     itemStyle: { color: f === c.bestF ? C.value.danger : C.value.slate },
@@ -169,7 +181,7 @@ const outerOption = computed(() => {
     grid: { left: 56, right: 24, top: 40, bottom: 44 },
     title: [
       {
-        text: '② 样本外（2024~2026）同一批参数：冠军位置是否失效？',
+        text: `② 样本外（2024~2026）同一批参数：冠军位置是否失效？`,
         left: 52,
         top: 8,
         textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
@@ -186,7 +198,7 @@ const outerOption = computed(() => {
         return `MA${f}：样本外年化 ${v}%${tag}`
       },
     },
-    xAxis: { type: 'category', data: c.fasts.map((f) => `MA${f}`), axisLabel: { fontSize: 10, interval: 4, hideOverlap: true } },
+    xAxis: { type: 'category', data: c.fasts.map((f) => `MA${f}`), axisLabel: { fontSize: 10, interval: showLabel ? 0 : 4, hideOverlap: true } },
     yAxis: {
       type: 'value',
       name: '年化 %',
@@ -199,8 +211,17 @@ const outerOption = computed(() => {
       {
         name: '样本外年化',
         type: 'bar',
-        barMaxWidth: 22,
+        barMaxWidth: showLabel ? 26 : 22,
         data,
+        label: showLabel
+          ? {
+              show: true,
+              position: 'top',
+              fontSize: 9,
+              color: C.value.text,
+              formatter: (p: any) => `${(p.value as number).toFixed(1)}%`,
+            }
+          : { show: false },
         markLine: {
           silent: true,
           symbol: 'none',
@@ -238,6 +259,7 @@ const outerOption = computed(() => {
         </div>
       </div>
       <ThemedChart class="chart main" :option="mainOption" autoresize />
+      <p class="sub">上下两图是<strong>同一批参数</strong>：先看上图的绿柱（样本内最优 MA{{ com.bestF }}），再看到下图红虚线位置——同一根柱子换到样本外，是塌陷还是反超？</p>
       <ThemedChart class="chart" :option="outerOption" autoresize />
       <div class="controls">
         <div class="control-row">
@@ -245,7 +267,7 @@ const outerOption = computed(() => {
           <input v-model.number="slowIdx" type="range" min="0" max="4" step="1" class="slider" />
           <span class="control-value">{{ slow }}</span>
         </div>
-        <p class="hint">先看①：样本内各快线年化剧烈跳动成「锯齿」——绿色是最优参数，黄色是它 ±20% 的邻域。再看②：同一批参数换到样本外，绿色那根（红虚线标出）大多塌陷甚至垫底。样本内越亮的冠军，样本外越不可信——这就是「用噪声调出来的参数」。</p>
+        <p class="hint">看①的<b>形态</b>：柱子高高低低剧烈跳动成「锯齿」——相邻两根（如 MA18 与 MA19）年化差出几个百分点，说明「好参数」在踩噪声；绿色=最优、黄色=±20% 邻域，邻域不平就是「山峰型」。再对照②：样本内越亮的冠军（绿柱），在样本外（红虚线处）大多塌陷。换个慢线试试：MA20 锯齿最尖，MA60 以上变缓坡——锯齿越尖，冠军越不可信。</p>
       </div>
     </template>
   </div>
@@ -266,4 +288,6 @@ const outerOption = computed(() => {
 .slider { flex: 1; accent-color: var(--primary); cursor: pointer; }
 .control-value { width: 44px; font-size: 13px; font-weight: 600; color: var(--primary); text-align: right; flex-shrink: 0; }
 .hint { margin-top: 10px; font-size: 12px; color: var(--text-3); line-height: 1.7; }
+.sub { font-size: 12.5px; color: var(--text-3); margin: 8px 0 2px; line-height: 1.6; }
+.sub strong { color: var(--primary); }
 </style>
