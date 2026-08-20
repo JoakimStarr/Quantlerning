@@ -107,6 +107,23 @@ const currentLessonTitle = computed(() => {
   return ''
 })
 
+// 顶栏「课程」导航激活态：课程页 / 阶段页
+const isCoursePath = computed(
+  () => route.path.startsWith('/lesson/') || route.path.startsWith('/phase/'),
+)
+
+// 顶栏主导航：首页 + 课程 + 全部工具页（桌面端全站导航，侧边栏只留课程目录）
+const topNav = computed(() => [
+  { label: '首页', to: '/', active: route.path === '/' },
+  { label: '课程', to: '/phase/0', active: isCoursePath.value },
+  { label: '实验室', to: '/lab', active: route.path === '/lab' },
+  { label: '速查表', to: '/cheatsheet', active: route.path === '/cheatsheet' },
+  { label: '数据', to: '/data-browser', active: route.path === '/data-browser' },
+  { label: '因子', to: '/factors', active: route.path === '/factors' },
+  { label: '统计', to: '/stats', active: route.path === '/stats' },
+  { label: '设置', to: '/settings', active: route.path === '/settings' },
+])
+
 onMounted(async () => {
   try {
     volumes.value = await fetchCourses()
@@ -182,17 +199,32 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 
 <template>
   <div class="layout">
-    <!-- 移动端顶栏（≤900px 显示）：汉堡 + 品牌 + 当前课程 -->
-    <header class="topbar">
+    <!-- 顶部导航栏（借鉴设计包 lesson.html）：品牌 + 导航 + 操作区 -->
+    <header class="app-topbar">
       <button class="menu-btn" aria-label="切换目录" @click="menuOpen = !menuOpen"><Menu :size="20" /></button>
       <RouterLink to="/" class="topbar-brand" @click="closeMenu">
         <img src="/icon.svg" class="brand-mark" alt="Quantlerning" />
+        <span class="brand-name"><span class="q">Quant</span>lerning</span>
       </RouterLink>
+      <nav class="topbar-nav" aria-label="主导航">
+        <RouterLink
+          v-for="n in topNav"
+          :key="n.to"
+          :to="n.to"
+          class="nav-link"
+          :class="{ active: n.active }"
+        >{{ n.label }}</RouterLink>
+      </nav>
       <span class="topbar-title">{{ currentLessonTitle || 'Quantlerning' }}</span>
-      <button class="theme-btn" :title="theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'" aria-label="切换深浅色模式" @click="toggleTheme">
-        <Sun v-if="theme === 'dark'" :size="18" />
-        <Moon v-else :size="18" />
-      </button>
+      <div class="topbar-actions">
+        <a class="icon-btn" href="http://localhost:3000" target="_blank" rel="noopener" title="QuantLab 回测（外链）" aria-label="QuantLab 回测">
+          <Microscope :size="18" />
+        </a>
+        <button class="theme-btn" :title="theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'" aria-label="切换深浅色模式" @click="toggleTheme">
+          <Sun v-if="theme === 'dark'" :size="18" />
+          <Moon v-else :size="18" />
+        </button>
+      </div>
     </header>
 
     <!-- 抽屉遮罩（移动端） -->
@@ -200,23 +232,6 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 
     <!-- 左侧：书的目录 -->
     <aside class="sidebar" :class="{ open: menuOpen }">
-      <!-- 品牌行（含桌面端主题切换，替代原右上角悬浮按钮） -->
-      <div class="brand-row">
-        <RouterLink to="/" class="brand" @click="closeMenu">
-          <img src="/icon.svg" class="brand-mark" alt="Quantlerning" />
-          <span class="brand-name">Quantlerning</span>
-        </RouterLink>
-        <button
-          class="theme-btn tool-desktop"
-          :title="theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'"
-          aria-label="切换深浅色模式"
-          @click="toggleTheme"
-        >
-          <Sun v-if="theme === 'dark'" :size="16" />
-          <Moon v-else :size="16" />
-        </button>
-      </div>
-
       <div class="toc-label"><BookMarked :size="13" class="toc-icon" /> 目录</div>
 
       <div class="toc-search">
@@ -297,7 +312,6 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
                 target="_blank"
                 rel="noopener"
                 class="tool-item"
-                :class="{ 'tool-desktop': t.external }"
                 @click="closeMenu"
               >
                 <component :is="t.icon" :size="15" />
@@ -329,19 +343,57 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 /* 布局：body 作为滚动容器（浏览器原生滚动恢复），侧边栏 fixed 固定 */
 .layout { min-height: 100vh; min-height: 100dvh; }
 
-/* 移动端顶栏（默认隐藏，≤900px 显示） */
-.topbar {
-  display: none;
-  position: fixed;
+/* 顶部导航栏（借鉴设计包 lesson.html 的 topbar）：
+   全屏 sticky 显示，毛玻璃背景；品牌 + 导航 + 操作区 */
+.app-topbar {
+  position: sticky;
   top: 0; left: 0; right: 0;
+  z-index: 40;
   height: var(--topbar-h);
+  display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 12px;
-  background: var(--bg-card);
+  padding: 0 16px;
+  background: color-mix(in srgb, var(--bg-page) 85%, transparent);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
-  z-index: 20;
 }
+.app-topbar .topbar-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 17px; font-weight: 700; letter-spacing: -0.01em;
+  color: var(--text-1);
+  flex-shrink: 0;
+}
+.app-topbar .topbar-brand .brand-mark { width: 30px; height: 30px; border-radius: 8px; }
+.app-topbar .topbar-brand .brand-name .q { color: var(--primary); }
+.app-topbar .topbar-nav { display: flex; gap: 4px; margin-left: 4px; overflow-x: auto; scrollbar-width: none; }
+.app-topbar .topbar-nav::-webkit-scrollbar { display: none; }
+.app-topbar .nav-link {
+  padding: 7px 13px;
+  border-radius: var(--radius-sm);
+  color: var(--text-2); font-size: 13px; font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+}
+.app-topbar .nav-link:hover { background: var(--bg-hover); color: var(--text-1); }
+.app-topbar .nav-link.active { background: var(--primary-soft); color: var(--primary); }
+.app-topbar .topbar-title {
+  flex: 1;
+  font-size: 14px; font-weight: 600; color: var(--text-1);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.app-topbar .topbar-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; }
+.app-topbar .icon-btn {
+  border: none; background: none;
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-2); cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+.app-topbar .icon-btn:hover { background: var(--bg-hover); color: var(--text-1); }
+
 .menu-btn {
   border: none; background: none;
   font-size: 20px; line-height: 1;
@@ -350,6 +402,7 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   display: flex; align-items: center; justify-content: center;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  flex-shrink: 0;
 }
 .menu-btn:active { background: var(--bg-hover); }
 .theme-btn {
@@ -361,14 +414,8 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   cursor: pointer;
   flex-shrink: 0;
 }
+.theme-btn:hover { background: var(--bg-hover); color: var(--text-1); }
 .theme-btn:active { background: var(--bg-hover); }
-
-.topbar-brand { display: flex; }
-.topbar-title {
-  flex: 1;
-  font-size: 14px; font-weight: 600; color: var(--text-1);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
 
 /* 抽屉遮罩（移动端） */
 .drawer-mask {
@@ -377,33 +424,16 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   z-index: 25;
 }
 
-/* 侧边栏：fixed 固定（body 滚动时保持原位） */
+/* 侧边栏：fixed 固定，位于顶栏下方（body 滚动时保持原位） */
 .sidebar {
   position: fixed;
-  top: 0; bottom: 0; left: 0;
+  top: var(--topbar-h); bottom: 0; left: 0;
   width: var(--sidebar-w);
   z-index: 30;
   background: var(--bg-card);
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
 }
-/* 品牌行：品牌 + 桌面端主题切换按钮 */
-.brand-row {
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid var(--border);
-  padding-right: 6px;
-}
-.brand {
-  flex: 1;
-  display: flex; align-items: center; gap: 10px;
-  padding: 16px 12px 16px 20px;
-  font-weight: 700; font-size: 16px;
-  color: var(--text-1);
-  min-width: 0;
-}
-.brand:hover { color: var(--text-1); }
-.brand-row .theme-btn { width: 32px; height: 32px; font-size: 14px; flex-shrink: 0; }
 .brand-mark {
   width: 30px; height: 30px; border-radius: 8px;
   display: block;
@@ -515,9 +545,17 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   transition: none; /* 拖拽分隔条期间实时跟随，禁用过渡 */
 }
 
+/* ---------- 桌面端（>900px）：顶栏显示导航与文字标，隐藏汉堡、当前课程与侧边栏工具菜单 ---------- */
+@media (min-width: 901px) {
+  .app-topbar .menu-btn { display: none; }
+  .app-topbar .topbar-title { display: none; }
+  .sidebar .tools { display: none; }
+}
+
 /* ---------- 移动端适配（≤900px） ---------- */
 @media (max-width: 900px) {
-  .topbar { display: flex; }
+  .app-topbar .brand-name { display: none; }
+  .app-topbar .topbar-nav { display: none; }
 
   .sidebar {
     transform: translateX(-100%);
@@ -528,15 +566,12 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 
   .main {
     margin-left: 0;
-    padding: calc(var(--topbar-h) + 12px) 16px 84px;
+    padding: 20px 16px 84px;
   }
 
   /* 目录触控目标加大 */
   .chapter-head { padding: 9px 10px 9px 20px; }
   .subsection { padding: 8px 10px; }
   .tool-item { padding: 9px 12px; }
-
-  /* 移动端隐藏指向 localhost 的外链工具（手机上无意义），侧边栏主题按钮也隐藏（顶栏已有） */
-  .tool-desktop { display: none; }
 }
 </style>
