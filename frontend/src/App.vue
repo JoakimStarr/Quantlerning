@@ -186,7 +186,7 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
     <header class="topbar">
       <button class="menu-btn" aria-label="切换目录" @click="menuOpen = !menuOpen"><Menu :size="20" /></button>
       <RouterLink to="/" class="topbar-brand" @click="closeMenu">
-        <span class="brand-mark">Q</span>
+        <img src="/icon.svg" class="brand-mark" alt="Quantlerning" />
       </RouterLink>
       <span class="topbar-title">{{ currentLessonTitle || 'Quantlerning' }}</span>
       <button class="theme-btn" :title="theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'" aria-label="切换深浅色模式" @click="toggleTheme">
@@ -203,7 +203,7 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
       <!-- 品牌行（含桌面端主题切换，替代原右上角悬浮按钮） -->
       <div class="brand-row">
         <RouterLink to="/" class="brand" @click="closeMenu">
-          <span class="brand-mark">Q</span>
+          <img src="/icon.svg" class="brand-mark" alt="Quantlerning" />
           <span class="brand-name">Quantlerning</span>
         </RouterLink>
         <button
@@ -406,9 +406,9 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 .brand-row .theme-btn { width: 32px; height: 32px; font-size: 14px; flex-shrink: 0; }
 .brand-mark {
   width: 30px; height: 30px; border-radius: 8px;
-  background: var(--primary); color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; font-weight: 700;
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .toc-label { font-size: 12px; color: var(--text-3); font-weight: 600; padding: 12px 20px 6px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
