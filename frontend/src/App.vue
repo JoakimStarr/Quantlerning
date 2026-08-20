@@ -405,8 +405,7 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 }
 .app-topbar .topbar-brand .brand-mark { width: 30px; height: 30px; border-radius: 8px; }
 .app-topbar .topbar-brand .brand-name .q { color: var(--primary); }
-.app-topbar .topbar-nav { display: flex; gap: 4px; margin-left: 4px; overflow-x: auto; scrollbar-width: none; }
-.app-topbar .topbar-nav::-webkit-scrollbar { display: none; }
+.app-topbar .topbar-nav { display: flex; gap: 4px; margin-left: 4px; }
 .app-topbar .nav-link {
   padding: 7px 13px;
   border-radius: var(--radius-sm);
