@@ -90,8 +90,9 @@ const option = computed(() => {
         const ok = ps.find((p: any) => p.seriesName === '✓ 合规（次日成交）')
         const bad = ps.find((p: any) => p.seriesName === '✗ 前视（当日成交）')
         const parts = [ps[0].name]
-        if (ok) parts.push(`合规 ${Number(ok.value[1]).toFixed(1)}`)
-        if (bad) parts.push(`前视 ${Number(bad.value[1]).toFixed(1)}`)
+        // series data 为纯数值数组，value 即净值本身（非 [x, y] 对），取 value[1] 会得到 undefined → NaN
+        if (ok) parts.push(`合规 ${Number(Array.isArray(ok.value) ? ok.value[1] : ok.value).toFixed(1)}`)
+        if (bad) parts.push(`前视 ${Number(Array.isArray(bad.value) ? bad.value[1] : bad.value).toFixed(1)}`)
         return parts.join('<br/>')
       },
     },
