@@ -203,6 +203,11 @@ function goPhase(p: any) {
   if (p.lessons.length) router.push(`/phase/${p.phase}`)
 }
 
+// Hero「开始学习」：有上次学习记录则续读，否则从第一章入口开始
+function startLearning() {
+  router.push(resume.value?.path ?? '/phase/0')
+}
+
 // 学习总进度
 const overall = computed(() => {
   let done = 0, total = 0
@@ -216,11 +221,21 @@ const overall = computed(() => {
 
 <template>
   <div class="page">
-    <!-- 头部 -->
-    <div class="page-head">
-      <div>
+    <!-- Hero：开场 + CTA + 统计 + 总进度（借鉴设计包 home.html） -->
+    <section class="hero">
+      <div class="hero-main">
+        <span class="eyebrow">渐进式量化学习</span>
         <h1>从 0 到量化高手</h1>
-        <p class="muted">渐进式学习路径 · 每个概念都能看见、能动手</p>
+        <p class="lead">63 课系统课程 · 75+ 交互模拟器 · 10 年真实 A 股数据。每个核心概念都看得见、摸得着，学完即用。</p>
+        <div class="hero-cta">
+          <button class="btn btn-primary btn-lg" @click="startLearning">开始学习</button>
+          <button class="btn btn-outline btn-lg" @click="router.push('/data-browser')">浏览数据</button>
+        </div>
+        <div class="hero-stats">
+          <div class="hs"><b>{{ overall.total }}</b><span>系统课程</span></div>
+          <div class="hs"><b>75+</b><span>交互模拟器</span></div>
+          <div class="hs"><b>10<span class="hs-unit">年</span></b><span>真实数据</span></div>
+        </div>
       </div>
       <div class="overall-card">
         <div class="overall-label">总进度</div>
@@ -228,7 +243,7 @@ const overall = computed(() => {
         <div class="overall-bar"><div class="bar-fill" :style="{ width: overall.pct + '%' }"></div></div>
         <div class="faint overall-detail">{{ overall.done }}/{{ overall.total }} 课</div>
       </div>
-    </div>
+    </section>
 
     <AppSpinner v-if="loading" text="加载课程…" />
     <AppError v-else-if="error" :message="error" @retry="load" />
@@ -279,12 +294,14 @@ const overall = computed(() => {
       </div>
 
       <div v-for="p in phases" :key="p.phase" class="phase-card" :class="{ active: p.status === 'in_progress' }" @click="goPhase(p)">
-        <div class="phase-row">
-          <span class="phase-num">{{ chapterLabel(p.phase) }}</span>
-          <span :class="phaseStatus[p.status]?.cls || 'badge'">{{ phaseStatus[p.status]?.label || p.status }}</span>
+        <div class="phase-top">
+          <span class="phase-no">{{ chapterLabel(p.phase) }}</span>
+          <div class="phase-txt">
+            <h2 class="phase-title">{{ p.title }}</h2>
+            <p class="muted phase-subtitle">{{ p.subtitle }}</p>
+          </div>
+          <span class="phase-badge" :class="phaseStatus[p.status]?.cls || 'badge'">{{ phaseStatus[p.status]?.label || p.status }}</span>
         </div>
-        <h2 class="phase-title">{{ p.title }}</h2>
-        <p class="muted phase-subtitle">{{ p.subtitle }}</p>
 
         <!-- 进度条（有课程时显示） -->
         <div v-if="p.lessons.length" class="mini-progress">
@@ -301,15 +318,57 @@ const overall = computed(() => {
       </div>
       </div>
     </template>
+
+    <!-- CTA 收尾带（借鉴设计包 home.html） -->
+    <section class="cta-band">
+      <div>
+        <h2>今天，搞懂一个量化概念</h2>
+        <p>从一节 15 分钟的小课开始，配套模拟器与即时测验，让知识真正可用。</p>
+      </div>
+      <button class="cta-btn" @click="startLearning">免费开始</button>
+    </section>
   </div>
 </template>
 
 <style scoped>
 .page { max-width: 960px; margin: 0 auto; }
-.page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 28px; }
-.page-head h1 { font-size: 26px; margin-bottom: 4px; }
+/* ---------- Hero（借鉴设计包 home.html） ---------- */
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 32px;
+  padding: 16px 0 32px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+.hero-main { flex: 1; min-width: 0; }
+.eyebrow {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.hero h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 10px; }
+.hero .lead { color: var(--text-2); font-size: 15px; line-height: 1.8; max-width: 52ch; }
+.hero-cta { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.hero-cta .btn-lg { padding: 11px 22px; font-size: 15px; }
+.hero-cta .btn-outline {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text-2);
+}
+.hero-cta .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+.hero-stats { display: flex; gap: 28px; margin-top: 24px; flex-wrap: wrap; }
+.hs b { font-family: var(--font-mono); font-size: 22px; font-weight: 600; line-height: 1.15; display: block; }
+.hs .hs-unit { font-size: 0.6em; }
+.hs span { font-size: 12px; color: var(--text-3); }
 
-.overall-card { width: 180px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 16px; box-shadow: var(--shadow-sm); }
+.overall-card { width: 200px; flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px 18px; box-shadow: var(--shadow-sm); }
 .overall-label { font-size: 12px; color: var(--text-3); }
 .overall-num { font-size: 26px; font-weight: 700; color: var(--primary); margin: 2px 0 8px; }
 .overall-bar { height: 6px; background: var(--bg-hover); border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
@@ -354,8 +413,16 @@ const overall = computed(() => {
 }
 .phase-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-md); }
 .phase-card.active { border-color: var(--primary); }
-.phase-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.phase-num { font-weight: 700; color: var(--primary); font-size: 13px; letter-spacing: 1px; }
+/* 阶段卡头部：序号方块 + 标题 + 状态徽章（借鉴设计包 home.html 的 phase 卡） */
+.phase-top { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.phase-no {
+  width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0;
+  background: var(--primary-soft); color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+}
+.phase-txt { flex: 1; min-width: 0; }
+.phase-badge { margin-left: auto; flex-shrink: 0; }
 .phase-title { font-size: 18px; margin-bottom: 2px; }
 .phase-subtitle { font-size: 13px; }
 
@@ -366,4 +433,36 @@ const overall = computed(() => {
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--bg-hover); color: var(--text-2); }
 .chip.done { background: var(--success-soft); color: var(--success); }
+
+/* CTA 收尾带（借鉴设计包 home.html） */
+.cta-band {
+  margin-top: 36px;
+  background: var(--primary);
+  border-radius: 16px;
+  padding: 30px 34px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.cta-band h2 { color: #fff; font-size: 20px; }
+.cta-band p { color: rgba(255, 255, 255, 0.85); font-size: 13px; margin-top: 6px; max-width: 46ch; }
+.cta-btn {
+  background: #fff; color: var(--primary);
+  border: none; cursor: pointer;
+  padding: 12px 26px; font-size: 15px; font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.cta-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+/* 移动端：Hero 纵向堆叠，总进度卡占满 */
+@media (max-width: 640px) {
+  .hero { flex-direction: column; align-items: stretch; }
+  .overall-card { width: 100%; }
+  .hero-stats { gap: 20px; }
+}
+
 </style>
