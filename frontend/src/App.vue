@@ -79,10 +79,16 @@ function closeMenu() {
 // 侧边栏「工具」二级菜单（点击展开，点击外部收起）
 const toolsOpen = ref(false)
 const toolsRef = ref<HTMLElement | null>(null)
+// 顶栏「更多」下拉（点击展开，点击外部收起）
+const moreOpen = ref(false)
+const moreRef = ref<HTMLElement | null>(null)
 // 点击菜单外部时收起
 function onDocClick(e: MouseEvent) {
   if (toolsOpen.value && toolsRef.value && !toolsRef.value.contains(e.target as Node)) {
     toolsOpen.value = false
+  }
+  if (moreOpen.value && moreRef.value && !moreRef.value.contains(e.target as Node)) {
+    moreOpen.value = false
   }
 }
 onMounted(() => document.addEventListener('click', onDocClick))
@@ -91,6 +97,7 @@ watch(
   () => route.fullPath,
   () => {
     toolsOpen.value = false
+    moreOpen.value = false
   },
 )
 
@@ -112,17 +119,22 @@ const isCoursePath = computed(
   () => route.path.startsWith('/lesson/') || route.path.startsWith('/phase/'),
 )
 
-// 顶栏主导航：首页 + 课程 + 全部工具页（桌面端全站导航，侧边栏只留课程目录）
+// 顶栏主导航：核心四项（桌面端全站导航，侧边栏只留课程目录）
 const topNav = computed(() => [
   { label: '首页', to: '/', active: route.path === '/' },
   { label: '课程', to: '/phase/0', active: isCoursePath.value },
-  { label: '实验室', to: '/lab', active: route.path === '/lab' },
-  { label: '速查表', to: '/cheatsheet', active: route.path === '/cheatsheet' },
   { label: '数据', to: '/data-browser', active: route.path === '/data-browser' },
-  { label: '因子', to: '/factors', active: route.path === '/factors' },
-  { label: '统计', to: '/stats', active: route.path === '/stats' },
   { label: '设置', to: '/settings', active: route.path === '/settings' },
 ])
+
+// 顶栏「更多」下拉：次要工具页 + 外链 QuantLab
+const moreNav = computed(() => [
+  { label: '可视化实验室', to: '/lab', active: route.path === '/lab' },
+  { label: '速查表', to: '/cheatsheet', active: route.path === '/cheatsheet' },
+  { label: '因子库', to: '/factors', active: route.path === '/factors' },
+  { label: '学习统计', to: '/stats', active: route.path === '/stats' },
+])
+const isMoreActive = computed(() => moreNav.value.some((n) => n.active))
 
 onMounted(async () => {
   try {
@@ -214,6 +226,33 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
           class="nav-link"
           :class="{ active: n.active }"
         >{{ n.label }}</RouterLink>
+
+        <!-- 更多下拉：次要工具页 + 外链 -->
+        <div ref="moreRef" class="more">
+          <button
+            class="nav-link more-btn"
+            :class="{ active: isMoreActive }"
+            :aria-expanded="moreOpen"
+            aria-haspopup="menu"
+            @click="moreOpen = !moreOpen"
+          >
+            更多
+            <ChevronDown :size="13" :class="{ up: moreOpen }" />
+          </button>
+          <Transition name="more-pop">
+            <div v-if="moreOpen" class="more-pop" role="menu">
+              <RouterLink
+                v-for="n in moreNav"
+                :key="n.to"
+                :to="n.to"
+                class="more-item"
+                :class="{ active: n.active }"
+                role="menuitem"
+                @click="moreOpen = false"
+              >{{ n.label }}</RouterLink>
+            </div>
+          </Transition>
+        </div>
       </nav>
       <span class="topbar-title">{{ currentLessonTitle || 'Quantlerning' }}</span>
       <div class="topbar-actions">
@@ -393,6 +432,34 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   transition: background 0.12s, color 0.12s;
 }
 .app-topbar .icon-btn:hover { background: var(--bg-hover); color: var(--text-1); }
+
+/* 「更多」下拉菜单 */
+.app-topbar .more { position: relative; }
+.app-topbar .more-btn { display: inline-flex; align-items: center; gap: 3px; }
+.app-topbar .more-btn svg { transition: transform 0.15s; }
+.app-topbar .more-btn svg.up { transform: rotate(180deg); }
+.more-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 176px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  z-index: 60;
+}
+.more-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: var(--radius-sm);
+  color: var(--text-2); font-size: 13px; font-weight: 500;
+  transition: background 0.12s, color 0.12s;
+}
+.more-item:hover { background: var(--bg-hover); color: var(--text-1); }
+.more-item.active { background: var(--bg-active); color: var(--primary); font-weight: 600; }
+.more-pop-enter-active, .more-pop-leave-active { transition: opacity 0.15s, transform 0.15s; }
+.more-pop-enter-from, .more-pop-leave-to { opacity: 0; transform: translateY(6px); }
 
 .menu-btn {
   border: none; background: none;
