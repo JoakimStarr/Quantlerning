@@ -374,6 +374,11 @@ const registry = {
     desc: '快慢周期 × 年化收益',
     comp: markRaw(defineAsyncComponent(() => import('../simulators/ParameterLandscape.vue'))),
   },
+  sawtooth: {
+    title: '参数扫描：锯齿现象',
+    desc: '快线参数扫描年化柱状图：样本内锯齿 + 最优邻域高亮，样本外对照验证',
+    comp: markRaw(defineAsyncComponent(() => import('../simulators/Sawtooth.vue'))),
+  },
   random_walk: {
     title: '随机游走',
     desc: '几何布朗运动 vs 真实茅台（示意 + 真实锚点）',
