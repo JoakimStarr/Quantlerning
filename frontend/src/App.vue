@@ -263,8 +263,10 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
           <Microscope :size="18" />
         </a>
         <button class="theme-btn" :title="theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'" aria-label="切换深浅色模式" @click="toggleTheme">
-          <Sun v-if="theme === 'dark'" :size="18" />
-          <Moon v-else :size="18" />
+          <Transition name="theme-icon" mode="out-in">
+            <Sun v-if="theme === 'dark'" key="sun" :size="18" />
+            <Moon v-else key="moon" :size="18" />
+          </Transition>
         </button>
       </div>
     </header>
@@ -490,6 +492,20 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 }
 .theme-btn:hover { background: var(--bg-hover); color: var(--text-1); }
 .theme-btn:active { background: var(--bg-hover); }
+
+/* 主题图标切换动效：旧图标淡出旋转、新图标淡入旋转，避免「啪」地硬换 */
+.theme-icon-enter-active,
+.theme-icon-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.theme-icon-enter-from {
+  opacity: 0;
+  transform: rotate(-70deg) scale(0.6);
+}
+.theme-icon-leave-to {
+  opacity: 0;
+  transform: rotate(70deg) scale(0.6);
+}
 
 /* 抽屉遮罩（移动端） */
 .drawer-mask {

@@ -165,6 +165,32 @@
 
 * { box-sizing: border-box; }
 
+/* 主题切换动画：切换瞬间 <html> 会挂 .theme-anim（见 utils/theme.ts），
+   由这里接管背景/文字/边框的平滑过渡，消除深浅色切换时的白块/黑块闪现。
+   只在动画窗口内生效，不影响平时的 hover 等局部过渡。 */
+html.theme-anim,
+html.theme-anim *,
+html.theme-anim *::before,
+html.theme-anim *::after {
+  transition:
+    background-color 0.3s var(--ease-out),
+    border-color 0.3s var(--ease-out),
+    color 0.3s var(--ease-out),
+    fill 0.3s var(--ease-out),
+    stroke 0.3s var(--ease-out),
+    box-shadow 0.3s var(--ease-out) !important;
+}
+
+/* 系统要求减弱动效时，主题切换直接跳变（不做淡入淡出） */
+@media (prefers-reduced-motion: reduce) {
+  html.theme-anim,
+  html.theme-anim *,
+  html.theme-anim *::before,
+  html.theme-anim *::after {
+    transition: none !important;
+  }
+}
+
 html {
   /* 防 iOS 横屏/缩放自动放大字号 */
   -webkit-text-size-adjust: 100%;

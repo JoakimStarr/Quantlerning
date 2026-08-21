@@ -37,8 +37,18 @@ export function useTheme() {
     followSystem = true
   }
 
+  // 切换瞬间给 <html> 挂 .theme-anim，让 main.css 里的全局过渡接管，
+  // 避免深浅色切换整页「啪」地闪白/闪黑（动画结束后移除）
+  let animTimer: ReturnType<typeof setTimeout> | undefined
+  function beginThemeAnim() {
+    document.documentElement.classList.add('theme-anim')
+    clearTimeout(animTimer)
+    animTimer = setTimeout(() => document.documentElement.classList.remove('theme-anim'), 350)
+  }
+
   function applySystemTheme(e?: MediaQueryListEvent) {
     if (!followSystem) return
+    if (e) beginThemeAnim() // 系统偏好真实变化才动画，初始同步不触发
     theme.value = e ? (e.matches ? 'dark' : 'light') : (mql?.matches ? 'dark' : 'light')
     document.documentElement.setAttribute('data-theme', theme.value)
   }
@@ -54,6 +64,7 @@ export function useTheme() {
     followSystem = false
     mql?.removeEventListener('change', applySystemTheme)
     mql = null
+    beginThemeAnim()
     theme.value = theme.value === 'dark' ? 'light' : 'dark'
     document.documentElement.setAttribute('data-theme', theme.value)
     try {
