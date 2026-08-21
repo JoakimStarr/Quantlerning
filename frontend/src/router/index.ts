@@ -1,10 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '@/views/HomeView.vue'
+// 首页 2.0（设计包 home.html 风格重构）；原 HomeView.vue 保留未动，如需回退改回此引用即可
+import HomeView2 from '@/views/HomeView2.vue'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', name: 'home', component: HomeView },
+    { path: '/', name: 'home', component: HomeView2 },
     { path: '/phase/:phase', name: 'phase', component: () => import('@/views/PhaseView.vue') },
     { path: '/lesson/:id', name: 'lesson', component: () => import('@/views/LessonView.vue') },
     { path: '/lab', name: 'lab', component: () => import('@/views/LabView.vue') },
