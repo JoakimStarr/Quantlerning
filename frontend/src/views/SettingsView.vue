@@ -74,8 +74,18 @@ const webConfigured = ref(false)
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
-const notice = ref('')
-const testResult = ref<{ ok: boolean; message: string; reply?: string; target?: string } | null>(null)
+
+// 浮动提示（toast）：测试/保存/切换等操作反馈，任何滚动位置都可见
+const toast = ref<{ type: 'ok' | 'bad' | 'info'; text: string; reply?: string } | null>(null)
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+function showToast(type: 'ok' | 'bad' | 'info', text: string, reply?: string) {
+  if (toastTimer) clearTimeout(toastTimer)
+  toast.value = { type, text, reply }
+  toastTimer = setTimeout(() => {
+    toast.value = null
+    toastTimer = null
+  }, 5000)
+}
 
 // 已保存全局值快照（用于「未保存修改」提示）
 const savedGlobal = reactive({ maxTokens: 1024, temperature: 0.4 })
@@ -109,6 +119,7 @@ async function reloadSettings() {
     savedGlobal.temperature = temperature.value
   } catch (e: any) {
     error.value = e?.message || '加载设置失败'
+    showToast('bad', error.value)
   } finally {
     loading.value = false
   }
@@ -123,13 +134,14 @@ const testingId = ref('')
 async function activate(id: string) {
   actingId.value = id
   error.value = ''
-  notice.value = ''
   try {
     const res = await activateAIProvider(id)
     activeProviderId.value = res.active_provider_id
-    notice.value = '已切换当前使用。课程内「AI 追问」的模型下拉将跟随该 provider。'
+    const name = providers.value.find((x) => x.id === res.active_provider_id)?.name || ''
+    showToast('ok', `已切换使用「${name}」。课程内「AI 追问」的模型下拉将跟随该 provider。`)
   } catch (e: any) {
     error.value = e?.message || '切换失败'
+    showToast('bad', error.value)
   } finally {
     actingId.value = ''
   }
@@ -138,12 +150,11 @@ async function activate(id: string) {
 async function testProvider(p: AIProvider) {
   testingId.value = p.id
   error.value = ''
-  notice.value = ''
-  testResult.value = null
   try {
-    testResult.value = { ...(await testAIProvider(p.id)), target: p.name }
+    const res = await testAIProvider(p.id)
+    showToast(res.ok ? 'ok' : 'bad', `「${p.name}」${res.message}`, res.reply)
   } catch (e: any) {
-    testResult.value = { ok: false, message: e?.message || '连接测试失败', target: p.name }
+    showToast('bad', `「${p.name}」连接测试失败：${e?.message || ''}`)
   } finally {
     testingId.value = ''
   }
@@ -154,13 +165,13 @@ async function removeProvider(p: AIProvider) {
   if (!window.confirm(`${label}「${p.name}」？`)) return
   actingId.value = p.id
   error.value = ''
-  notice.value = ''
   try {
     await deleteAIProvider(p.id)
     await reloadSettings()
-    notice.value = p.builtin ? `「${p.name}」已重置为内置默认。` : `「${p.name}」已删除。`
+    showToast('ok', p.builtin ? `「${p.name}」已重置为内置默认。` : `「${p.name}」已删除。`)
   } catch (e: any) {
     error.value = e?.message || '操作失败'
+    showToast('bad', error.value)
   } finally {
     actingId.value = ''
   }
@@ -191,7 +202,6 @@ function openCreate() {
   editorOpen.value = true
   modelList.value = []
   modelError.value = ''
-  testResult.value = null
 }
 
 function openEdit(p: AIProvider) {
@@ -205,7 +215,6 @@ function openEdit(p: AIProvider) {
   editorOpen.value = true
   modelList.value = []
   modelError.value = ''
-  testResult.value = null
 }
 
 function closeEditor() {
@@ -222,12 +231,11 @@ function applyEditPreset(e: Event) {
 
 async function saveProvider() {
   error.value = ''
-  notice.value = ''
   const name = editor.name.trim()
   const baseUrl = editor.baseUrl.trim()
   const model = editor.model.trim()
   if (!name || !baseUrl || !model) {
-    error.value = '请填写 名称 / Base URL / 模型名称 后再保存'
+    showToast('bad', '请填写 名称 / Base URL / 模型名称 后再保存')
     return
   }
   editorSaving.value = true
@@ -240,7 +248,7 @@ async function saveProvider() {
       }
       if (editor.apiKey.trim()) payload.api_key = editor.apiKey.trim()
       await updateAIProvider(editor.id, payload)
-      notice.value = '已保存。'
+      showToast('ok', '已保存。')
     } else {
       await createAIProvider({
         name,
@@ -248,12 +256,13 @@ async function saveProvider() {
         model,
         ...(editor.apiKey.trim() ? { api_key: editor.apiKey.trim() } : {}),
       })
-      notice.value = '已添加并保存。可在列表中设为当前使用。'
+      showToast('ok', '已添加并保存。可在列表中设为当前使用。')
     }
     editorOpen.value = false
     await reloadSettings()
   } catch (e: any) {
     error.value = e?.message || '保存失败'
+    showToast('bad', error.value)
   } finally {
     editorSaving.value = false
   }
@@ -305,23 +314,25 @@ watch(modelOpen, (v) => {
   if (v) document.addEventListener('click', onDocClick)
   else document.removeEventListener('click', onDocClick)
 })
-onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocClick)
+  if (toastTimer) clearTimeout(toastTimer)
+})
 
 async function testEditor() {
   error.value = ''
-  notice.value = ''
-  testResult.value = null
   editorTesting.value = true
   try {
-    testResult.value = await testAISettings({
+    const res = await testAISettings({
       base_url: editor.baseUrl.trim(),
       api_key: editor.apiKey.trim() || undefined,
       model: editor.model.trim(),
       max_tokens: maxTokens.value,
       temperature: temperature.value,
     })
+    showToast(res.ok ? 'ok' : 'bad', res.message, res.reply)
   } catch (e: any) {
-    testResult.value = { ok: false, message: e?.message || '连接测试失败' }
+    showToast('bad', `连接测试失败：${e?.message || ''}`)
   } finally {
     editorTesting.value = false
   }
@@ -330,7 +341,6 @@ async function testEditor() {
 // ---------- 全局参数保存（底部） ----------
 async function saveGlobal() {
   error.value = ''
-  notice.value = ''
   saving.value = true
   try {
     const cfg = await saveAISettings({
@@ -343,9 +353,10 @@ async function saveGlobal() {
     webSearchKey.value = ''
     savedGlobal.maxTokens = maxTokens.value
     savedGlobal.temperature = temperature.value
-    notice.value = '已保存。生成参数与联网搜索设置已生效。'
+    showToast('ok', '已保存。生成参数与联网搜索设置已生效。')
   } catch (e: any) {
     error.value = e?.message || '保存失败'
+    showToast('bad', error.value)
   } finally {
     saving.value = false
   }
@@ -647,14 +658,6 @@ async function saveGlobal() {
 
       <!-- 状态与操作 -->
       <div v-if="error" class="msg-error">{{ error }}</div>
-      <div v-if="notice" class="msg-notice">{{ notice }}</div>
-      <div v-if="testResult" class="msg-test" :class="testResult.ok ? 'ok' : 'bad'">
-        <strong class="test-mark">
-          <Check v-if="testResult.ok" :size="14" /><X v-else :size="14" />
-          {{ testResult.target ? `「${testResult.target}」` : '' }}{{ testResult.message }}
-        </strong>
-        <div v-if="testResult.reply" class="test-reply">{{ testResult.reply }}</div>
-      </div>
 
       <div class="actions-bar">
         <span v-if="dirty" class="dirty-hint">有未保存的生成参数 / 联网搜索修改</span>
@@ -666,6 +669,18 @@ async function saveGlobal() {
       </div>
       <p class="actions-help">Provider 的增删改、切换即时保存；此按钮只保存生成参数与联网搜索。</p>
     </div>
+
+    <!-- 浮动提示 -->
+    <Transition name="toast">
+      <div v-if="toast" class="toast" :class="toast.type">
+        <strong class="toast-mark">
+          <Check v-if="toast.type === 'ok'" :size="14" />
+          <X v-else :size="14" />
+          {{ toast.text }}
+        </strong>
+        <div v-if="toast.reply" class="toast-reply">{{ toast.reply }}</div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -897,13 +912,37 @@ async function saveGlobal() {
 }
 .slider { width: 100%; accent-color: var(--primary); cursor: pointer; margin: 6px 0 2px; }
 
-.msg-error, .msg-notice, .msg-test { font-size: 13px; padding: 9px 12px; border-radius: var(--radius-sm); line-height: 1.6; }
-.msg-error { color: var(--danger, #dc2626); background: color-mix(in srgb, var(--danger, #dc2626) 8%, transparent); }
-.msg-notice { color: var(--success, #16a34a); background: color-mix(in srgb, var(--success) 8%, transparent); }
-.msg-test { border: 1px solid var(--border); }
-.msg-test.ok { color: var(--success, #16a34a); background: color-mix(in srgb, var(--success) 6%, transparent); }
-.msg-test.bad { color: var(--danger, #dc2626); background: color-mix(in srgb, var(--danger, #dc2626) 6%, transparent); }
-.test-reply { margin-top: 4px; color: var(--text-2); }
+.msg-error { font-size: 13px; padding: 9px 12px; border-radius: var(--radius-sm); line-height: 1.6; color: var(--danger, #dc2626); background: color-mix(in srgb, var(--danger, #dc2626) 8%, transparent); }
+
+/* 浮动提示 toast：右上角固定，操作反馈立即可见 */
+.toast {
+  position: fixed;
+  top: 72px;
+  right: 20px;
+  z-index: 1000;
+  max-width: min(400px, 86vw);
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+.toast.ok {
+  color: var(--success, #16a34a);
+  border-color: color-mix(in srgb, var(--success) 45%, transparent);
+  background: color-mix(in srgb, var(--success) 8%, var(--bg-card));
+}
+.toast.bad {
+  color: var(--danger, #dc2626);
+  border-color: color-mix(in srgb, var(--danger, #dc2626) 45%, transparent);
+  background: color-mix(in srgb, var(--danger, #dc2626) 8%, var(--bg-card));
+}
+.toast-mark { display: inline-flex; align-items: center; gap: 6px; }
+.toast-reply { margin-top: 4px; color: var(--text-2); font-size: 12px; }
+.toast-enter-active, .toast-leave-active { transition: opacity 0.18s, transform 0.18s; }
+.toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(-8px); }
 
 .actions-bar {
   display: flex;
