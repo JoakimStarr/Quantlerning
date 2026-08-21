@@ -201,12 +201,17 @@ const option = computed(() => {
 
       <div class="stats">
         <span class="chip">样本 n = <strong>{{ current.vals.length }}</strong></span>
-        <span class="chip">均值 = <strong>{{ current.mu.toFixed(3) }}%</strong></span>
+        <span class="chip">均值 = <strong>{{ current.mu.toFixed(3) }}{{ stage === 'z' ? '' : '%' }}</strong></span>
         <span class="chip">标准差 = <strong>{{ current.sd.toFixed(3) }}</strong></span>
         <span class="chip note">{{ current.note }}</span>
       </div>
 
       <ThemedChart class="chart" :option="option" autoresize />
+
+      <p class="tip">
+        注意：z-score 标准化是<b>线性变换</b>——减去均值、除以标准差，只改横轴尺度和单位，<b>不改变分布形状</b>。
+        所以「标准化」与「原始收益」直方图形状一致是正常的；真正改变形状的是上一步「MAD 去极值」（把尾部极端值裁到阈值内）。
+      </p>
     </template>
   </div>
 </template>
@@ -230,4 +235,9 @@ const option = computed(() => {
 }
 .chip strong { color: var(--primary); }
 .chip.note { background: var(--primary-soft); color: var(--text-2); }
+.tip {
+  margin-top: 10px; font-size: 12.5px; color: var(--text-3); line-height: 1.7;
+  background: var(--primary-soft); border-radius: var(--radius-sm); padding: 8px 12px;
+}
+.tip b { color: var(--text-2); }
 </style>
