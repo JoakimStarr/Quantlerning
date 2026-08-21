@@ -83,7 +83,18 @@ const props = defineProps<{
 }>()
 
 const open = ref(false)
-const expanded = ref(false) // 放大模式：面板变宽填充右侧内容区
+// 放大模式：面板变宽填充右侧内容区。状态持久化（ql:aiAskExpanded）：上次是全屏则重新打开仍全屏；
+// 非全屏时不写存储（默认值即 false），保持「只记得全屏」的语义
+const expanded = ref(localStorage.getItem('ql:aiAskExpanded') === '1')
+function toggleExpanded() {
+  expanded.value = !expanded.value
+  try {
+    if (expanded.value) localStorage.setItem('ql:aiAskExpanded', '1')
+    else localStorage.removeItem('ql:aiAskExpanded')
+  } catch {
+    // 存储不可用：忽略
+  }
+}
 const input = ref('')
 const thinking = ref(false)
 const error = ref('')
@@ -538,7 +549,7 @@ watch(
           <button v-if="messages.length" class="panel-clear" title="清空本小节对话" @click="clearHistory">
             清空
           </button>
-          <button class="panel-expand" :title="expanded ? '缩小窗口' : '放大窗口'" @click="expanded = !expanded">
+          <button class="panel-expand" :title="expanded ? '缩小窗口' : '放大窗口'" @click="toggleExpanded">
             <Maximize2 v-if="!expanded" :size="14" />
             <Minimize2 v-else :size="14" />
           </button>
