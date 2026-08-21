@@ -17,7 +17,7 @@ import {
 } from 'lucide-vue-next'
 import { createMarkdown } from '@/utils/markdownIt'
 import { unwrapOuterFence } from '@/utils/aiOutput'
-import { fetchAIModels, fetchAISettings, streamChat, type ChatTurn } from '@/api'
+import { fetchAISettings, streamChat, type ChatTurn } from '@/api'
 import { useChatHistory } from '@/composables/useChatHistory'
 import { aiPanelLayout } from '@/stores/aiPanel'
 
@@ -204,19 +204,23 @@ const history = useChatHistory(() => props.lessonId, () => props.sectionIndex, m
 onMounted(async () => {
   history.restore()
   try {
-    const { models: list, current } = await fetchAIModels()
-    models.value = list
-    currentModel.value = current
-    // 之前保存的模型若已不在列表（配置变更），回退默认
-    if (model.value && !list.includes(model.value)) model.value = ''
-  } catch {
-    // 拉不到模型列表不阻塞：仍可用默认模型对话
-  }
-  try {
     const cfg = await fetchAISettings()
-    webSearchConfigured.value = cfg.web_search_configured
+    // 模型下拉只展示「配置的模型」（各 provider 的 model），不拉服务商全量目录
+    const seen = new Set<string>()
+    const configured: string[] = []
+    for (const p of cfg.providers) {
+      if (!p.model || seen.has(p.model)) continue
+      seen.add(p.model)
+      configured.push(p.model)
+    }
+    const active = cfg.providers.find((p) => p.id === cfg.active_provider_id)
+    currentModel.value = active?.model || ''
+    models.value = configured.filter((m) => m !== currentModel.value) // 当前模型已作为「默认」首项
+    webSearchConfigured.value = !!cfg.web_search_configured
+    // 之前保存的模型若已不在配置列表（切换 provider / 配置变更），回退默认
+    if (model.value && !configured.includes(model.value)) model.value = ''
   } catch {
-    // 拉不到设置不阻塞
+    // 拉不到设置不阻塞：仍可用默认模型对话
   }
 })
 

@@ -117,31 +117,19 @@ async def update_ai_settings(payload: GlobalSettingsPayload):
 
 @router.get("/ai/models")
 async def list_ai_models():
-    """列出当前 provider 可用的模型（GET {base_url}/models）。
+    """返回当前已配置的模型列表（各 provider 的 model 去重），current 为当前 provider 的模型。
 
-    提供商 models 接口不可用/失败时，回退为已配置模型，保证前端模型下拉总有可选值。
-    返回 {"models": [...], "current": str}。
+    AI 追问面板的模型下拉只展示用户配置的模型；拉取服务商全量目录走
+    POST /settings/ai/models（表单式，保存前预览）。
     """
-    cfg = store.get_effective_config()
+    providers = store.get_providers()
     configured: list[str] = []
-    if cfg.get("model"):
-        configured.append(cfg["model"])
-
-    models: list[str] = []
-    if cfg.get("api_key"):
-        try:
-            models = await _fetch_models(cfg["base_url"], cfg["api_key"])
-        except (AIProviderError, httpx.HTTPError, json.JSONDecodeError):
-            models = []
-
-    if models:
-        # 提供商列表成功：确保已配置模型也在列表里（缺失则补在最前）
-        for m in reversed(configured):
-            if m not in models:
-                models.insert(0, m)
-    else:
-        models = configured
-    return {"models": models, "current": cfg.get("model", "")}
+    for p in providers:
+        m = p.get("model")
+        if m and m not in configured:
+            configured.append(m)
+    active = store.get_active_provider()
+    return {"models": configured, "current": (active or {}).get("model", "")}
 
 
 @router.post("/ai/models")

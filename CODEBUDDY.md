@@ -253,8 +253,8 @@ python scripts/check_content.py p5-l3    # 指定课
 | `DELETE /api/v1/settings/ai/providers/{id}` | 删除自定义 / 重置内置；返回新的 active_provider_id |
 | `POST /api/v1/settings/ai/providers/{id}/activate` | 设为当前使用 provider |
 | `POST /api/v1/settings/ai/providers/{id}/test` | 用存储配置测连接 |
-| `GET /api/v1/settings/ai/models` | 当前 provider 可用模型列表（GET {base_url}/models，失败回退已配置模型） |
-| `POST /api/v1/settings/ai/models` | 按表单 base_url/api_key 拉模型列表（保存前预览） |
+| `GET /api/v1/settings/ai/models` | 已配置模型列表（各 provider 的 model 去重；current=当前 provider 模型；AI 追问面板下拉用） |
+| `POST /api/v1/settings/ai/models` | 按表单 base_url/api_key 拉服务商全量模型列表（「获取模型」用，保存前预览） |
 | `POST /api/v1/settings/ai/test` | 按表单配置测试 AI 连接是否可用 |
 
 ## 里程碑
