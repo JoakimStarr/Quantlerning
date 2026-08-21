@@ -470,7 +470,7 @@ function onQuizSubmitted(score: number, question: string) {
   background: var(--primary);
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 4px 14px rgba(47, 106, 232, 0.35);
 }
 .ask-selection:hover { filter: brightness(1.08); }
 

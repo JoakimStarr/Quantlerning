@@ -3,22 +3,22 @@
    ============================================ */
 
 :root {
-  /* 色彩 */
-  --bg-page: #f6f7f9;
+  /* 色彩（借鉴设计包：深邃蓝主色 + 冷调中性灰） */
+  --bg-page: #f5f6f9;
   --bg-card: #ffffff;
-  --bg-hover: #f0f2f5;
-  --bg-active: #e8f0fe;
+  --bg-hover: #f0f1f4;
+  --bg-active: #e7edfa;
 
-  --border: #e3e6ea;
-  --border-strong: #d0d5dd;
+  --border: #e1e3e8;
+  --border-strong: #cfd2d9;
 
-  --text-1: #1a1f2b;   /* 主文字 */
-  --text-2: #5c6470;   /* 次要文字 */
-  --text-3: #9aa3af;   /* 弱文字/占位 */
+  --text-1: #242936;   /* 主文字（冷调近黑） */
+  --text-2: #5f6873;   /* 次要文字 */
+  --text-3: #868e9b;   /* 弱文字/占位 */
 
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-soft: #dbeafe;
+  --primary: #2f6ae8;
+  --primary-hover: #2456d1;
+  --primary-soft: #edf3fe;
 
   --success: #16a34a;
   --success-soft: #dcfce7;
@@ -26,6 +26,12 @@
   --warning-soft: #fef3c7;
   --danger: #dc2626;
   --danger-soft: #fee2e2;
+
+  /* 金融涨跌：A股惯例「涨红跌绿」——与 UI 语义色（success/danger）刻意区分 */
+  --up: #e03131;
+  --up-soft: #fcebea;
+  --down: #2f9e63;
+  --down-soft: #e6f5ec;
 
   /* 图表辅助色（模拟器/图表专用，深浅色自适应） */
   --violet: #7c3aed;
@@ -47,8 +53,10 @@
   --shadow-md: 0 2px 8px rgba(16, 24, 40, 0.08);
   --shadow-lg: 0 8px 24px rgba(16, 24, 40, 0.12);
 
-  /* 字体 */
-  --font-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+  /* 字体（借鉴设计包：Space Grotesk 标题 / Manrope 正文 / JetBrains Mono 数据） */
+  --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-base: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono',
     Menlo, monospace;
@@ -62,21 +70,27 @@
   --bg-page: #0f1420;
   --bg-card: #161d2e;
   --bg-hover: #1e2638;
-  --bg-active: #1f2f4d;
+  --bg-active: #22314f;
   --border: #2b3448;
   --border-strong: #3c4760;
   --text-1: #e7eaf1;
   --text-2: #a7b0c0;
   --text-3: #6d7688;
-  --primary: #4a8ef7;
-  --primary-hover: #6ca7fa;
-  --primary-soft: #20355c;
+  --primary: #5c93f5;
+  --primary-hover: #7aa7ff;
+  --primary-soft: #22314f;
   --success: #4ade80;
   --success-soft: #173223;
   --warning: #fbbf24;
   --warning-soft: #342a10;
   --danger: #f87171;
   --danger-soft: #3a1e1e;
+
+  /* 金融涨跌（深色：涨红跌绿） */
+  --up: #f87171;
+  --up-soft: #3a1e1e;
+  --down: #4ade80;
+  --down-soft: #173223;
 
   /* 图表辅助色（深浅色自适应） */
   --violet: #a78bfa;
@@ -116,7 +130,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4 { margin: 0; font-weight: 600; line-height: 1.35; }
+h1, h2, h3, h4 { margin: 0; font-weight: 600; line-height: 1.35; font-family: var(--font-display); }
 h1 { font-size: 24px; }
 h2 { font-size: 20px; }
 h3 { font-size: 16px; }

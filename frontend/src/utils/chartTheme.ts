@@ -27,9 +27,9 @@ export interface ChartColors {
 }
 
 const LIGHT: ChartColors = {
-  primary: '#2563eb',
-  primaryHover: '#1d4ed8',
-  primaryDeep: '#1e3a8a',
+  primary: '#2f6ae8',
+  primaryHover: '#2456d1',
+  primaryDeep: '#1e3f8c',
   danger: '#dc2626',
   success: '#16a34a',
   warning: '#d97706',
@@ -38,17 +38,17 @@ const LIGHT: ChartColors = {
   teal: '#0d9488',
   slate: '#94a3b8',
   slateStrong: '#64748b',
-  ink: '#1a1f2b',
-  text: '#5c6470',
-  textWeak: '#9aa3af',
-  grid: '#e3e6ea',
+  ink: '#242936',
+  text: '#5f6873',
+  textWeak: '#868e9b',
+  grid: '#e1e3e8',
   tooltipBg: '#ffffff',
-  tooltipBorder: '#d0d5dd',
+  tooltipBorder: '#cfd2d9',
 }
 
 const DARK: ChartColors = {
-  primary: '#4a8ef7',
-  primaryHover: '#6ca7fa',
+  primary: '#5c93f5',
+  primaryHover: '#7aa7ff',
   primaryDeep: '#172554',
   danger: '#f87171',
   success: '#4ade80',

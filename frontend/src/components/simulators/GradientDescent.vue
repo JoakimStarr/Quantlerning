@@ -137,7 +137,7 @@ function resize() {
 
 function colorFor(t: number): [number, number, number] {
   const stops: [number, [number, number, number]][] = [
-    [0, [37, 99, 235]],
+    [0, [47, 106, 232]],
     [0.32, [16, 185, 129]],
     [0.62, [245, 158, 11]],
     [1, [220, 38, 38]],
