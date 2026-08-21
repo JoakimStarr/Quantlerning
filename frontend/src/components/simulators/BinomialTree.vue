@@ -66,33 +66,92 @@ const convergence = computed(() => {
   }
 })
 
-// 二叉树结构（当前 N 下的树节点路径）
+// 二叉树结构（当前 N 下的树节点 + 分叉连线 + 叶子）
 const treeData = computed(() => {
   const dt = T.value / N.value
   const u = Math.exp(sigma.value * Math.sqrt(dt))
   const d = 1 / u
-  const nodes: [number, number, number][] = []
+  // 节点坐标：x = 步数 i，y = j - i/2（以每层中点对齐，形成对称树形）
+  const nodes: { x: number; y: number; price: number; i: number; j: number; leaf: boolean }[] = []
   for (let i = 0; i <= N.value; i++) {
     for (let j = 0; j <= i; j++) {
-      nodes.push([i, j - i / 2, Number((S.value * Math.pow(u, j) * Math.pow(d, i - j)).toFixed(2))])
+      nodes.push({
+        x: i,
+        y: j - i / 2,
+        price: Number((S.value * Math.pow(u, j) * Math.pow(d, i - j)).toFixed(2)),
+        i,
+        j,
+        leaf: i === N.value,
+      })
     }
   }
-  return nodes
+  // 分叉边：每个非叶节点 → 下一层的 j（下）与 j+1（上），用 null 分段画多条折线
+  const edges: [number, number, number, number][] = []
+  for (let i = 0; i < N.value; i++) {
+    for (let j = 0; j <= i; j++) {
+      edges.push([i, j - i / 2, i + 1, j - (i + 1) / 2]) // 下分支
+      edges.push([i, j - i / 2, i + 1, j + 1 - (i + 1) / 2]) // 上分支
+    }
+  }
+  const leaves = nodes.filter((n) => n.leaf)
+  return { nodes, edges, leaves } as {
+    nodes: typeof nodes
+    edges: [number, number, number, number][]
+    leaves: typeof leaves
+  }
+})
+
+// 树图边数据：折线 series 用 [[x1,y1],[x2,y2]] 段，段间以 null 分隔
+const edgeLines = computed<(number[] | null)[]>(() => {
+  const lines: (number[] | null)[] = []
+  treeData.value.edges.forEach(([x1, y1, x2, y2], idx) => {
+    if (idx > 0) lines.push(null)
+    lines.push([x1, y1])
+    lines.push([x2, y2])
+  })
+  return lines
 })
 
 const treeOption = computed(() => ({
   animation: false,
   grid: { left: 40, right: 20, top: 24, bottom: 40 },
-  tooltip: { formatter: (p: any) => `步 ${p.value[0]} · 节点 ${p.value[1]}<br/>价格 ${p.value[2]}` },
-  xAxis: { type: 'value', name: '步数', nameLocation: 'middle', nameGap: 26, axisLabel: { fontSize: 10 } },
-  yAxis: { type: 'value', name: '价格', nameLocation: 'middle', nameGap: 40, axisLabel: { fontSize: 10 } },
+  tooltip: {
+    trigger: 'item',
+    formatter: (p: any) =>
+      p.seriesName === '分叉'
+        ? ''
+        : `步 ${p.value[0]} · 节点 ${p.value[1]}<br/>价格 ${p.value[2]}`,
+  },
+  xAxis: {
+    type: 'value',
+    min: -0.5,
+    max: N.value + 0.5,
+    name: '步数',
+    nameLocation: 'middle',
+    nameGap: 26,
+    axisLabel: { fontSize: 10, interval: 0 },
+  },
+  yAxis: { type: 'value', name: '节点位置', nameLocation: 'middle', nameGap: 44, axisLabel: { fontSize: 10 } },
   series: [
+    {
+      name: '分叉',
+      type: 'line',
+      data: edgeLines.value,
+      symbol: 'none',
+      lineStyle: { color: C.value.textWeak, width: 1, opacity: 0.55 },
+      silent: true,
+      z: 1,
+    },
     {
       name: '树节点',
       type: 'scatter',
-      data: treeData.value,
-      symbolSize: 6,
-      itemStyle: { color: C.value.primary, opacity: 0.7 },
+      data: treeData.value.nodes.map((n) => [n.x, n.y, n.price, n.leaf]),
+      symbolSize: (d: any) => (d[3] ? 9 : 6),
+      itemStyle: {
+        color: (p: any) => (p.data[3] ? C.value.danger : C.value.primary),
+        opacity: (p: any) => (p.data[3] ? 1 : 0.75),
+      },
+      z: 2,
     },
   ],
 }))
@@ -141,9 +200,11 @@ const convOption = computed(() => {
       <span class="chip">二叉树价格（N={{ N }}）= <strong>{{ call.toFixed(2) }}</strong></span>
       <span class="chip">BS 价格 = <strong>{{ bsRef.toFixed(2) }}</strong></span>
       <span class="chip" :class="{ pos: Math.abs(call - bsRef) < 0.1 }">误差 <strong>{{ Math.abs(call - bsRef).toFixed(2) }}</strong></span>
+      <span class="chip">路径数 = 2<sup>{{ N }}</sup> = <strong>{{ Math.pow(2, N) }}</strong></span>
+      <span class="chip">叶子价格节点 = <strong>{{ N + 1 }}</strong>（{{ Math.pow(2, N) }} 条路径在此汇合）</span>
     </div>
     <ThemedChart class="chart tree" :option="treeOption" autoresize />
-    <p class="note">上图：N 步二叉树节点（步数滑块控制，节点随 N 变密）；下图：收敛曲线——N 从 1 到 30，二叉树价格（蓝）逐步收敛到 BS 价格（红虚线）。真实锚点：r 参考 LPR 1Y 3.0%（示意）。</p>
+    <p class="note">上图：N 步二叉树——灰线为每步的分叉（上/下），蓝点为中间节点，红点为叶子节点。**每个叶子对应一种「上涨/下跌序列」路径**，N 步共有 2<sup>N</sup> 条路径；但不同路径会在相同价格处汇合，所以叶子价格节点只有 N+1 个（例如 N=5：32 条路径 → 6 个叶子价格）。下图：收敛曲线——N 从 1 到 30，二叉树价格（蓝）逐步收敛到 BS 价格（红虚线）。真实锚点：r 参考 LPR 1Y 3.0%（示意）。</p>
     <ThemedChart class="chart conv" :option="convOption" autoresize />
   </div>
 </template>
