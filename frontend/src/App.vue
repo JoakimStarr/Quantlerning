@@ -119,6 +119,9 @@ const isCoursePath = computed(
   () => route.path.startsWith('/lesson/') || route.path.startsWith('/phase/'),
 )
 
+// 首页：隐藏左侧课程目录（首页自带课程地图，无需重复目录）
+const isHome = computed(() => route.path === '/')
+
 // 顶栏主导航：核心四项（桌面端全站导航，侧边栏只留课程目录）
 const topNav = computed(() => [
   { label: '首页', to: '/', active: route.path === '/' },
@@ -213,7 +216,7 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   <div class="layout">
     <!-- 顶部导航栏（借鉴设计包 lesson.html）：品牌 + 导航 + 操作区 -->
     <header class="app-topbar">
-      <button class="menu-btn" aria-label="切换目录" @click="menuOpen = !menuOpen"><Menu :size="20" /></button>
+      <button v-if="!isHome" class="menu-btn" aria-label="切换目录" @click="menuOpen = !menuOpen"><Menu :size="20" /></button>
       <RouterLink to="/" class="topbar-brand" @click="closeMenu">
         <img src="/icon.svg" class="brand-mark" alt="Quantlerning" />
         <span class="brand-name"><span class="q">Quant</span>lerning</span>
@@ -269,8 +272,8 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
     <!-- 抽屉遮罩（移动端） -->
     <div v-if="menuOpen" class="drawer-mask" @click="closeMenu"></div>
 
-    <!-- 左侧：书的目录 -->
-    <aside class="sidebar" :class="{ open: menuOpen }">
+    <!-- 左侧：书的目录（首页不显示，首页自带课程地图） -->
+    <aside v-if="!isHome" class="sidebar" :class="{ open: menuOpen }">
       <div class="toc-label"><BookMarked :size="13" class="toc-icon" /> 目录</div>
 
       <div class="toc-search">
@@ -370,7 +373,7 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
     <!-- ai-split：AI 面板分栏时正文与面板分割剩余空间（宽度由分隔条拖拽驱动） -->
     <div
       class="main"
-      :class="{ 'ai-split': aiPanelLayout.split, 'ai-dragging': aiPanelLayout.dragging }"
+      :class="{ 'ai-split': aiPanelLayout.split, 'ai-dragging': aiPanelLayout.dragging, 'no-sidebar': isHome }"
       :style="aiPanelLayout.split ? { '--ai-panel-w': `${aiPanelLayout.width}px` } : undefined"
     >
       <RouterView />
@@ -603,6 +606,11 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   margin-left: var(--sidebar-w);
   padding: 32px 40px 64px;
   transition: margin-right 0.2s ease;
+}
+
+/* 首页：无左侧目录，正文占满全宽 */
+.main.no-sidebar {
+  margin-left: 0;
 }
 
 /* AI 面板分栏：正文让位给面板宽度（--ai-panel-w）+ 面板右侧边距 24px + 间隙 16px，
