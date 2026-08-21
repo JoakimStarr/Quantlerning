@@ -434,7 +434,11 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 
 /* 「更多」下拉菜单 */
 .app-topbar .more { position: relative; }
-.app-topbar .more-btn { display: inline-flex; align-items: center; gap: 3px; }
+.app-topbar .more-btn {
+  display: inline-flex; align-items: center; gap: 3px;
+  border: none; background: transparent;
+  cursor: pointer; font-family: inherit;
+}
 .app-topbar .more-btn svg { transition: transform 0.15s; }
 .app-topbar .more-btn svg.up { transform: rotate(180deg); }
 .more-pop {
