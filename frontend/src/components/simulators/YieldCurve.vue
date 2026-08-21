@@ -10,7 +10,7 @@ import { fetchMacro } from '@/api'
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent])
 
-// 中国国债收益率曲线（真实数据，quantlab 库 macro_indicator）
+// 中国国债收益率曲线（真实数据，macro_indicator）
 // 期限：2Y / 5Y / 10Y / 30Y；滑块选日期，观察曲线形状与期限利差
 const props = defineProps<{
   params?: Record<string, unknown>

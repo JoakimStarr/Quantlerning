@@ -48,7 +48,7 @@ function binomialCall(S: number, K: number, sigma: number, T: number, r: number,
 
 const S = ref(100)
 const K = ref(100)
-const sigma = ref(0.2755) // 默认锚定真实锚点：茅台 2024 年化波动 27.55%（quantlab 官方口径）
+const sigma = ref(0.2755) // 默认锚定真实锚点：茅台 2024 年化波动 27.55%（官方口径）
 const T = ref(1)
 const r = ref(0.03)
 const N = ref(5)

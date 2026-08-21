@@ -2,7 +2,7 @@
 
 流程：主进程经 AST 白名单检查后，以 `python -I runner.py <base64(code)>` 拉起本文件；
 本进程先设置资源上限（CPU/内存/文件/进程数），再在受限命名空间中 exec 用户代码。
-用户代码可用的数据对象：`get_daily(code, start, end)` —— 只读查询 quantlab 库。
+用户代码可用的数据对象：`get_daily(code, start, end)` —— 只读查询真实行情库。
 """
 import base64
 import os
@@ -31,7 +31,7 @@ def _today() -> str:
 
 
 def _get_daily(code: str, start: str = "2018-01-01", end: str | None = None, limit: int = 100000):
-    """只读查询 quantlab 库个股日线（复权口径 close、pct_chg），返回 pandas DataFrame。
+    """只读查询真实行情库个股日线（复权口径 close、pct_chg），返回 pandas DataFrame。
 
     连接串由主进程经环境变量 QL_DB_URL 传入（asyncpg 协议）。
     end 缺省为今天（数据随库自动更新，不会过期）；limit 防止全量拉取。
@@ -74,7 +74,7 @@ def _get_daily(code: str, start: str = "2018-01-01", end: str | None = None, lim
 
 
 def _get_index(indicator: str, start: str = "2018-01-01", end: str | None = None, limit: int = 100000):
-    """只读查询 quantlab 库指数日收盘（macro_indicator，如 SH_INDEX→sh_idx_close）。
+    """只读查询真实行情库指数日收盘（macro_indicator，如 SH_INDEX→sh_idx_close）。
 
     返回与 get_daily 同构的 DataFrame（date、close、pct_chg），便于与个股日线 merge 后回归。
     """

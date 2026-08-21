@@ -10,7 +10,7 @@ import { fetchMarketPeDistribution } from '@/api'
 
 use([CanvasRenderer, BarChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent])
 
-// 全市场 PE 分布（quantlab 真实数据）
+// 全市场 PE 分布（真实数据）
 // 看估值分布是「右偏 + 负值桶（亏损股）」——所以要用分位而非孤立数字
 
 const props = defineProps<{

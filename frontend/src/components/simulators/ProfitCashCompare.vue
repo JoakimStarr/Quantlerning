@@ -10,7 +10,7 @@ import { fetchStockFinancials, type StockFinancials } from '@/api'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent])
 
-// 净利润 vs 经营现金流（真实 quantlab 财务数据）：利润含金量的直观对比
+// 净利润 vs 经营现金流（真实财务数据）：利润含金量的直观对比
 const props = defineProps<{
   params?: Record<string, unknown>
 }>()

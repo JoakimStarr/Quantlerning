@@ -87,7 +87,7 @@ const option = computed(() => {
       <button :class="['gbtn', { on: mode === 'skew' }]" @click="mode = 'skew'">偏斜（股市常见）</button>
     </div>
     <ThemedChart class="chart" :option="option" autoresize />
-    <p class="note">波动率微笑（教学示意，非真实期权数据；quantlab 库暂无 A 股期权行情）。红色虚线 = BS 假设的恒定 $\sigma$。若 BS 完全正确，IV 曲线应是水平虚线；实际曲线两端翘起（微笑）或左端显著更高（偏斜）——这就是「BS 恒定 $\sigma$ 假设失效」的图形证据。</p>
+    <p class="note">波动率微笑（教学示意，非真实期权数据；暂无 A 股期权行情）。红色虚线 = BS 假设的恒定 $\sigma$。若 BS 完全正确，IV 曲线应是水平虚线；实际曲线两端翘起（微笑）或左端显著更高（偏斜）——这就是「BS 恒定 $\sigma$ 假设失效」的图形证据。</p>
   </div>
 </template>
 

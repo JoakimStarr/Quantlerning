@@ -5,7 +5,7 @@ import AppSpinner from '@/components/common/AppSpinner.vue'
 import AppError from '@/components/common/AppError.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 
-// 因子库：展示 QuantLab factor 表的真实数据
+// 因子库：展示 Qlib 因子库的真实数据
 interface Factor {
   name: string
   expression: string
@@ -65,7 +65,7 @@ function onOrderChange() {
     <div class="page-head">
       <PageBreadcrumb current="因子库" />
       <h1>因子库</h1>
-      <p class="muted">QuantLab 挖掘的真实因子 · 数据源：factor 表</p>
+      <p class="muted">Qlib 因子库挖掘的真实因子 · 数据源：factor 表</p>
     </div>
 
     <AppSpinner v-if="loading" />

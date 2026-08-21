@@ -10,7 +10,7 @@ import { fetchStockFinancials, type StockFinancials } from '@/api'
 
 use([CanvasRenderer, BarChart, GridComponent, TooltipComponent, LegendComponent])
 
-// 三公司杜邦分解对比（真实 quantlab 财务数据）：净利率/周转/乘数/ROE 四件套
+// 三公司杜邦分解对比（真实财务数据）：净利率/周转/乘数/ROE 四件套
 const props = defineProps<{
   params?: Record<string, unknown>
 }>()

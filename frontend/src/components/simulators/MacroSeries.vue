@@ -10,7 +10,7 @@ import { fetchMacro } from '@/api'
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, MarkPointComponent])
 
-// CPI / PPI 真实月度序列（quantlab 库 macro_indicator）
+// CPI / PPI 真实月度序列（macro_indicator）
 // 教学点：CPI 低通胀 + PPI 通缩 → 宽松预期 → 利率下行 → 资产重估
 
 const props = defineProps<{

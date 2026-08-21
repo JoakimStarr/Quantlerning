@@ -20,7 +20,7 @@ const stages: Stage[] = [
     label: '数据',
     sub: '真实行情',
     chapter: '第一章',
-    data: 'quantlab 库，茅台 2024 复权口径',
+    data: '真实行情，茅台 2024 复权口径',
     check: '复权、不含首日、口径统一',
     error: '数据口径错（未复权）→ 全部后续计算失真',
   },

@@ -10,7 +10,7 @@ import { fetchBacktests } from '@/api'
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent])
 
-// QuantLab 多因子回测真实结果：净值曲线对比 + 绩效表
+// 多因子回测真实结果：净值曲线对比 + 绩效表
 // 教学点：因子策略的最终验证 = 回测净值的形态与风险调整后收益
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -143,7 +143,7 @@ const table = computed(() =>
             </tr>
           </tbody>
         </table>
-        <p class="note">真实数据：QuantLab factor 回测引擎输出（benchmark 为沪深 300 虚线）。回测口径与第三章一致：不含首日、复权收益。</p>
+        <p class="note">真实数据：多因子回测引擎输出（benchmark 为沪深 300 虚线）。回测口径与第三章一致：不含首日、复权收益。</p>
       </div>
     </template>
   </div>

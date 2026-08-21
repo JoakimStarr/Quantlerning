@@ -221,7 +221,7 @@ const overall = computed(() => {
 
 // 真实学习统计（学习天数 / 沙箱运行 / 练习提交）已移至「我的」页（MyView）
 
-// ---------- Hero 组合净值 · 回测（真实 QuantLab 回测净值曲线） ----------
+// ---------- Hero 组合净值 · 回测（真实回测净值曲线） ----------
 let backtestsCache: BacktestResult[] | null = null
 const backtest = ref<BacktestResult | null>(null)
 
@@ -399,7 +399,7 @@ function goResume() {
         </div>
       </div>
 
-      <!-- hero-visual：组合净值 · 回测（真实 QuantLab 回测净值曲线；数据不可用时兜底为学习进度） -->
+      <!-- hero-visual：组合净值 · 回测（真实回测净值曲线；数据不可用时兜底为学习进度） -->
       <div class="hero-visual">
         <template v-if="backtest && navData">
           <div class="hv-head">

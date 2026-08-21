@@ -153,7 +153,7 @@ function fmt(x: number | null): string {
         <label>置信度 <input type="range" v-model.number="confidence" min="0.9" max="0.99" step="0.01" /> {{ (confidence * 100).toFixed(0) }}%</label>
         <label>组合金额 <input type="range" v-model.number="amount" min="10" max="500" step="10" /> {{ amount }} 万</label>
       </div>
-      <p class="note">真实数据：茅台 2024 全年 {{ analysis.hist.vals.length }} 个日收益（quantlab 库，复权口径）。三种 VaR 算法在同一置信度下给出不同结果——尾部分布假设不同。</p>
+      <p class="note">真实数据：茅台 2024 全年 {{ analysis.hist.vals.length }} 个日收益（复权口径）。三种 VaR 算法在同一置信度下给出不同结果——尾部分布假设不同。</p>
       <ThemedChart class="chart" :option="histOption" autoresize />
       <div class="table-wrap">
         <table class="tbl">

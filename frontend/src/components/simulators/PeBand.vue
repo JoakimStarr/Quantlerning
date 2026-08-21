@@ -10,7 +10,7 @@ import { useStockDaily } from '@/composables/useStockDaily'
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, MarkLineComponent, MarkAreaComponent, MarkPointComponent, DataZoomComponent])
 
-// PE 历史分位带（真实 quantlab 日线 pe_ttm）：看当前估值处于历史什么位置
+// PE 历史分位带（真实日线 pe_ttm）：看当前估值处于历史什么位置
 const props = defineProps<{
   params?: Record<string, unknown>
 }>()

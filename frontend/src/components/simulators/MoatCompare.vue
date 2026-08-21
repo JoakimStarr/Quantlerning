@@ -10,7 +10,7 @@ import { fetchStockFinancials, type StockFinancials } from '@/api'
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent])
 
-// 护城河宽窄对比（茅台 vs 五粮液，真实 quantlab 财务数据）：ROE/毛利率十年双线
+// 护城河宽窄对比（茅台 vs 五粮液，真实财务数据）：ROE/毛利率十年双线
 const props = defineProps<{
   params?: Record<string, unknown>
 }>()

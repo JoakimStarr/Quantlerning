@@ -1,4 +1,4 @@
-"""数据查询路由：只读 quantlab 库。"""
+"""数据查询路由：只读真实行情库。"""
 from datetime import date
 
 from fastapi import APIRouter, Depends, Query
@@ -60,7 +60,7 @@ async def factors(
     order_by: str = Query("ic", pattern="^(ic|icir|rank_ic|turnover)$"),
     db: AsyncSession = Depends(get_db),
 ):
-    """因子库列表（QuantLab 真实数据）。"""
+    """因子库列表（Qlib 因子库真实数据）。"""
     return await queries.list_factors(db, status, category, limit, order_by)
 
 
@@ -115,7 +115,7 @@ async def backtests(
     limit: int = Query(20, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
 ):
-    """QuantLab 多因子回测结果（真实数据）。"""
+    """多因子回测结果（真实数据）。"""
     return await queries.get_backtest_results(db, limit)
 
 

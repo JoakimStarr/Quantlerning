@@ -1,4 +1,4 @@
-"""数据查询服务：只读 quantlab 库，封装常用数据查询。"""
+"""数据查询服务：只读真实行情库，封装常用数据查询。"""
 from datetime import date
 
 from cachetools import TTLCache
@@ -97,7 +97,7 @@ async def get_index_daily(
 ) -> list[dict]:
     """指数/ETF 日线（从 etf_daily 查询，code 如 SH510050）。
 
-    QuantLab 的宽基指数（如 sh000300）日线在 qlib_bin 二进制中，
+    宽基指数（如 sh000300）日线在本地行情库中，
     M0 阶段先用 etf_daily 的 ETF 日线，Phase 1 引入 baostock 后补齐指数。
     """
     q = text(
@@ -258,7 +258,7 @@ async def list_indices(db: AsyncSession, index_type: str = "index", limit: int =
 async def list_factors(
     db: AsyncSession, status: str = "active", category: str = "", limit: int = 50, order_by: str = "ic"
 ) -> list[dict]:
-    """因子库列表（QuantLab factor 表真实数据）。
+    """因子库列表（Qlib 因子库真实数据）。
 
     order_by: ic / icir / rank_ic / turnover
     """
@@ -534,7 +534,7 @@ async def get_industry_pe(db: AsyncSession, trade_date: date, min_stocks: int = 
 
 @_cached("backtest_results")
 async def get_backtest_results(db: AsyncSession, limit: int = 20) -> list[dict]:
-    """QuantLab 多因子回测结果（真实数据）。
+    """多因子回测结果（真实数据）。
 
     返回最近 limit 条含净值曲线的回测，解析 nav_curve JSON。
     """

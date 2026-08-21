@@ -1,7 +1,7 @@
 """联网搜索：Tavily API 封装，供 AI 追问按需检索外部实时信息。
 
 仅当用户在 AI 面板开启「联网搜索」时使用；结果以 system 上下文注入，
-并明确标注来源为外部网页（区别于本站 quantlab 数据），回答需带 Markdown 链接引用。
+并明确标注来源为外部网页（区别于本站真实数据），回答需带 Markdown 链接引用。
 """
 from __future__ import annotations
 
@@ -84,13 +84,13 @@ def build_search_context(results: list[dict]) -> str:
         return ""
     lines = [
         "以下是「联网搜索」返回的实时网络信息（来源为外部网页，"
-        "非本站 quantlab 数据，仅供回答参考，引用时请给出链接）："
+        "非本站数据，仅供回答参考，引用时请给出链接）："
     ]
     for i, r in enumerate(results, 1):
         lines.append(f"{i}. {r['title']}（{r['url']}）：{r['content']}")
     lines.append(
         "请结合课程知识回答用户问题：若网络信息与课程知识冲突，请明确指出差异；"
         "引用外部信息时在正文中用 [1]、[2] 等编号标注（编号对应上面来源列表的序号），"
-        "不要把网络信息说成本站 quantlab 数据。"
+        "不要把网络信息说成本站数据。"
     )
     return "\n".join(lines)

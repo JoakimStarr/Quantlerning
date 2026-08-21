@@ -168,7 +168,7 @@ const option = computed(() => {
       <button class="btn" @click="animate">{{ running ? '停止' : '动画' }}</button>
       <button class="btn" @click="regenerate">重新生成</button>
     </div>
-    <p v-if="realVol" class="note">真实茅台 2024 年化波动 = {{ realVol.toFixed(2) }}%（quantlab 库，官方口径）。默认 σ 即取此值——模拟路径与真实净值对比，看「随机游走」能否重现真实走势的统计特征。</p>
+    <p v-if="realVol" class="note">真实茅台 2024 年化波动 = {{ realVol.toFixed(2) }}%（官方口径）。默认 σ 即取此值——模拟路径与真实净值对比，看「随机游走」能否重现真实走势的统计特征。</p>
     <ThemedChart class="chart" :option="option" autoresize />
   </div>
 </template>

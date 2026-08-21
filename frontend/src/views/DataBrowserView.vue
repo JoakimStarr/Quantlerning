@@ -56,7 +56,7 @@ async function doSearch() {
     <div class="page-head">
       <PageBreadcrumb current="数据浏览器" />
       <h1>数据浏览器</h1>
-      <p class="muted">浏览 quantlab 库中的真实 A 股 · 财务 · 宏观数据</p>
+      <p class="muted">浏览真实 A 股 · 财务 · 宏观数据</p>
     </div>
 
     <AppSpinner v-if="loading" />
@@ -87,7 +87,7 @@ async function doSearch() {
       <!-- 指数清单 -->
       <div class="card section">
         <h2 class="section-title">指数（元数据）</h2>
-        <p class="faint note">日线数据源：宽基指数在 QuantLab qlib_bin，学习站 Phase 1 引入 baostock 后补齐</p>
+        <p class="faint note">日线数据源：宽基指数在本地行情库，学习站 Phase 1 引入 baostock 后补齐</p>
         <div class="index-grid">
           <div v-for="idx in indices" :key="idx.code" class="index-item">
             <code>{{ idx.code }}</code>

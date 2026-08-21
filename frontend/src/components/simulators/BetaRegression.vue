@@ -11,7 +11,7 @@ import { fetchStockDaily, fetchMacro } from '@/api'
 use([CanvasRenderer, ScatterChart, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkLineComponent, DataZoomComponent])
 
 // 真实 β 回归：贵州茅台 vs 上证指数（2020-2026 日收益 OLS）
-// 市场基准用 quantlab 宏数据 SH_INDEX 的日收盘点序列（sh_idx_close）算日收益
+// 市场基准用 宏数据 SH_INDEX 的日收盘点序列（sh_idx_close）算日收益
 // 教学点：β = 个股对市场系统性风险的敏感度；散点越聚拢、R² 越高，市场因子解释力越强
 
 const props = defineProps<{

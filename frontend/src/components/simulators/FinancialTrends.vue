@@ -10,7 +10,7 @@ import { fetchStockFinancials, type StockFinancials } from '@/api'
 
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent])
 
-// 财务比率趋势（真实 quantlab 财务指标）：营收/净利柱状 + 可切换比率指标折线
+// 财务比率趋势（真实财务指标）：营收/净利柱状 + 可切换比率指标折线
 const props = defineProps<{
   params?: Record<string, unknown>
 }>()
@@ -188,7 +188,7 @@ const option = computed(() => (tab.value === 'rev' ? revOption.value : ratioOpti
       <ThemedChart class="chart" :option="option" autoresize />
 
       <p class="hint">
-        数据来自 quantlab 财务指标表（报告期口径，披露日已在数据中标注，避免前视）。
+        数据来自财务指标表（报告期口径，披露日已在数据中标注，避免前视）。
         营收与净利看绝对规模与增长，比率指标看质地——ROE 与毛利率反映赚钱能力，净现比反映利润含金量，负债率反映杠杆风险。
       </p>
     </template>
