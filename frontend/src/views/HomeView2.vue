@@ -219,10 +219,7 @@ const overall = computed(() => {
   return { done, total, pct: total ? Math.round((done / total) * 100) : 0 }
 })
 
-// 真实学习统计（学习天数 / 沙箱运行 / 练习提交）
-const days = computed(() => learningDays())
-const runs = computed(() => sandboxRunCount())
-const exercises = computed(() => totalExercises())
+// 真实学习统计（学习天数 / 沙箱运行 / 练习提交）已移至「我的」页（MyView）
 
 // ---------- Hero 组合净值 · 回测（真实 QuantLab 回测净值曲线） ----------
 let backtestsCache: BacktestResult[] | null = null
@@ -433,22 +430,13 @@ function goResume() {
           <div class="hv-meta">{{ methodName }} · {{ periodText }}</div>
         </template>
 
-        <!-- 回测数据不可用时的兜底：真实学习进度 -->
+        <!-- 回测数据不可用时的占位（学习总进度已移至「我的」页） -->
         <template v-else>
           <div class="hv-head">
-            <span class="hv-title">学习总进度</span>
-            <span class="badge" :class="overall.pct >= 100 ? 'badge-success' : 'badge-primary'">
-              {{ overall.pct >= 100 ? '已完成' : '进行中' }}
-            </span>
+            <span class="hv-title">组合净值 · 回测</span>
+            <span class="badge">数据暂不可用</span>
           </div>
-          <div class="hv-val num">{{ overall.pct }}%</div>
-          <div class="hv-bar"><div class="hv-fill" :style="{ width: overall.pct + '%' }"></div></div>
-          <div class="hv-sub">{{ overall.done }} / {{ overall.total }} 课完成</div>
-          <div class="hv-mini">
-            <div class="mini"><b class="num">{{ days }}</b><span>学习天数</span></div>
-            <div class="mini"><b class="num">{{ runs }}</b><span>沙箱运行</span></div>
-            <div class="mini"><b class="num">{{ exercises }}</b><span>练习提交</span></div>
-          </div>
+          <div class="hv-empty">回测数据加载中…</div>
         </template>
       </div>
     </section>

@@ -8,6 +8,7 @@ const router = createRouter({
     { path: '/', name: 'home', component: HomeView2 },
     { path: '/phase/:phase', name: 'phase', component: () => import('@/views/PhaseView2.vue') },
     { path: '/lesson/:id', name: 'lesson', component: () => import('@/views/LessonView2.vue') },
+    { path: '/me', name: 'me', component: () => import('@/views/MyView.vue') },
     { path: '/lab', name: 'lab', component: () => import('@/views/LabView.vue') },
     { path: '/cheatsheet', name: 'cheatsheet', component: () => import('@/views/CheatsheetView.vue') },
     { path: '/data-browser', name: 'data-browser', component: () => import('@/views/DataBrowserView.vue') },

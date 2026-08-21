@@ -122,7 +122,7 @@ const isCoursePath = computed(
 // 首页：隐藏左侧课程目录（首页自带课程地图，无需重复目录）
 const isHome = computed(() => route.path === '/')
 
-// 顶栏主导航：核心四项（桌面端全站导航，侧边栏只留课程目录）
+// 顶栏主导航：核心四项（桌面端全站导航，侧边栏只留课程目录；「我的」在右侧 actions 区）
 const topNav = computed(() => [
   { label: '首页', to: '/', active: route.path === '/' },
   { label: '课程', to: '/phase/0', active: isCoursePath.value },
@@ -259,6 +259,7 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
       </nav>
       <span class="topbar-title">{{ currentLessonTitle || 'Quantlerning' }}</span>
       <div class="topbar-actions">
+        <RouterLink to="/me" class="nav-link me-link" :class="{ active: route.path === '/me' }">我的</RouterLink>
         <a class="icon-btn" href="http://localhost:3000" target="_blank" rel="noopener" title="QuantLab 回测（外链）" aria-label="QuantLab 回测">
           <Microscope :size="18" />
         </a>
