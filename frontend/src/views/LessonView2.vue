@@ -12,6 +12,9 @@ import { getSelectionMarkdown } from '@/utils/selectionToMarkdown'
 import { ASK_AI_KEY } from '@/utils/aiAskKey'
 import { recordLessonRead, recordQuizAttempt } from '@/stores/progress'
 
+// 新版课程阅读页：与首页 HomeView2 / 课程页 PhaseView2 设计 token 对齐。
+// 脚本逻辑与 LessonView.vue 完全一致，仅视觉层重构（hero 锚点 + 文档卡片 + 阅读进度）。
+
 const route = useRoute()
 const router = useRouter()
 
@@ -19,12 +22,8 @@ const lesson = ref<any>(null)
 const loading = ref(true)
 const error = ref('')
 
-// 课程内容：sections，每节 body 为 Markdown（可含 :::viz 块，图文交融）
 const sections = ref<any[]>([])
-
-// 当前正在阅读的小节（供 AI 追问定位上下文）
 const currentSection = ref<{ index: number; title: string }>({ index: 0, title: '' })
-// 阅读进度 0~1（body 为滚动容器，浏览器原生恢复滚动位置，这里只算进度条）
 const readingProgress = ref(0)
 
 function scrollMainTop() {
@@ -36,7 +35,6 @@ const askPanelRef = ref<{ ask: (text: string, context?: string) => void } | null
 const articleRef = ref<HTMLElement | null>(null)
 const selBox = reactive({ show: false, x: 0, y: 0, text: '' })
 
-// 提供「问 AI」入口给深层组件（图表/代码沙箱问 AI 等）：打开面板并预填问题
 function askAi(text: string, context?: string) {
   askPanelRef.value?.ask(text, context)
 }
@@ -71,15 +69,12 @@ async function genSummary() {
   try {
     const result = await streamLessonSummary(
       lesson.value.id,
-      (d) => {
-        summary.value += d
-      },
+      (d) => { summary.value += d },
       ctrl.signal,
     )
     if (result.error) {
       summaryError.value = result.error
     } else if (summary.value) {
-      // 成功才缓存（课程内容静态，避免重复消费）
       try {
         localStorage.setItem(SUMMARY_KEY(lesson.value.id), summary.value)
       } catch {
@@ -101,7 +96,6 @@ function onSelectionChange() {
     selBox.show = false
     return
   }
-  // 只对课程正文内的选区弹出「问 AI」按钮
   const article = articleRef.value
   const anc = range.commonAncestorContainer
   const target = anc.nodeType === Node.ELEMENT_NODE ? (anc as HTMLElement) : anc.parentElement
@@ -115,8 +109,6 @@ function onSelectionChange() {
     return
   }
   if (!selBox.show) {
-    // 首次显示时缓存选区 Markdown（含公式源码）；点击时不再依赖实时选区，
-    // 避免「点击瞬间选区被浏览器折叠」导致取不到文本的竞态
     selBox.text = getSelectionMarkdown()
   }
   selBox.show = true
@@ -130,7 +122,6 @@ function hideSelBox() {
 
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') hideSelBox()
-  // ←/→ 上一课/下一课（输入框/文本域内不触发）
   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
     const t = e.target as HTMLElement
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
@@ -144,13 +135,11 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 function askSelected() {
-  // 优先用缓存文本（按钮出现时已抓取），兜底实时读取
   const text = selBox.text || getSelectionMarkdown()
   selBox.show = false
   selBox.text = ''
   window.getSelection()?.removeAllRanges()
   if (!text) return
-  // 选中段落（含 LaTeX 公式）作为问题预填，AI 会结合当前小节回答
   askPanelRef.value?.ask(`请解释我选中的这段话，讲清楚每个符号和概念的含义：\n${text}`)
 }
 
@@ -161,13 +150,12 @@ async function load(id: string) {
   resetSummary(id)
   try {
     lesson.value = await fetchLesson(id)
-    recordLessonRead(id) // 阅读行为 → 学习天数/阅读次数
+    recordLessonRead(id)
     sections.value = lesson.value.sections?.length
       ? lesson.value.sections.map((s: any, i: number) => ({
           id: `sec-${i}`, title: s.title, body: s.body,
         }))
       : [{ id: 'sec-0', title: '概念讲解', body: lesson.value.content }]
-    // 支持从 URL 参数跳转到指定区块（左侧目录点击）
     const sectionId = route.query.section
     if (sectionId) {
       setTimeout(() => {
@@ -183,14 +171,12 @@ async function load(id: string) {
   }
 }
 
-// 滚动跟踪当前小节：取视口上方 80px 以下、最后进入视野的小节
 let scrollRaf = 0
 
 function onScroll() {
   if (scrollRaf) return
   scrollRaf = requestAnimationFrame(() => {
     scrollRaf = 0
-    // 阅读进度：body 为滚动容器（浏览器原生恢复滚动位置，这里只算进度条）
     const doc = document.documentElement
     const max = doc.scrollHeight - window.innerHeight
     readingProgress.value = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0
@@ -211,7 +197,6 @@ function registerScroll() {
   onScroll()
 }
 
-// 滚动跟踪：document 捕获阶段监听，body 滚动时触发
 function attachScrollListeners() {
   document.addEventListener('scroll', onScroll, true)
 }
@@ -239,8 +224,6 @@ watch(() => route.params.id, (id) => {
 })
 
 // ---------- 随堂测验结果记录 ----------
-// 记录本课每道测验的最佳得分，全部答对后计为「测验通过」
-// 持久化到 localStorage（按课程），刷新/重开后恢复，后端不参与
 const QUIZ_RESULT_KEY = (lessonId: string) => `ql:quizResults:${lessonId}`
 const quizResults = ref<Record<string, number>>({})
 
@@ -265,7 +248,6 @@ function onQuizSubmitted(score: number, question: string) {
   if (!lesson.value) return
   quizResults.value[question] = Math.max(quizResults.value[question] ?? 0, score)
   saveQuizResults()
-  // passed = 答对数（score===100 才算通过），completed 只升不降（阅读即完成，测验全对也标记完成）
   const passed = Object.values(quizResults.value).filter((s) => s === 100).length
   const total = Object.keys(quizResults.value).length
   recordQuizAttempt(lesson.value.id, passed, total)
@@ -273,208 +255,249 @@ function onQuizSubmitted(score: number, question: string) {
 </script>
 
 <template>
-  <!-- 阅读进度条（顶部细条） -->
+  <!-- 阅读进度条（顶部细条，主色） -->
   <div class="reading-bar" :style="{ width: readingProgress * 100 + '%' }"></div>
 
   <div v-if="loading" class="status"><AppSpinner text="加载课程…" /></div>
   <div v-else-if="error" class="status"><AppError :message="error" @retry="load(String(route.params.id))" /></div>
 
   <template v-else-if="lesson">
-    <!-- 回到顶部（放在课程块内，避免 v-if 打断 loading/error/lesson 的 v-else-if 链） -->
     <button v-if="readingProgress > 0.04" class="back-top" title="回到顶部" @click="scrollMainTop"><ArrowUp :size="18" /></button>
 
-    <!-- 面包屑 -->
-    <div class="breadcrumb">
-      <button class="link-btn" @click="router.push(`/phase/${lesson.phase}`)">{{ lesson.phase_title }}</button>
-      <span class="sep">/</span>
-      <span>{{ lesson.title }}</span>
-    </div>
-
-    <!-- 文档式课程页 -->
-    <article ref="articleRef" class="book-page">
-      <!-- 章标题 -->
-      <header class="chapter-header">
-        <h1 class="chapter-title">{{ lesson.title }}</h1>
-        <div class="concepts">
-          <span v-for="c in lesson.concepts" :key="c" class="badge badge-primary">{{ c }}</span>
+    <div class="lesson2">
+      <!-- HERO：eyebrow + 章标题 + 引言（镜像首页 hero 节奏） -->
+      <header class="hero">
+        <div class="hero-main">
+          <button class="eyebrow" type="button" @click="router.push(`/phase/${lesson.phase}`)" @keydown.enter.prevent>
+            {{ lesson.phase_title }} <span class="eyebrow-arrow">→</span>
+          </button>
+          <h1>{{ lesson.title }}</h1>
+          <p class="lead">{{ lesson.summary }}</p>
+          <div class="concepts">
+            <span v-for="c in lesson.concepts" :key="c" class="chip">{{ c }}</span>
+          </div>
         </div>
-        <p v-if="lesson.summary" class="chapter-summary">{{ lesson.summary }}</p>
       </header>
 
-      <!-- 正文：Markdown 文档流，可视化嵌入正文（图文交融） -->
-      <section class="doc-flow">
-        <div v-for="(s, i) in sections" :key="s.id" :id="s.id" class="doc-section">
-          <h2 v-if="s.title" class="doc-heading">
-            <span class="doc-num">{{ i + 1 }}</span>
-            {{ s.title }}
-          </h2>
-          <MarkdownRenderer
-            v-if="s.body"
-            :content="s.body"
-            :lesson-id="lesson.id"
-            :section-index="i"
-            @quiz-submitted="onQuizSubmitted"
-          />
-        </div>
-      </section>
-
-      <!-- 本节小结（AI 生成，localStorage 缓存） -->
-      <div class="lesson-summary">
-        <button
-          v-if="!summary"
-          type="button"
-          class="btn btn-ghost summary-trigger"
-          :disabled="summaryBusy"
-          @click="genSummary"
-        >
-          <Sparkles :size="14" />
-          {{ summaryBusy ? '生成中…' : '生成「本节小结」' }}
-        </button>
-        <div v-if="summary" class="summary-card">
-          <div class="summary-head">
-            <span class="summary-title"><Sparkles :size="13" /> 本节小结</span>
-            <button type="button" class="btn btn-ghost summary-regen" :disabled="summaryBusy" @click="genSummary">
-              <RefreshCw :size="12" :class="{ spin: summaryBusy }" />
-              {{ summaryBusy ? '生成中…' : '重新生成' }}
-            </button>
+      <!-- 文档卡片：正文流 -->
+      <article ref="articleRef" class="book-page">
+        <section class="doc-flow">
+          <div v-for="(s, i) in sections" :key="s.id" :id="s.id" class="doc-section">
+            <h2 v-if="s.title" class="doc-heading">
+              <span class="doc-num">{{ String(i + 1).padStart(2, '0') }}</span>
+              {{ s.title }}
+            </h2>
+            <MarkdownRenderer
+              v-if="s.body"
+              :content="s.body"
+              :lesson-id="lesson.id"
+              :section-index="i"
+              @quiz-submitted="onQuizSubmitted"
+            />
           </div>
-          <div v-if="summaryError" class="summary-error">{{ summaryError }}</div>
-          <div v-else class="summary-body" v-html="renderAiBubble(summary)"></div>
-        </div>
-        <div v-if="summaryError && !summary" class="summary-error">{{ summaryError }}</div>
-      </div>
+        </section>
 
-      <!-- 翻页导航：上一章 / 下一章 -->
-      <nav class="chapter-nav">
-        <button class="btn nav-btn" :disabled="!lesson.prev" @click="lesson.prev && router.push(`/lesson/${lesson.prev.id}`)">
-          <ChevronLeft :size="16" /> {{ lesson.prev?.title || '无上一章' }}
-        </button>
-        <button class="btn nav-btn next" :disabled="!lesson.next" @click="lesson.next && router.push(`/lesson/${lesson.next.id}`)">
-          {{ lesson.next?.title || '无下一章' }} <ChevronRight :size="16" />
-        </button>
-      </nav>
-    </article>
+        <!-- 本节小结（AI 生成） -->
+        <section class="lesson-summary">
+          <button
+            v-if="!summary"
+            type="button"
+            class="btn btn-ghost summary-trigger"
+            :disabled="summaryBusy"
+            @click="genSummary"
+          >
+            <Sparkles :size="14" />
+            {{ summaryBusy ? '生成中…' : '生成「本节小结」' }}
+          </button>
+          <div v-if="summary" class="summary-card">
+            <div class="summary-head">
+              <span class="summary-title"><Sparkles :size="13" /> 本节小结</span>
+              <button type="button" class="btn btn-ghost summary-regen" :disabled="summaryBusy" @click="genSummary">
+                <RefreshCw :size="12" :class="{ spin: summaryBusy }" />
+                {{ summaryBusy ? '生成中…' : '重新生成' }}
+              </button>
+            </div>
+            <div v-if="summaryError" class="summary-error">{{ summaryError }}</div>
+            <div v-else class="summary-body" v-html="renderAiBubble(summary)"></div>
+          </div>
+          <div v-if="summaryError && !summary" class="summary-error">{{ summaryError }}</div>
+        </section>
 
-    <!-- AI 追问：围绕当前小节对话 -->
-    <AiAskPanel
-      ref="askPanelRef"
-      :lesson-id="lesson.id"
-      :section-index="currentSection.index"
-      :section-title="currentSection.title"
-    />
+        <!-- 翻页导航 -->
+        <nav class="chapter-nav">
+          <button class="btn nav-btn" :disabled="!lesson.prev" @click="lesson.prev && router.push(`/lesson/${lesson.prev.id}`)">
+            <ChevronLeft :size="16" /> <span><em>上一课</em>{{ lesson.prev?.title || '无上一章' }}</span>
+          </button>
+          <button class="btn nav-btn next" :disabled="!lesson.next" @click="lesson.next && router.push(`/lesson/${lesson.next.id}`)">
+            <span><em>下一课</em>{{ lesson.next?.title || '无下一章' }}</span> <ChevronRight :size="16" />
+          </button>
+        </nav>
+      </article>
 
-    <!-- 选中文字 → 问 AI -->
-    <button
-      v-if="selBox.show"
-      class="ask-selection"
-      :style="{ left: selBox.x + 'px', top: selBox.y + 'px' }"
-      @mousedown.prevent
-      @click="askSelected"
-    >
-      问 AI
-    </button>
+      <!-- AI 追问面板 -->
+      <AiAskPanel
+        ref="askPanelRef"
+        :lesson-id="lesson.id"
+        :section-index="currentSection.index"
+        :section-title="currentSection.title"
+      />
+
+      <!-- 选中文字 → 问 AI -->
+      <button
+        v-if="selBox.show"
+        class="ask-selection"
+        :style="{ left: selBox.x + 'px', top: selBox.y + 'px' }"
+        @mousedown.prevent
+        @click="askSelected"
+      >
+        问 AI
+      </button>
+    </div>
   </template>
 </template>
 
 <style scoped>
+/* 全量复用首页 home2 / 课程页设计 token */
+
+.lesson2 { max-width: 900px; margin: 0 auto; }
 .status { padding: 40px; text-align: center; }
 
-.breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-3); margin-bottom: 16px; }
-.link-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 13px; padding: 0; }
-.link-btn:hover { text-decoration: underline; }
-.sep { color: var(--text-3); }
-
-.book-page {
-  max-width: 800px; margin: 0 auto;
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius-md); padding: 36px 44px; box-shadow: var(--shadow-sm);
-}
-
-.chapter-header { margin-bottom: 32px; }
-.chapter-title { font-size: 28px; margin-bottom: 12px; }
-.concepts { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-.chapter-summary {
-  font-size: 15px; color: var(--text-2); line-height: 1.8;
-  border-left: 3px solid var(--primary); padding-left: 14px; margin: 0;
-}
-
-.doc-section { margin-bottom: 32px; scroll-margin-top: 24px; }
-.doc-heading { display: flex; align-items: center; gap: 10px; font-size: 20px; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-.doc-num {
-  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
-  background: var(--primary-soft); color: var(--primary);
-  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600;
-}
-
-.chapter-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
-.nav-btn { flex: 1; justify-content: space-between; }
-.nav-btn.next { flex-direction: row-reverse; }
-
-/* 本节小结（AI 生成） */
-.lesson-summary { margin-top: 36px; }
-.summary-trigger {
+/* ============ Hero ============ */
+.hero { padding: clamp(24px, 4vw, 48px) 0 clamp(16px, 3vw, 28px); }
+.eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--primary);
-  border-color: var(--primary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 16px;
+  transition: opacity 0.15s;
+}
+.eyebrow:hover { opacity: 0.75; }
+.eyebrow-arrow { display: inline-flex; transform: translateX(0); transition: transform 0.2s var(--ease-out); }
+.eyebrow:hover .eyebrow-arrow { transform: translateX(3px); }
+.hero h1 { font-size: var(--fs-2xl); letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 14px; max-width: 22ch; }
+.hero .lead { color: var(--text-2); font-size: var(--fs-md); line-height: 1.75; max-width: 60ch; margin-bottom: 20px; }
+.concepts { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font-size: var(--fs-xs);
+  color: var(--primary);
+  background: var(--primary-soft);
+  padding: 4px 12px;
+  border-radius: var(--r-pill);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ============ 文档卡片 ============ */
+.book-page {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: clamp(20px, 4vw, 44px);
+  box-shadow: var(--shadow-md);
+}
+.doc-flow { display: flex; flex-direction: column; gap: clamp(24px, 5vw, 40px); }
+.doc-section { scroll-margin-top: 24px; }
+.doc-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--fs-lg);
+  margin: 0 0 16px;
+  color: var(--text-1);
+  letter-spacing: -0.01em;
+}
+.doc-num {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-soft);
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  letter-spacing: 0.04em;
+}
+
+/* ============ 本节小结 ============ */
+.lesson-summary { margin-top: clamp(28px, 5vw, 44px); padding-top: 8px; }
+.summary-trigger {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--primary); border-color: var(--primary);
 }
 .summary-card {
   border: 1px solid var(--border);
   border-left: 4px solid var(--primary);
-  border-radius: var(--radius-md);
+  border-radius: var(--r-lg);
   background: var(--bg-card);
-  padding: 14px 18px;
+  padding: 16px 20px;
 }
-.summary-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-.summary-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--primary);
-}
+.summary-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.summary-title { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-sm); font-weight: 600; color: var(--primary); }
 .summary-regen { display: inline-flex; align-items: center; gap: 5px; }
-.summary-body { font-size: 14px; line-height: 1.8; color: var(--text-2); }
+.summary-body { font-size: var(--fs-sm); line-height: 1.9; color: var(--text-2); }
 .summary-body :deep(ul) { margin: 0; padding-left: 1.4em; }
 .summary-body :deep(li) { margin-bottom: 4px; }
 .summary-body :deep(.katex) { font-size: 1em; }
 .summary-error {
   margin-top: 10px;
-  font-size: 13px;
+  font-size: var(--fs-xs);
   color: var(--danger, #dc2626);
   background: color-mix(in srgb, var(--danger, #dc2626) 8%, transparent);
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-sm);
   padding: 8px 12px;
   line-height: 1.6;
 }
 .spin { animation: spin-rotate 0.8s linear infinite; }
 @keyframes spin-rotate { to { transform: rotate(360deg); } }
 
-/* 选中文字后的「问 AI」悬浮按钮 */
+/* ============ 翻页导航（卡片化） ============ */
+.chapter-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: clamp(28px, 5vw, 44px);
+}
+.nav-btn {
+  align-items: center;
+  padding: 16px 18px;
+  border-radius: var(--r-lg);
+  background: var(--bg-card);
+  border-color: var(--border);
+  box-shadow: var(--shadow-xs);
+}
+.nav-btn:hover { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); color: var(--primary); transform: translateY(-2px); }
+.nav-btn:disabled { opacity: 0.4; pointer-events: none; }
+.nav-btn.next { flex-direction: row-reverse; }
+.nav-btn span { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; line-height: 1.4; text-align: left; font-weight: 600; font-size: var(--fs-sm); }
+.nav-btn.next span { align-items: flex-end; text-align: right; }
+.nav-btn em { font-style: normal; font-size: var(--fs-xs); color: var(--text-3); font-weight: 500; }
+
+/* ============ 悬浮控件 ============ */
 .ask-selection {
   position: fixed;
   transform: translateX(-100%);
   z-index: 90;
-  font-size: 12px;
-  padding: 4px 12px;
+  font-size: var(--fs-xs);
+  padding: 5px 14px;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--primary);
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(47, 106, 232, 0.35);
+  box-shadow: 0 6px 18px rgba(47, 106, 232, 0.32);
 }
 .ask-selection:hover { filter: brightness(1.08); }
 
-/* 阅读进度条（顶部细条） */
 .reading-bar {
   position: fixed;
   top: 0; left: 0;
@@ -484,7 +507,6 @@ function onQuizSubmitted(score: number, question: string) {
   transition: width 0.1s linear;
 }
 
-/* 回到顶部 */
 .back-top {
   position: fixed;
   left: calc(var(--sidebar-w) + 18px);
@@ -502,12 +524,11 @@ function onQuizSubmitted(score: number, question: string) {
 }
 .back-top:hover { color: var(--primary); border-color: var(--primary); }
 
-/* 移动端适配 */
+/* ============ 响应式 ============ */
 @media (max-width: 900px) {
   .back-top { left: 18px; }
-  .chapter-title { font-size: 23px; }
-  .doc-heading { font-size: 18px; }
-  .chapter-nav { flex-direction: column; }
-  .ask-selection { font-size: 13px; padding: 8px 14px; }
+  .hero h1 { font-size: var(--fs-xl); }
+  .chapter-nav { grid-template-columns: 1fr; }
+  .ask-selection { font-size: var(--fs-base); padding: 7px 14px; }
 }
 </style>
