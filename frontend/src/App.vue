@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, type Compon
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import {
   BarChart3, BookMarked, Check, ChevronDown, ChevronRight, ChevronUp,
-  ClipboardList, Dna, FlaskConical, Menu, Microscope, Moon, Search, Settings, Sun, TrendingUp, X,
+  ClipboardList, Dna, FlaskConical, Menu, Microscope, Moon, Search, Settings, Sun, TrendingUp, User, X,
 } from 'lucide-vue-next'
 import { fetchCourses, fetchLesson } from '@/api'
 import { isCompleted } from '@/stores/progress'
@@ -278,7 +278,6 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
       </nav>
       <span class="topbar-title">{{ currentLessonTitle || 'Quantlerning' }}</span>
       <div class="topbar-actions">
-        <RouterLink to="/me" class="nav-link me-link" :class="{ active: route.path === '/me' }">我的</RouterLink>
         <a class="icon-btn" href="http://localhost:3000" target="_blank" rel="noopener" title="QuantLab 回测（外链）" aria-label="QuantLab 回测">
           <Microscope :size="18" />
         </a>
@@ -288,6 +287,11 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
             <Moon v-else key="moon" :size="18" />
           </Transition>
         </button>
+        <span class="actions-sep" aria-hidden="true"></span>
+        <RouterLink to="/me" class="me-btn" :class="{ active: route.path === '/me' }" title="我的">
+          <User :size="15" />
+          <span>我的</span>
+        </RouterLink>
       </div>
     </header>
 
@@ -468,7 +472,20 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   font-size: 14px; font-weight: 600; color: var(--text-1);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.app-topbar .topbar-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; }
+.app-topbar .topbar-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; flex-shrink: 0; }
+.app-topbar .me-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 36px; padding: 0 14px;
+  border-radius: var(--r-md);
+  color: var(--text-2); font-size: 13px; font-weight: 600;
+  text-decoration: none;
+  transition: background 0.16s var(--ease-out), color 0.16s var(--ease-out);
+}
+.app-topbar .me-btn svg { flex-shrink: 0; }
+.app-topbar .me-btn:hover { background: var(--bg-hover); color: var(--text-1); }
+.app-topbar .me-btn.active { background: var(--primary-soft); color: var(--primary); }
+/* 「我的」与右侧纯图标按钮之间的细分隔线 */
+.actions-sep { width: 1px; height: 20px; background: var(--border); margin: 0 6px; flex-shrink: 0; }
 .app-topbar .icon-btn {
   border: none; background: none;
   width: 40px; height: 40px;
@@ -549,6 +566,7 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 .app-topbar .more-btn:focus-visible,
 .app-topbar .icon-btn:focus-visible,
 .app-topbar .theme-btn:focus-visible,
+.app-topbar .me-btn:focus-visible,
 .menu-btn:focus-visible,
 .tools-toggle:focus-visible,
 .toc-clear:focus-visible {
