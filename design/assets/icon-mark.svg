@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Quantlerning mark" fill="none">
+  <circle cx="128" cy="116" r="56" stroke="currentColor" stroke-width="22"/>
+  <path d="M168 148 L198 186" stroke="currentColor" stroke-width="18" stroke-linecap="round"/>
+  <path d="M100 132 L116 122 L132 128 L148 108 L160 116" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

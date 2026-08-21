@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Quantlerning · Path">
+  <defs>
+    <linearGradient id="qlc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2F6AE8"/>
+      <stop offset="1" stop-color="#1E3F8C"/>
+    </linearGradient>
+  </defs>
+  <rect x="12" y="12" width="232" height="232" rx="52" fill="url(#qlc)"/>
+  <path d="M74 176 L104 150 L134 160 L168 116 L196 86"
+        fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+  <circle cx="74" cy="176" r="11" fill="#fff"/>
+  <circle cx="104" cy="150" r="11" fill="#fff"/>
+  <circle cx="134" cy="160" r="11" fill="#fff"/>
+  <circle cx="168" cy="116" r="11" fill="#fff"/>
+  <circle cx="196" cy="86" r="16" fill="#fff"/>
+  <path d="M188 78 L196 86 L190 94" fill="none" stroke="#1E3F8C" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

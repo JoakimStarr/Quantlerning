@@ -1,0 +1,220 @@
+/* ============================================================
+   Quantlerning · 设计语言 Token 体系
+   调性：极简精修 / 深邃蓝 (Refined Minimal · Deep Blue)
+   技术：oklch 感知均匀色 + CSS 变量 + [data-theme] 深浅双主题
+   使用：所有页面统一引用本文件，禁止页面内硬编码颜色/间距
+   ============================================================ */
+
+:root {
+  color-scheme: light dark;
+
+  /* ---------- 主色：深邃蓝（感知均匀的 oklch 色阶）---------- */
+  --blue-50:  oklch(0.973 0.018 256);
+  --blue-100: oklch(0.932 0.038 256);
+  --blue-200: oklch(0.866 0.072 256);
+  --blue-300: oklch(0.788 0.112 256);
+  --blue-400: oklch(0.694 0.152 256);
+  --blue-500: oklch(0.694 0.152 256);   /* 标准主色（已调淡：与原 blue-400 同值，降饱和提亮） */
+  --blue-600: oklch(0.612 0.176 256);   /* 主操作/按下（原 blue-500） */
+  --blue-700: oklch(0.480 0.160 259);   /* 深蓝强调/标题 */
+  --blue-800: oklch(0.410 0.132 259);
+  --blue-900: oklch(0.344 0.104 259);
+
+  /* ---------- 中性灰：带冷调（微偏蓝），与蓝主色同源 ---------- */
+  --gray-0:   oklch(0.992 0.002 256);
+  --gray-25:  oklch(0.984 0.003 256);
+  --gray-50:  oklch(0.970 0.005 256);
+  --gray-100: oklch(0.954 0.006 256);
+  --gray-150: oklch(0.933 0.008 256);
+  --gray-200: oklch(0.906 0.009 256);
+  --gray-300: oklch(0.850 0.010 256);
+  --gray-400: oklch(0.742 0.012 256);
+  --gray-500: oklch(0.624 0.013 256);
+  --gray-600: oklch(0.522 0.014 256);
+  --gray-700: oklch(0.436 0.015 256);
+  --gray-800: oklch(0.352 0.017 256);
+  --gray-900: oklch(0.282 0.018 256);
+  --gray-950: oklch(0.216 0.018 259);
+
+  /* ---------- 语义色（UI 状态：成功/警告/危险）---------- */
+  --green-500: oklch(0.720 0.155 152);
+  --green-600: oklch(0.626 0.152 150);
+  --green-50:  oklch(0.970 0.038 152);
+  --amber-500: oklch(0.790 0.145 78);
+  --amber-600: oklch(0.700 0.140 70);
+  --amber-50:  oklch(0.976 0.060 84);
+  --red-500:   oklch(0.630 0.190 24);
+  --red-600:   oklch(0.560 0.185 22);
+  --red-50:    oklch(0.972 0.040 24);
+
+  /* ---------- 金融涨跌：A股惯例「涨红跌绿」---------- */
+  /* 注意：与语义成功/危险不同。市场数据一律用下面两个 token。 */
+  --up:   var(--red-500);
+  --up-soft:   var(--red-50);
+  --down: var(--green-500);
+  --down-soft: var(--green-50);
+
+  /* ---------- 图表调色板（6 色，克制、低饱和、互协调）---------- */
+  --chart-1: oklch(0.694 0.152 256);  /* 主蓝（与调淡后的主色一致） */
+  --chart-2: oklch(0.640 0.150 300);  /* 紫 */
+  --chart-3: oklch(0.720 0.140 185);  /* 青 */
+  --chart-4: oklch(0.790 0.145 78);   /* 琥珀 */
+  --chart-5: oklch(0.630 0.190 24);   /* 红（涨）*/
+  --chart-6: oklch(0.560 0.120 330);  /* 玫 */
+  --chart-grid: var(--gray-200);
+
+  /* =================== 语义映射（组件只引用这些）=================== */
+  --bg-page:    var(--gray-50);
+  --bg-surface: var(--gray-0);
+  --bg-card:    var(--gray-0);
+  --bg-subtle:  var(--gray-100);
+  --bg-hover:   var(--gray-100);
+  --bg-active:  var(--blue-50);
+
+  --border:        var(--gray-200);
+  --border-strong: var(--gray-300);
+
+  --text-1: var(--gray-900);
+  --text-2: var(--gray-600);
+  --text-3: var(--gray-500);
+
+  --primary:        var(--blue-500);
+  --primary-hover:  var(--blue-600);
+  --primary-active: var(--blue-700);
+  --primary-soft:   var(--blue-50);
+  --primary-soft-2: var(--blue-100);
+
+  --success: var(--green-600);
+  --success-soft: var(--green-50);
+  --warning: var(--amber-600);
+  --warning-soft: var(--amber-50);
+  --danger: var(--red-600);
+  --danger-soft: var(--red-50);
+
+  --focus-ring: var(--blue-500);
+
+  /* ---------- 字体 ---------- */
+  --font-display: "Space Grotesk", "PingFang SC", "Microsoft YaHei", ui-sans-serif, sans-serif;
+  --font-body: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+
+  /* 流体字号（clamp：移动端小、桌面端大、随视口平滑过渡）
+     比例 ≈ 1.25 模块化，配 tabular-nums 用于数据 */
+  --fs-xs:   0.75rem;    /* 12 */
+  --fs-sm:   0.8125rem;  /* 13 */
+  --fs-base: 0.9375rem;  /* 15 正文 */
+  --fs-md:   1.0625rem;  /* 17 */
+  --fs-lg:   clamp(1.15rem, 1.05rem + 0.4vw, 1.375rem);   /* 标题4 */
+  --fs-xl:   clamp(1.4rem, 1.2rem + 0.9vw, 1.875rem);     /* 标题3 */
+  --fs-2xl:  clamp(1.8rem, 1.4rem + 1.8vw, 2.75rem);      /* 标题2 */
+  --fs-3xl:  clamp(2.3rem, 1.7rem + 2.8vw, 3.75rem);      /* 标题1/英雄 */
+  --fs-num:  clamp(1.6rem, 1.2rem + 1.6vw, 2.4rem);       /* 大数字/KPI */
+
+  /* ---------- 间距体系（4px 基准，留白偏大以显精致）---------- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px; --sp-9: 96px;
+  /* 区块节奏（流体） */
+  --section-y: clamp(48px, 6vw, 96px);
+
+  /* ---------- 圆角 ---------- */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+
+  /* ---------- 阴影（低透明度、分层、柔）---------- */
+  --shadow-xs: 0 1px 2px oklch(0.28 0.02 259 / 0.05);
+  --shadow-sm: 0 1px 3px oklch(0.28 0.02 259 / 0.06), 0 1px 2px oklch(0.28 0.02 259 / 0.04);
+  --shadow-md: 0 6px 16px oklch(0.28 0.02 259 / 0.08), 0 2px 6px oklch(0.28 0.02 259 / 0.05);
+  --shadow-lg: 0 18px 40px oklch(0.28 0.02 259 / 0.12), 0 6px 14px oklch(0.28 0.02 259 / 0.07);
+  --shadow-focus: 0 0 0 3px oklch(0.612 0.176 256 / 0.30);
+
+  /* ---------- 动效：指数缓动，禁止回弹 ---------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);     /* ease-out-quart */
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1); /* ease-out-expo */
+  --dur-fast: 0.16s;
+  --dur: 0.24s;
+  --dur-slow: 0.4s;
+
+  /* ---------- 布局尺度 ---------- */
+  --topbar-h: 60px;
+  --sidebar-w: 248px;
+  --content-max: 1200px;
+  --content-narrow: 880px;
+}
+
+/* ===================== 深色主题 ===================== */
+[data-theme="dark"] {
+  --bg-page:    oklch(0.196 0.014 259);
+  --bg-surface: oklch(0.236 0.018 259);
+  --bg-card:    oklch(0.252 0.020 259);
+  --bg-subtle:  oklch(0.290 0.022 259);
+  --bg-hover:   oklch(0.300 0.024 259);
+  --bg-active:  oklch(0.300 0.060 256);
+
+  --border:        oklch(0.330 0.022 259);
+  --border-strong: oklch(0.420 0.026 259);
+
+  --text-1: oklch(0.952 0.008 256);
+  --text-2: oklch(0.780 0.018 256);
+  --text-3: oklch(0.620 0.020 256);
+
+  --primary:        var(--blue-400);
+  --primary-hover:  var(--blue-300);
+  --primary-active: var(--blue-200);
+  --primary-soft:   oklch(0.300 0.060 256);
+  --primary-soft-2: oklch(0.350 0.080 256);
+
+  --success: var(--green-500);
+  --success-soft: oklch(0.270 0.050 152);
+  --warning: var(--amber-500);
+  --warning-soft: oklch(0.300 0.060 80);
+  --danger: var(--red-500);
+  --danger-soft: oklch(0.290 0.060 24);
+
+  --up:   var(--red-500);
+  --up-soft:   oklch(0.290 0.060 24);
+  --down: var(--green-500);
+  --down-soft: oklch(0.270 0.050 152);
+
+  --chart-1: oklch(0.694 0.152 256);
+  --chart-2: oklch(0.720 0.140 300);
+  --chart-3: oklch(0.780 0.130 185);
+  --chart-4: oklch(0.820 0.140 78);
+  --chart-5: oklch(0.700 0.180 24);
+  --chart-6: oklch(0.680 0.130 330);
+  --chart-grid: oklch(0.330 0.022 259);
+
+  --shadow-xs: 0 1px 2px oklch(0 0 0 / 0.30);
+  --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.36), 0 1px 2px oklch(0 0 0 / 0.24);
+  --shadow-md: 0 6px 16px oklch(0 0 0 / 0.44), 0 2px 6px oklch(0 0 0 / 0.30);
+  --shadow-lg: 0 18px 40px oklch(0 0 0 / 0.55), 0 6px 14px oklch(0 0 0 / 0.36);
+  --shadow-focus: 0 0 0 3px oklch(0.694 0.152 256 / 0.40);
+}
+
+/* 跟随系统（用户未手动选择时） */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --bg-page:    oklch(0.196 0.014 259);
+    --bg-surface: oklch(0.236 0.018 259);
+    --bg-card:    oklch(0.252 0.020 259);
+    --bg-subtle:  oklch(0.290 0.022 259);
+    --bg-hover:   oklch(0.300 0.024 259);
+    --bg-active:  oklch(0.300 0.060 256);
+    --border:        oklch(0.330 0.022 259);
+    --border-strong: oklch(0.420 0.026 259);
+    --text-1: oklch(0.952 0.008 256);
+    --text-2: oklch(0.780 0.018 256);
+    --text-3: oklch(0.620 0.020 256);
+    --primary:        var(--blue-400);
+    --primary-hover:  var(--blue-300);
+    --primary-active: var(--blue-200);
+    --primary-soft:   oklch(0.300 0.060 256);
+    --primary-soft-2: oklch(0.350 0.080 256);
+    --chart-1: oklch(0.694 0.152 256);
+    --chart-grid: oklch(0.330 0.022 259);
+  }
+}

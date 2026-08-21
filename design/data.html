@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quantlerning · 数据浏览器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/tokens.css" />
+<link rel="stylesheet" href="assets/components.css" />
+<style>
+  .toolbar { display:flex; gap: 12px; flex-wrap: wrap; align-items:flex-end; margin-bottom: var(--sp-5); }
+  .toolbar .field { min-width: 160px; }
+  .toolbar .grow { flex:1; }
+  .kpis { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: var(--sp-4); margin-bottom: var(--sp-5); }
+  .kpi-card { padding: var(--sp-5); }
+  .grid-2 { display:grid; grid-template-columns: 1.6fr 1fr; gap: var(--sp-5); align-items:start; }
+  @media (max-width: 920px){ .grid-2 { grid-template-columns: 1fr; } }
+  .chart-card .cc-head { display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px; }
+  .chart-card h4 { font-size: var(--fs-md); }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size: var(--fs-xs); color: var(--text-3); margin-top: 10px; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:middle; }
+  .factor-row { display:flex; align-items:center; gap: 12px; padding: 11px 0; border-bottom:1px solid var(--border); }
+  .factor-row:last-child { border-bottom:none; }
+  .factor-row .name { font-weight:600; font-size: var(--fs-sm); flex:1; }
+  .factor-row .ic { font-family: var(--font-mono); width: 56px; text-align:right; }
+  .bar-mini { height:6px; border-radius:var(--r-pill); background:var(--gray-200); overflow:hidden; width:90px; flex:none; }
+  .bar-mini > i { display:block; height:100%; background:var(--chart-1); }
+  .table-wrap { margin-top: var(--sp-5); }
+  .table-wrap > .tw-head { display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; }
+</style>
+</head>
+<body class="theme-anim">
+
+<header class="topbar">
+  <button class="icon-btn menu-btn" data-menu aria-label="菜单"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+  <div class="brand"><img src="assets/icon.svg" alt=""/><span><span class="q">Quant</span>lerning</span></div>
+  <nav class="nav"><a href="home.html">首页</a><a href="lesson.html">课程</a><a href="data.html" class="active">数据</a><a href="settings.html">设置</a></nav>
+  <div class="spacer"></div>
+  <div class="actions">
+    <button class="icon-btn" data-theme-toggle aria-label="切换主题"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
+  </div>
+</header>
+<div class="scrim"></div>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="side-group">
+      <div class="ttl">数据浏览器</div>
+      <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>行情总览</div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>因子分析</div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>宏观数据</div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>回测记录</div>
+    </div>
+    <div class="side-group">
+      <div class="ttl">样本池</div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>核心股 · 5</div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>横截面 · 800</div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="crumb"><a href="home.html">首页</a><span class="sep">/</span><span>数据浏览器</span><span class="sep">/</span><span>行情总览</span></div>
+    <div class="lesson-head"><div><h1 style="font-size:var(--fs-2xl)">行情总览</h1><p class="muted" style="margin-top:8px;font-size:var(--fs-sm)">基于 10 年真实 A 股数据 · 样本：800 只横截面</p></div></div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <div class="field"><label>股票代码</label><input class="input" placeholder="600519 / 000001"/></div>
+      <div class="field"><label>区间</label><select class="select"><option>近 1 月</option><option selected>近 1 年</option><option>近 3 年</option><option>全历史</option></select></div>
+      <div class="field"><label>频率</label><select class="select"><option>日频</option><option selected>周频</option><option>月频</option></select></div>
+      <div class="field grow"><label>筛选</label><input class="input" placeholder="按行业 / 概念搜索…"/></div>
+      <button class="btn btn-primary" onclick="QL.toast('已应用筛选','ok')">查询</button>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpis">
+      <div class="card kpi-card kpi"><span class="label">样本平均年化收益</span><span class="val">14.2%</span><span class="delta up">▲ 2.3%</span></div>
+      <div class="card kpi-card kpi"><span class="label">中位数夏普</span><span class="val">1.18</span><span class="delta up">▲ 0.12</span></div>
+      <div class="card kpi-card kpi"><span class="label">平均最大回撤</span><span class="val down">−28.4%</span><span class="delta down">▼ 3.1%</span></div>
+      <div class="card kpi-card kpi"><span class="label">上涨家数 / 总</span><span class="val">512 / 800</span><span class="delta up">64%</span></div>
+    </div>
+
+    <!-- 主图 + 因子 -->
+    <div class="grid-2">
+      <div class="card chart-card">
+        <div class="cc-head"><h4>净值走势 · 等权组合 vs 沪深300</h4><span class="badge">周频</span></div>
+        <svg viewBox="0 0 480 220" width="100%" height="220" preserveAspectRatio="none">
+          <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--chart-1)" stop-opacity="0.25"/><stop offset="1" stop-color="var(--chart-1)" stop-opacity="0"/></linearGradient></defs>
+          <path d="M0 180 L60 168 L120 172 L180 140 L240 150 L300 110 L360 96 L420 60 L480 44 L480 220 L0 220 Z" fill="url(#ga)"/>
+          <path d="M0 180 L60 168 L120 172 L180 140 L240 150 L300 110 L360 96 L420 60 L480 44" fill="none" stroke="var(--chart-1)" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M0 188 L60 184 L120 186 L180 176 L240 178 L300 168 L360 162 L420 150 L480 140" fill="none" stroke="var(--chart-3)" stroke-width="2" stroke-dasharray="5 4" opacity="0.85"/>
+        </svg>
+        <div class="legend"><span><i style="background:var(--chart-1)"></i>等权组合</span><span><i style="background:var(--chart-3)"></i>沪深300</span></div>
+      </div>
+
+      <div class="card">
+        <h4 style="font-size:var(--fs-md);margin-bottom:6px">因子 IC（信息系数）</h4>
+        <p class="faint" style="font-size:var(--fs-xs);margin-bottom:8px">数值越高，因子预测力越强</p>
+        <div class="factor-row"><span class="name">市值</span><span class="ic">0.06</span><span class="bar-mini"><i style="width:24%"></i></span></div>
+        <div class="factor-row"><span class="name">动量</span><span class="ic">0.11</span><span class="bar-mini"><i style="width:60%"></i></span></div>
+        <div class="factor-row"><span class="name">估值(EP)</span><span class="ic">0.09</span><span class="bar-mini"><i style="width:48%"></i></span></div>
+        <div class="factor-row"><span class="name">质量(ROE)</span><span class="ic up">0.13</span><span class="bar-mini"><i style="width:80%"></i></span></div>
+        <div class="factor-row"><span class="name">波动率</span><span class="ic">−0.04</span><span class="bar-mini"><i style="width:16%;background:var(--down)"></i></span></div>
+      </div>
+    </div>
+
+    <!-- 数据表 -->
+    <div class="table-wrap">
+      <div class="tw-head"><h4 style="font-size:var(--fs-md)">个股快照</h4><button class="btn btn-ghost btn-sm" onclick="QL.toast('已导出 CSV')">导出 CSV</button></div>
+      <table class="data">
+        <thead><tr><th>代码</th><th>名称</th><th>行业</th><th class="num">最新价</th><th class="num">涨跌幅</th><th class="num">PE</th><th class="num">年化波动</th></tr></thead>
+        <tbody>
+          <tr><td class="num">600519</td><td>贵州茅台</td><td>食品饮料</td><td class="num">1685.00</td><td class="num up">+2.31%</td><td class="num">32.4</td><td class="num">24.1%</td></tr>
+          <tr><td class="num">000001</td><td>平安银行</td><td>金融</td><td class="num">11.86</td><td class="num down">−0.84%</td><td class="num">4.8</td><td class="num">21.7%</td></tr>
+          <tr><td class="num">300750</td><td>宁德时代</td><td>电力设备</td><td class="num">198.40</td><td class="num up">+1.05%</td><td class="num">22.1</td><td class="num">35.6%</td></tr>
+          <tr><td class="num">601318</td><td>中国平安</td><td>金融</td><td class="num">48.92</td><td class="num up">+0.42%</td><td class="num">9.3</td><td class="num">19.8%</td></tr>
+          <tr><td class="num">000858</td><td>五粮液</td><td>食品饮料</td><td class="num">142.30</td><td class="num down">−1.12%</td><td class="num">18.6</td><td class="num">26.4%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quantlerning · 设计系统</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/tokens.css" />
+<link rel="stylesheet" href="assets/components.css" />
+<style>
+  .doc { max-width: 1100px; margin-inline: auto; }
+  .hero { padding: clamp(40px,7vw,90px) 0 var(--sp-7); border-bottom: 1px solid var(--border); }
+  .hero h1 { margin: 14px 0 16px; }
+  .hero p { color: var(--text-2); max-width: 640px; font-size: var(--fs-md); }
+  .sec { padding: var(--sp-7) 0; border-bottom: 1px solid var(--border); }
+  .sec > .head { margin-bottom: var(--sp-5); }
+  .sec h2 { font-size: var(--fs-xl); }
+  .sec .desc { color: var(--text-3); margin-top: 6px; font-size: var(--fs-sm); }
+  .panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-5); }
+
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap: 14px; }
+  .sw { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; background: var(--bg-card); }
+  .sw .chip-c { height: 64px; }
+  .sw .meta { padding: 9px 11px; }
+  .sw .meta b { font-family: var(--font-mono); font-size: var(--fs-xs); display:block; }
+  .sw .meta span { font-size: var(--fs-xs); color: var(--text-3); }
+
+  .type-row { display: flex; align-items: baseline; gap: 20px; padding: 14px 0; border-bottom: 1px dashed var(--border); }
+  .type-row:last-child { border-bottom: none; }
+  .type-row .tok { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); width: 120px; flex: none; }
+  .type-row .samp { flex: 1; min-width: 0; }
+
+  .sp-row { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+  .sp-box { display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); }
+  .sp-box .bar { background: var(--primary); border-radius: 4px; }
+
+  .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: var(--sp-5); }
+  .demo { display: flex; flex-direction: column; gap: 12px; }
+  .demo .lab { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; }
+  .demo .line { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .ctx { background: var(--bg-subtle); border-radius: var(--r-md); padding: 16px; }
+  .ctx h4 { margin-bottom: 8px; }
+  .ctx p { font-size: var(--fs-sm); color: var(--text-2); }
+  table.spec { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+  table.spec th, table.spec td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  table.spec th { color: var(--text-3); font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em; }
+  table.spec td code { font-family: var(--font-mono); color: var(--primary); font-size: var(--fs-xs); }
+</style>
+</head>
+<body class="theme-anim">
+
+<!-- 顶栏 -->
+<header class="topbar">
+  <button class="icon-btn menu-btn" data-menu aria-label="菜单"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+  <div class="brand"><img src="assets/icon.svg" alt="Quantlerning"/><span><span class="q">Quant</span>lerning</span></div>
+  <nav class="nav"><a href="design-system.html" class="active">设计系统</a><a href="home.html">首页</a><a href="lesson.html">课程</a><a href="data.html">数据</a><a href="settings.html">设置</a></nav>
+  <div class="spacer"></div>
+  <div class="actions">
+    <button class="icon-btn" data-theme-toggle aria-label="切换主题"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
+  </div>
+</header>
+
+<div class="container doc">
+
+  <!-- Hero / Design Context -->
+  <section class="hero">
+    <span class="eyebrow">Design System · v1.0</span>
+    <h1>Quantlerning 设计语言</h1>
+    <p>统一的设计令牌与组件库，覆盖色彩、字体、间距、圆角、阴影与交互。所有页面共用同一套变量，保证视觉协调、体验一致。点击右上角可实时切换深 / 浅主题。</p>
+  </section>
+
+  <!-- Design Context -->
+  <section class="sec">
+    <div class="head"><h2>Design Context</h2><div class="desc">设计决策的来源，所有后续选择都服从这里。</div></div>
+    <div class="gallery">
+      <div class="ctx"><h4>用户 · Users</h4><p>量化金融学习者：在校生、转行从业者、爱好者。在「系统补课」情境下使用，目标是把抽象公式变成可看可练的直觉。</p></div>
+      <div class="ctx"><h4>品牌个性 · Brand</h4><p>严谨但不高冷、专业却有温度。三词：<b>清晰 / 可信 / 进阶</b>。情绪目标：学习时的「确定感」与「成就感」。</p></div>
+      <div class="ctx"><h4>视觉方向 · Aesthetic</h4><p>极简精修 + 深邃蓝。克制留白、几何秩序、数据可读。参照：优秀教育产品与金融终端的干净感；规避：霓虹渐变、毛玻璃滥用、千篇一律的 AI 蓝青。</p></div>
+      <div class="ctx"><h4>设计原则 · Principles</h4><p>① 一致性优先 ② 数据永远可读（tabular 数字）③ 反馈即时且不喧哗 ④ 移动端不阉割功能 ⑤ 主题只是换肤，结构不变。</p></div>
+    </div>
+  </section>
+
+  <!-- Color -->
+  <section class="sec">
+    <div class="head"><h2>色彩 · Color</h2><div class="desc">感知均匀的 oklch 色阶；冷调中性灰与主色同源。所有组件只引用语义变量（如 --primary / --text-1）。</div></div>
+    <h4 class="muted" style="margin:18px 0 10px;font-size:var(--fs-sm)">主色 · 深邃蓝</h4>
+    <div class="swatches" id="sw-primary"></div>
+    <h4 class="muted" style="margin:24px 0 10px;font-size:var(--fs-sm)">中性灰 · 冷调</h4>
+    <div class="swatches" id="sw-gray"></div>
+    <h4 class="muted" style="margin:24px 0 10px;font-size:var(--fs-sm)">语义色 · UI 状态</h4>
+    <div class="swatches" id="sw-sem"></div>
+    <h4 class="muted" style="margin:24px 0 10px;font-size:var(--fs-sm)">金融涨跌 · A股「涨红跌绿」</h4>
+    <div class="swatches" id="sw-fin"></div>
+    <h4 class="muted" style="margin:24px 0 10px;font-size:var(--fs-sm)">图表调色板 · 6 色</h4>
+    <div class="swatches" id="sw-chart"></div>
+  </section>
+
+  <!-- Typography -->
+  <section class="sec">
+    <div class="head"><h2>字体 · Typography</h2><div class="desc">展示字体 Space Grotesk（标题/数字）+ 正文 Manrope + 等宽 JetBrains Mono（代码/数据）。流体字号随视口缩放。</div></div>
+    <div class="panel">
+      <div class="type-row"><div class="tok">--fs-3xl · 标题1</div><div class="samp" style="font-family:var(--font-display);font-size:var(--fs-3xl);font-weight:700;letter-spacing:-0.02em">从 0 到量化高手</div></div>
+      <div class="type-row"><div class="tok">--fs-2xl · 标题2</div><div class="samp" style="font-family:var(--font-display);font-size:var(--fs-2xl);font-weight:600">回测与绩效评估</div></div>
+      <div class="type-row"><div class="tok">--fs-xl · 标题3</div><div class="samp" style="font-family:var(--font-display);font-size:var(--fs-xl);font-weight:600">夏普比率与最大回撤</div></div>
+      <div class="type-row"><div class="tok">--fs-md · 正文大</div><div class="samp" style="font-family:var(--font-body);font-size:var(--fs-md)">每个核心概念都配有交互式可视化。</div></div>
+      <div class="type-row"><div class="tok">--fs-base · 正文</div><div class="samp" style="font-family:var(--font-body);font-size:var(--fs-base)">数据复用 QuantLab 的 PostgreSQL，学完即用。</div></div>
+      <div class="type-row"><div class="tok">.num · 数据</div><div class="samp num" style="font-size:var(--fs-md)">Sharpe 1.84 · MaxDD −12.3% · CAGR 23.6%</div></div>
+      <div class="type-row"><div class="tok">--font-mono</div><div class="samp" style="font-family:var(--font-mono);font-size:var(--fs-base)">df = pd.read_sql(query, engine)</div></div>
+    </div>
+  </section>
+
+  <!-- Spacing -->
+  <section class="sec">
+    <div class="head"><h2>间距 · Spacing</h2><div class="desc">4px 基准的模块化尺度，配合流体区块节奏（--section-y），营造精致留白。</div></div>
+    <div class="panel"><div class="sp-row" id="sp-row"></div></div>
+  </section>
+
+  <!-- Radius & Shadow -->
+  <section class="sec">
+    <div class="head"><h2>圆角 & 阴影</h2><div class="desc">圆角统一递进；阴影低透明度、分层、柔和，绝不滥用发光。</div></div>
+    <div class="gallery">
+      <div class="panel">
+        <div class="lab" style="font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-3);margin-bottom:12px">RADIUS</div>
+        <div class="line">
+          <div style="text-align:center"><div style="width:72px;height:72px;background:var(--primary-soft);border:1px solid var(--primary);border-radius:var(--r-sm)"></div><span class="faint" style="font-size:var(--fs-xs)">sm</span></div>
+          <div style="text-align:center"><div style="width:72px;height:72px;background:var(--primary-soft);border:1px solid var(--primary);border-radius:var(--r-md)"></div><span class="faint" style="font-size:var(--fs-xs)">md</span></div>
+          <div style="text-align:center"><div style="width:72px;height:72px;background:var(--primary-soft);border:1px solid var(--primary);border-radius:var(--r-lg)"></div><span class="faint" style="font-size:var(--fs-xs)">lg</span></div>
+          <div style="text-align:center"><div style="width:72px;height:72px;background:var(--primary-soft);border:1px solid var(--primary);border-radius:var(--r-xl)"></div><span class="faint" style="font-size:var(--fs-xs)">xl</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="lab" style="font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-3);margin-bottom:12px">ELEVATION</div>
+        <div class="stack gap-3">
+          <div class="card card-flat" style="box-shadow:var(--shadow-xs)">shadow-xs</div>
+          <div class="card card-flat" style="box-shadow:var(--shadow-sm)">shadow-sm</div>
+          <div class="card card-flat" style="box-shadow:var(--shadow-md)">shadow-md</div>
+          <div class="card card-flat" style="box-shadow:var(--shadow-lg)">shadow-lg</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Components gallery -->
+  <section class="sec">
+    <div class="head"><h2>组件 · Components</h2><div class="desc">跨页面统一。以下均为真实可用样式，复制即用。</div></div>
+    <div class="gallery">
+      <div class="panel demo"><div class="lab">Buttons</div>
+        <div class="line"><button class="btn btn-primary">开始学习</button><button class="btn btn-outline">查看大纲</button><button class="btn btn-ghost">跳过</button></div>
+        <div class="line"><button class="btn btn-primary btn-sm">小号</button><button class="btn btn-primary" disabled>已禁用</button></div>
+      </div>
+      <div class="panel demo"><div class="lab">Badges</div>
+        <div class="line"><span class="badge badge-primary badge-dot">进行中</span><span class="badge badge-success badge-dot">已完成</span><span class="badge badge-warning badge-dot">待复习</span><span class="badge">Phase 3</span></div>
+      </div>
+      <div class="panel demo"><div class="lab">Form</div>
+        <div class="field"><label>股票代码</label><input class="input" placeholder="例如 600519"/></div>
+        <div class="line"><label class="switch"><input type="checkbox" checked><span class="track"></span><span class="thumb"></span></label><span class="muted" style="font-size:var(--fs-sm)">自动播放讲解</span></div>
+      </div>
+      <div class="panel demo"><div class="lab">Check / Radio</div>
+        <div class="stack gap-2"><label class="check"><input type="checkbox" checked> 显示网格线</label><label class="check"><input type="checkbox"> 对数坐标</label><label class="check"><input type="radio" name="r" checked> 日频</label><label class="check"><input type="radio" name="r"> 周频</label></div>
+      </div>
+      <div class="panel demo"><div class="lab">Slider</div>
+        <input type="range" min="0" max="100" value="62"/>
+        <div class="muted" style="font-size:var(--fs-xs)">窗口长度 62 日</div>
+      </div>
+      <div class="panel demo"><div class="lab">Progress</div>
+        <div class="progress"><i style="width:68%"></i></div>
+        <div class="muted" style="font-size:var(--fs-xs)">总体进度 68%</div>
+      </div>
+      <div class="panel demo"><div class="lab">KPI</div>
+        <div class="kpi"><span class="label">年化收益 CAGR</span><span class="val">23.6%</span><span class="delta up">▲ 4.1% vs 基准</span></div>
+      </div>
+      <div class="panel demo"><div class="lab">Tabs</div>
+        <div data-tabs><div class="tabs"><button class="tab active" data-tab="a">概览</button><button class="tab" data-tab="b">因子</button><button class="tab" data-tab="c">回测</button></div></div>
+        <div data-panel="a"><span class="muted" style="font-size:var(--fs-sm)">选中「概览」面板内容。</span></div>
+        <div data-panel="b" hidden><span class="muted" style="font-size:var(--fs-sm)">因子面板内容。</span></div>
+        <div data-panel="c" hidden><span class="muted" style="font-size:var(--fs-sm)">回测面板内容。</span></div>
+      </div>
+      <div class="panel demo"><div class="lab">Toast</div>
+        <button class="btn btn-outline btn-sm" onclick="QL.toast('进度已保存','ok')">触发 Toast</button>
+      </div>
+      <div class="panel demo"><div class="lab">Empty state</div>
+        <div class="empty" style="padding:24px"><div class="ico"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div><h4>还没有回测记录</h4><p>运行一次策略看看表现。</p><button class="btn btn-primary btn-sm">新建回测</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Token map table -->
+  <section class="sec">
+    <div class="head"><h2>语义变量映射</h2><div class="desc">组件永远引用右侧语义变量，而非具体色值——换肤与调性调整只改 tokens.css。</div></div>
+    <div class="panel"><table class="spec">
+      <thead><tr><th>用途</th><th>语义变量</th><th>取值（浅色）</th></tr></thead>
+      <tbody>
+        <tr><td>主操作 / 链接</td><td><code>--primary</code></td><td>oklch(0.612 0.176 256)</td></tr>
+        <tr><td>页面背景</td><td><code>--bg-page</code></td><td>oklch(0.970 0.005 256)</td></tr>
+        <tr><td>卡片表面</td><td><code>--bg-card</code></td><td>oklch(0.992 0.002 256)</td></tr>
+        <tr><td>主文字</td><td><code>--text-1</code></td><td>oklch(0.282 0.018 259)</td></tr>
+        <tr><td>边框</td><td><code>--border</code></td><td>oklch(0.906 0.009 256)</td></tr>
+        <tr><td>涨（A股红）</td><td><code>--up</code></td><td>oklch(0.630 0.190 24)</td></tr>
+        <tr><td>跌（A股绿）</td><td><code>--down</code></td><td>oklch(0.720 0.155 152)</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <div style="height:60px"></div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+  // 渲染色板
+  function swatch(name, varName, note){ return '<div class="sw"><div class="chip-c" style="background:var('+varName+')"></div><div class="meta"><b>'+name+'</b><span>'+(note||varName)+'</span></div></div>'; }
+  document.getElementById('sw-primary').innerHTML = ['--blue-300','--blue-400','--blue-500','--blue-600','--blue-700','--blue-800'].map(function(v){ return swatch(v,v); }).join('');
+  document.getElementById('sw-gray').innerHTML = ['--gray-0','--gray-100','--gray-200','--gray-300','--gray-400','--gray-600','--gray-800','--gray-950'].map(function(v){ return swatch(v,v); }).join('');
+  document.getElementById('sw-sem').innerHTML = [['--success','--success','成功'],['--warning','--warning','警告'],['--danger','--danger','危险']].map(function(p){ return swatch(p[0],p[1],p[2]); }).join('');
+  document.getElementById('sw-fin').innerHTML = [['--up','--up','涨 · 红'],['--down','--down','跌 · 绿']].map(function(p){ return swatch(p[0],p[1],p[2]); }).join('');
+  document.getElementById('sw-chart').innerHTML = ['--chart-1','--chart-2','--chart-3','--chart-4','--chart-5','--chart-6'].map(function(v){ return swatch(v,v); }).join('');
+  // 间距
+  var sp = [['--sp-2',8],['--sp-3',12],['--sp-4',16],['--sp-5',24],['--sp-6',32],['--sp-7',48],['--sp-8',64]];
+  document.getElementById('sp-row').innerHTML = sp.map(function(s){ return '<div class="sp-box"><div class="bar" style="width:'+s[1]+'px;height:'+s[1]+'px"></div>'+s[0]+'</div>'; }).join('');
+</script>
+</body>
+</html>

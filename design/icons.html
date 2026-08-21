@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quantlerning · 品牌图标方案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/tokens.css" />
+<style>
+  body { padding-bottom: 80px; }
+  .page { max-width: 1080px; margin-inline: auto; padding-inline: clamp(16px,4vw,40px); }
+  .top {
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding: 22px 0; border-bottom: 1px solid var(--border); margin-bottom: 40px;
+    position: sticky; top: 0; background: color-mix(in oklch, var(--bg-page) 88%, transparent);
+    backdrop-filter: blur(10px); z-index: 5;
+  }
+  .top .brand { display:flex; align-items:center; gap:12px; }
+  .top .brand img { width:38px; height:38px; border-radius:10px; }
+  .top .brand b { font-family: var(--font-display); font-size: 18px; letter-spacing:-0.01em; }
+
+  .lead { max-width: 720px; margin-bottom: 48px; }
+  .lead h1 { margin-bottom: 14px; }
+  .lead p { color: var(--text-2); font-size: var(--fs-md); }
+
+  .section { margin-bottom: 56px; }
+  .section > h2 { font-size: var(--fs-xl); margin-bottom: 6px; }
+  .section > .sub { color: var(--text-3); margin-bottom: 22px; font-size: var(--fs-sm); }
+
+  /* 主推展示 */
+  .hero-icon { display:flex; gap: 40px; flex-wrap: wrap; align-items:center;
+    background: var(--bg-card); border:1px solid var(--border); border-radius: var(--r-xl);
+    padding: clamp(24px,4vw,48px); box-shadow: var(--shadow-sm); }
+  .hero-icon .tile { width: clamp(120px, 20vw, 200px); height: clamp(120px,20vw,200px); border-radius: 28px; box-shadow: var(--shadow-lg); }
+  .hero-meta { flex: 1; min-width: 240px; }
+  .pill-rec { display:inline-block; font-family: var(--font-mono); font-size: var(--fs-xs);
+    letter-spacing:.1em; text-transform:uppercase; color: var(--primary); background: var(--primary-soft);
+    padding: 4px 12px; border-radius: var(--r-pill); margin-bottom: 14px; font-weight:600; }
+  .hero-meta h3 { font-size: var(--fs-lg); margin-bottom: 8px; }
+  .hero-meta p { color: var(--text-2); margin-bottom: 18px; }
+  .tag-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .tag { font-size: var(--fs-xs); color: var(--text-2); border:1px solid var(--border); padding:5px 10px; border-radius: var(--r-pill); }
+
+  /* 三方案网格 */
+  .concepts { display:grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+  @container (max-width: 640px){ .concepts { grid-template-columns: 1fr; } }
+  .concept { background: var(--bg-card); border:1px solid var(--border); border-radius: var(--r-lg);
+    padding: 22px; text-align:center; transition: border-color var(--dur) var(--ease-out), transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out); }
+  .concept:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: var(--shadow-md); }
+  .concept img { width: 96px; height:96px; border-radius: 22px; }
+  .concept h4 { margin: 16px 0 4px; font-size: var(--fs-md); }
+  .concept p { color: var(--text-3); font-size: var(--fs-sm); }
+
+  /* 尺寸梯度 */
+  .sizes { display:flex; align-items:flex-end; gap: 26px; flex-wrap:wrap;
+    background: var(--bg-card); border:1px solid var(--border); border-radius: var(--r-lg); padding: 28px; }
+  .size-item { display:flex; flex-direction:column; align-items:center; gap:8px; color: var(--text-3); font-size: var(--fs-xs); font-family: var(--font-mono); }
+  .size-item img { border-radius: 10px; }
+
+  /* 深浅对比 */
+  .themes { display:grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .theme-box { border-radius: var(--r-lg); padding: 30px; display:flex; gap:20px; align-items:center; }
+  .theme-box.light { background: #fff; border:1px solid var(--gray-200); }
+  .theme-box.dark { background: #122046; }
+  .theme-box .lab { font-family: var(--font-mono); font-size: var(--fs-xs); letter-spacing:.1em; text-transform:uppercase; }
+  .theme-box.light .lab { color: var(--gray-500); }
+  .theme-box.dark .lab { color: #8fa3d6; }
+  .theme-box img { width:64px; height:64px; border-radius:16px; }
+
+  /* 单色 */
+  .mono { display:flex; gap: 28px; align-items:center; flex-wrap:wrap;
+    background: var(--bg-card); border:1px solid var(--border); border-radius: var(--r-lg); padding: 26px; }
+  .mono .m { display:flex; flex-direction:column; gap:10px; align-items:center; }
+  .mono .m span { font-size: var(--fs-xs); color: var(--text-3); font-family: var(--font-mono); }
+  .mono .swatch { width: 72px; height:72px; border-radius:16px; display:grid; place-items:center; }
+  .mono .swatch.blue { background: var(--blue-600); }
+  .mono .swatch.ink  { background: var(--gray-900); }
+  .mono .swatch.paper{ background: #fff; border:1px solid var(--border); }
+  .mono .swatch img { width: 44px; height:44px; }
+
+  /* 文字标 */
+  .wordmark { display:flex; gap: 32px; align-items:center; flex-wrap:wrap;
+    background: var(--bg-card); border:1px solid var(--border); border-radius: var(--r-lg); padding: 28px; }
+  .wm { display:flex; align-items:center; gap: 12px; }
+  .wm img { width: 40px; height:40px; border-radius: 10px; }
+  .wm b { font-family: var(--font-display); font-size: 26px; letter-spacing:-0.02em; font-weight:700; }
+  .wm .q { color: var(--blue-600); }
+  .wm.dark b { color:#fff; }
+  .wm.dark .q { color:#7aa7ff; }
+
+  .guidelines { display:grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+  .guide { background: var(--bg-subtle); border-radius: var(--r-md); padding: 18px 20px; }
+  .guide h5 { font-size: var(--fs-sm); margin-bottom:6px; color: var(--text-1); }
+  .guide p { font-size: var(--fs-sm); color: var(--text-2); }
+  code.k { font-family: var(--font-mono); font-size: var(--fs-xs); background: var(--bg-card);
+    border:1px solid var(--border); padding:1px 6px; border-radius:6px; color: var(--primary); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top">
+    <div class="brand">
+      <img src="assets/icon.svg" alt="Quantlerning" />
+      <b>Quantlerning</b>
+    </div>
+    <button class="btn btn-outline" id="themeBtn">切换深色 / 浅色</button>
+  </div>
+
+  <div class="lead">
+    <span class="eyebrow">Brand Mark</span>
+    <h1>Quantlerning 品牌图标</h1>
+    <p>一个主推方案 + 两个备选方向。三个方案都围绕「量化 × 学习」：以深蓝圆角为底，几何白线为形，确保在 favicon、应用图标、深浅主题下都清晰、克制、可记忆。</p>
+  </div>
+
+  <!-- 主推 -->
+  <div class="section">
+    <h2>主推方案 · A「学习曲线 Q」</h2>
+    <div class="sub">推荐作为正式图标 — Q 字母代表 Quantlerning，碗内上升折线代表数据/学习曲线，尾部保留字母识别度。</div>
+    <div class="hero-icon">
+      <img class="tile" src="assets/icon.svg" alt="主推图标" />
+      <div class="hero-meta">
+        <span class="pill-rec">★ 主推</span>
+        <h3>深蓝圆角 tile ＋ 白线 Q</h3>
+        <p>几何极简、跨尺寸可读（16px 仍辨识），自带品牌色与「向上成长」语义，天然适配学习站调性。</p>
+        <div class="tag-row">
+          <span class="tag">深蓝渐变 #2F6AE8→#1E3F8C</span>
+          <span class="tag">圆角 52 / 256</span>
+          <span class="tag">单色可降级</span>
+          <span class="tag">favicon / app / 浅深通用</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 三方案 -->
+  <div class="section">
+    <h2>三个方向对比</h2>
+    <div class="sub">悬停查看细节。如主推不合适，可在 B / C 中二选一。</div>
+    <div class="concepts">
+      <div class="concept">
+        <img src="assets/icon.svg" alt="A" />
+        <h4>A · 学习曲线 Q</h4>
+        <p>Q 字母 + 碗内上升折线。最贴合品牌名与「成长」语义。</p>
+      </div>
+      <div class="concept">
+        <img src="assets/icon-b.svg" alt="B" />
+        <h4>B · 求和 Σ</h4>
+        <p>数学求和符号 + 上行箭头。强调「量化=数学」，更学术。</p>
+      </div>
+      <div class="concept">
+        <img src="assets/icon-c.svg" alt="C" />
+        <h4>C · 进阶路径</h4>
+        <p>节点连成上升链路。强调「循序渐进的学习路径」。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 尺寸 -->
+  <div class="section">
+    <h2>尺寸梯度</h2>
+    <div class="sub">同一图形在 16 → 256 全程保持可识别，无细节坍塌。</div>
+    <div class="sizes">
+      <div class="size-item"><img src="assets/icon.svg" width="16" height="16" style="border-radius:4px"/><span>16</span></div>
+      <div class="size-item"><img src="assets/icon.svg" width="24" height="24" style="border-radius:6px"/><span>24</span></div>
+      <div class="size-item"><img src="assets/icon.svg" width="32" height="32" style="border-radius:8px"/><span>32</span></div>
+      <div class="size-item"><img src="assets/icon.svg" width="48" height="48" style="border-radius:12px"/><span>48</span></div>
+      <div class="size-item"><img src="assets/icon.svg" width="64" height="64" style="border-radius:16px"/><span>64</span></div>
+      <div class="size-item"><img src="assets/icon.svg" width="128" height="128" style="border-radius:28px"/><span>128</span></div>
+      <div class="size-item"><img src="assets/icon.svg" width="256" height="256" style="border-radius:52px"/><span>256</span></div>
+    </div>
+  </div>
+
+  <!-- 深浅 -->
+  <div class="section">
+    <h2>深浅主题下的表现</h2>
+    <div class="sub">tile 自带深蓝，在浅色与深色背景上都成立；无需为暗色重绘。</div>
+    <div class="themes">
+      <div class="theme-box light"><img src="assets/icon.svg" alt="浅色" /><div><div class="lab">Light</div></div></div>
+      <div class="theme-box dark"><img src="assets/icon.svg" alt="深色" /><div><div class="lab">Dark</div></div></div>
+    </div>
+  </div>
+
+  <!-- 单色降级 -->
+  <div class="section">
+    <h2>单色降级（无渐变场景）</h2>
+    <div class="sub">使用 <code class="k">icon-mark.svg</code>（currentColor），在纯色块 / 文字标旁自动取色。</div>
+    <div class="mono">
+      <div class="m"><div class="swatch blue"><img src="assets/icon-mark.svg" style="filter:none;color:#fff"/></div><span>深蓝底 · 白</span></div>
+      <div class="m"><div class="swatch ink"><img src="assets/icon-mark.svg" style="color:#fff"/></div><span>墨底 · 白</span></div>
+      <div class="m"><div class="swatch paper"><img src="assets/icon-mark.svg" style="color:var(--blue-600)"/></div><span>纸底 · 蓝</span></div>
+    </div>
+  </div>
+
+  <!-- 文字标 -->
+  <div class="section">
+    <h2>文字标 Lockup</h2>
+    <div class="sub">图标 + 名称的标准组合，用于顶栏与页脚。</div>
+    <div class="wordmark">
+      <div class="wm"><img src="assets/icon.svg" alt=""/><b><span class="q">Quant</span>lerning</b></div>
+      <div class="wm dark" style="background:#122046;padding:14px 18px;border-radius:14px"><img src="assets/icon.svg" alt=""/><b><span class="q">Quant</span>lerning</b></div>
+    </div>
+  </div>
+
+  <!-- 使用规范 -->
+  <div class="section">
+    <h2>使用规范</h2>
+    <div class="guidelines">
+      <div class="guide"><h5>最小尺寸</h5><p>功能性使用不小于 <code class="k">16px</code>；纯装饰可到 12px，但需关闭碗内折线细节。</p></div>
+      <div class="guide"><h5>留白</h5><p>tile 与文字/边界至少保留 <code class="k">1/8 边长</code> 的安全间距。</p></div>
+      <div class="guide"><h5>配色</h5><p>主色固定深蓝渐变；单色场景用 <code class="k">--blue-600</code> 或纯白，勿自行改色相。</p></div>
+      <div class="guide"><h5>favicon</h5><p>导出 16/32/48/180 多尺寸 + <code class="k">mask-icon</code> 用单色 mark（currentColor）。</p></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const root = document.documentElement;
+  const btn = document.getElementById('themeBtn');
+  btn.addEventListener('click', () => {
+    const cur = root.getAttribute('data-theme');
+    root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  });
+</script>
+</body>
+</html>

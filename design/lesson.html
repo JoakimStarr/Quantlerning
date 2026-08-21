@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quantlerning · 课程学习</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/tokens.css" />
+<link rel="stylesheet" href="assets/components.css" />
+<style>
+  .lesson-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom: var(--sp-5); }
+  .lesson-head h1 { font-size: var(--fs-2xl); max-width: 20ch; }
+  .lesson-meta { display:flex; gap: 8px; flex-wrap:wrap; margin-top: 12px; }
+  .prose { max-width: 72ch; }
+  .prose h3 { margin: var(--sp-6) 0 var(--sp-3); }
+  .prose p { color: var(--text-2); margin-bottom: var(--sp-4); }
+  .prose ul { color: var(--text-2); margin: 0 0 var(--sp-4); padding-left: 20px; }
+  .prose li { margin-bottom: 6px; }
+  .formula { background: var(--bg-subtle); border:1px solid var(--border); border-left: 3px solid var(--primary); border-radius: var(--r-md); padding: 16px 20px; margin: var(--sp-4) 0; font-family: var(--font-mono); font-size: var(--fs-md); text-align:center; color: var(--text-1); overflow-x:auto; }
+  .callout { display:flex; gap: 12px; background: var(--primary-soft); border:1px solid color-mix(in oklch,var(--primary) 30%, transparent); border-radius: var(--r-md); padding: 14px 16px; margin: var(--sp-4) 0; }
+  .callout .i { color: var(--primary); flex:none; }
+  .callout p { color: var(--text-1); font-size: var(--fs-sm); }
+
+  /* 可视化块 */
+  .viz-block { border:1px solid var(--border); border-radius: var(--r-lg); overflow:hidden; margin: var(--sp-5) 0; background: var(--bg-card); box-shadow: var(--shadow-xs); }
+  .viz-block .vb-head { display:flex; align-items:center; justify-content:space-between; padding: 14px 18px; border-bottom:1px solid var(--border); }
+  .viz-block .vb-head h4 { font-size: var(--fs-md); }
+  .viz-block .vb-body { display:grid; grid-template-columns: 1fr 240px; gap: 0; }
+  .viz-block .chart { padding: 18px; background: var(--bg-subtle); }
+  .viz-block .controls { padding: 18px; border-left:1px solid var(--border); display:flex; flex-direction:column; gap: 16px; }
+  .viz-block .ctrl label { font-size: var(--fs-sm); font-weight:600; display:flex; justify-content:space-between; }
+  .viz-block .ctrl .v { font-family: var(--font-mono); color: var(--primary); }
+  @media (max-width: 720px){ .viz-block .vb-body { grid-template-columns: 1fr; } .viz-block .controls { border-left:none; border-top:1px solid var(--border); } }
+
+  /* 练习 / 测验 */
+  .exercise { border:1px solid var(--border); border-radius: var(--r-lg); padding: var(--sp-5); margin: var(--sp-5) 0; background: var(--bg-card); }
+  .exercise h4 { font-size: var(--fs-md); margin-bottom: 14px; display:flex; align-items:center; gap:8px; }
+  .exercise .opts { display:flex; flex-direction:column; gap: 10px; margin-bottom: 16px; }
+  .opt { display:flex; align-items:center; gap: 12px; padding: 12px 14px; border:1px solid var(--border-strong); border-radius: var(--r-sm); cursor:pointer; transition: all var(--dur-fast) var(--ease-out); }
+  .opt:hover { border-color: var(--primary); background: var(--bg-hover); }
+  .opt .k { width: 24px; height:24px; border-radius:6px; border:1px solid var(--border-strong); display:grid; place-content:center; font-family:var(--font-mono); font-size:var(--fs-xs); flex:none; }
+  .opt.correct { border-color: var(--success); background: var(--success-soft); }
+  .opt.correct .k { background: var(--success); color:#fff; border-color: var(--success); }
+  .opt.wrong { border-color: var(--danger); background: var(--danger-soft); }
+  .opt.wrong .k { background: var(--danger); color:#fff; border-color: var(--danger); }
+
+  /* AI 追问 · 悬浮窗 */
+  .ai-fab {
+    position: fixed; right: 24px; bottom: 24px; z-index: 40;
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 12px 18px; border: 1px solid var(--border-strong);
+    background: var(--bg-card); color: var(--text-1);
+    border-radius: var(--r-pill); box-shadow: var(--shadow-lg);
+    cursor: pointer; font-family: var(--font-body); font-size: var(--fs-base); font-weight: 600;
+    transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  }
+  .ai-fab:hover { transform: translateY(-2px); }
+  .ai-fab svg { width: 20px; height: 20px; color: var(--primary); }
+  .ai-fab .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+
+  .ai-win {
+    position: fixed; right: 24px; bottom: 84px; z-index: 41;
+    width: 360px; max-width: calc(100vw - 32px); height: 480px; max-height: calc(100vh - 120px);
+    display: flex; flex-direction: column;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--r-lg); box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    transform: translateY(16px) scale(0.985); opacity: 0; pointer-events: none;
+    transition: transform var(--dur) var(--ease-out), opacity var(--dur) var(--ease-out);
+  }
+  .ai-win.open { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
+  .ai-win .ai-head { position: relative; display:flex; align-items:center; gap:10px; padding: 13px 48px 13px 16px; border-bottom:1px solid var(--border); }
+  .ai-win .ai-head .ava { width:30px;height:30px;border-radius:9px;background:var(--primary-soft);color:var(--primary);display:grid;place-content:center;flex:none; }
+  .ai-win .ai-head .tt { display:flex; flex-direction:column; line-height:1.25; }
+  .ai-win .ai-head b { font-family: var(--font-display); font-size: var(--fs-md); }
+  .ai-win .ai-head .sub { font-size: var(--fs-xs); color: var(--text-3); }
+  .ai-win .ai-close { position: absolute; top: 12px; right: 12px; margin-left: 0; }
+  .ai-win .ai-body { padding: 16px; display:flex; flex-direction:column; gap: 12px; overflow-y:auto; flex:1; }
+  .bubble { max-width: 86%; padding: 11px 14px; border-radius: var(--r-md); font-size: var(--fs-sm); line-height:1.6; }
+  .bubble.q { align-self:flex-end; background: var(--primary); color:#fff; border-bottom-right-radius: 4px; }
+  .bubble.a { align-self:flex-start; background: var(--bg-subtle); color: var(--text-1); border-bottom-left-radius:4px; border:1px solid var(--border); }
+  .ai-win .ai-input { display:flex; gap: 10px; padding: 12px 14px; border-top:1px solid var(--border); }
+  .ai-win .ai-input input { flex:1; }
+  @media (max-width: 520px){
+    .ai-fab { right: 16px; bottom: 16px; padding: 12px 16px; }
+    .ai-win { right: 16px; left: 16px; bottom: 76px; width: auto; }
+  }
+
+  .lesson-nav { display:flex; justify-content:space-between; gap:12px; margin-top: var(--sp-6); padding-top: var(--sp-5); border-top:1px solid var(--border); }
+</style>
+</head>
+<body class="theme-anim">
+
+<header class="topbar">
+  <button class="icon-btn menu-btn" data-menu aria-label="菜单"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+  <div class="brand"><img src="assets/icon.svg" alt=""/><span><span class="q">Quant</span>lerning</span></div>
+  <nav class="nav"><a href="home.html">首页</a><a href="lesson.html" class="active">课程</a><a href="data.html">数据</a><a href="settings.html">设置</a></nav>
+  <div class="spacer"></div>
+  <div class="actions">
+    <button class="icon-btn" data-theme-toggle aria-label="切换主题"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg></button>
+  </div>
+</header>
+<div class="scrim"></div>
+
+<div class="shell">
+  <!-- 侧边栏 -->
+  <aside class="sidebar">
+    <div class="side-group">
+      <div class="ttl">Phase 2 · 回测</div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>回测引擎原理<span class="meta">✓</span></div>
+      <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>绩效评估指标<span class="meta">7/9</span></div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>过拟合与Walk-forward<span class="meta">锁</span></div>
+    </div>
+    <div class="side-group">
+      <div class="ttl">Phase 3 · 因子</div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>信息系数 IC<span class="meta">40%</span></div>
+      <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>因子正交化<span class="meta">锁</span></div>
+    </div>
+  </aside>
+
+  <!-- 内容 -->
+  <main class="content">
+    <div class="crumb"><a href="home.html">首页</a><span class="sep">/</span><a href="#">Phase 2</a><span class="sep">/</span><span>绩效评估指标</span></div>
+
+    <div class="lesson-head">
+      <div>
+        <h1>绩效评估指标：Sharpe、Sortino 与最大回撤</h1>
+        <div class="lesson-meta">
+          <span class="badge badge-primary">Phase 2 · 第 4 课</span>
+          <span class="badge">⏱ 18 分钟</span>
+          <span class="badge badge-warning">中等</span>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="QL.toast('已收藏到「待复习」','ok')">☆ 收藏</button>
+    </div>
+
+    <div class="prose">
+      <p>评估一个策略好不好，不能只看「赚了多少」，还要看「承担了多少风险」。下面三个指标分别从不同角度刻画风险调整后的收益。</p>
+
+      <h3>夏普比率（Sharpe Ratio）</h3>
+      <p>衡量每承受一单位总风险（用收益标准差表示）所获得的超额回报。数值越高，说明「性价比」越好。</p>
+      <div class="formula">Sharpe = (R<sub>p</sub> − R<sub>f</sub>) / σ<sub>p</sub></div>
+      <div class="callout"><span class="i"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></span><p>实务中常用「年化夏普」：把日频收益乘以 √252。A 股优秀策略的年化夏普通常在 2 以上。</p></div>
+
+      <h3>动手感受：波动率如何影响曲线</h3>
+      <p>拖动下面滑块改变年化波动率，观察净值路径与回撤如何随之变化。</p>
+    </div>
+
+    <!-- 可视化块 -->
+    <div class="viz-block">
+      <div class="vb-head"><h4>模拟器 · 净值路径与回撤</h4><span class="badge badge-dot">交互</span></div>
+      <div class="vb-body">
+        <div class="chart">
+          <svg viewBox="0 0 360 200" width="100%" height="200" preserveAspectRatio="none" id="eqChart">
+            <path id="eqArea" fill="var(--primary-soft)" opacity="0.5"/>
+            <path id="eqLine" fill="none" stroke="var(--chart-1)" stroke-width="2.5" stroke-linejoin="round"/>
+            <path id="ddLine" fill="none" stroke="var(--down)" stroke-width="2" stroke-dasharray="4 3" opacity="0.8"/>
+          </svg>
+        </div>
+        <div class="controls">
+          <div class="ctrl"><label>年化波动率 <span class="v" id="volV">20%</span></label><input type="range" id="vol" min="5" max="45" value="20"></div>
+          <div class="ctrl"><label>年化收益 <span class="v" id="retV">15%</span></label><input type="range" id="ret" min="0" max="40" value="15"></div>
+          <div class="kpi" style="margin-top:4px"><span class="label">最大回撤</span><span class="val down" id="ddV" style="font-size:var(--fs-lg)">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="prose">
+      <h3>最大回撤（Max Drawdown）</h3>
+      <p>从净值最高点回撤到最低点的最大跌幅，刻画「最惨会亏多少」。它只关心下行，因此比标准差更贴近投资者的真实痛感。</p>
+    </div>
+
+    <!-- 练习 / 测验 -->
+    <div class="exercise">
+      <h4><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>小测验 · 即时反馈</h4>
+      <p class="muted" style="font-size:var(--fs-sm);margin-bottom:14px">两个策略收益相同，A 波动小、B 波动大。谁的夏普更高？</p>
+      <div class="opts" id="quiz">
+        <div class="opt" data-correct="true"><span class="k">A</span><span>策略 A（波动小）— 风险调整后收益更高</span></div>
+        <div class="opt"><span class="k">B</span><span>策略 B（波动大）— 收益相同所以一样</span></div>
+        <div class="opt"><span class="k">C</span><span>无法判断，还需要看持有期</span></div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="gradeQuiz()">提交答案</button>
+    </div>
+
+    <!-- AI 追问已改为右下角悬浮窗（见页面底部 FAB） -->
+
+    <div class="lesson-nav">
+      <button class="btn btn-ghost" onclick="QL.toast('已记录进度')">← 上一节</button>
+      <button class="btn btn-primary" onclick="QL.toast('进度已保存','ok')">下一节：过拟合 →</button>
+    </div>
+  </main>
+</div>
+
+<!-- AI 追问 · 悬浮窗（FAB 触发器 + 非模态面板，不遮挡正文） -->
+<button class="ai-fab" id="aiFab" aria-label="打开 AI 追问">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-8.5 8.5 8.5 8.5 0 01-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1121 11.5z"/></svg>
+  课程追问<span class="dot"></span>
+</button>
+
+<div class="ai-win" id="aiWin" role="dialog" aria-label="AI 追问" aria-hidden="true">
+  <div class="ai-head">
+    <div class="ava"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-8.5 8.5 8.5 8.5 0 01-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1121 11.5z"/></svg></div>
+    <div class="tt"><b>AI 追问</b><span class="sub">结合本课上下文作答</span></div>
+    <button class="icon-btn ai-close" id="aiClose" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="ai-body">
+    <div class="bubble q">Sortino 和 Sharpe 到底差在哪？</div>
+    <div class="bubble a">Sharpe 用「总波动」做分母，上涨的波动也被当作风险；Sortino 只用「下行波动」，更公平地奖励上行收益。下行波动大的策略，Sortino 会明显更高。</div>
+  </div>
+  <div class="ai-input">
+    <input class="input" placeholder="就本课内容追问，例如：回撤和止损的关系？" />
+    <button class="btn btn-primary" onclick="QL.toast('已发送，AI 正在结合上下文回答','ok')">追问</button>
+  </div>
+</div>
+
+<script src="assets/app.js"></script>
+<script>
+  // 迷你净值模拟器
+  var eqLine = document.getElementById('eqLine'), eqArea = document.getElementById('eqArea'), ddLine = document.getElementById('ddLine');
+  var vol = document.getElementById('vol'), ret = document.getElementById('ret');
+  var volV = document.getElementById('volV'), retV = document.getElementById('retV'), ddV = document.getElementById('ddV');
+  function gauss(){ return (Math.random()+Math.random()+Math.random()+Math.random()-2)/2; }
+  function draw(){
+    var v = +vol.value/100, r = +ret.value/100, n = 72, dt = 1/n;
+    var pts = [], eq = 100, peak = 100, maxDD = 0;
+    for(var i=0;i<=n;i++){
+      if(i>0){ eq *= Math.exp((r - 0.5*v*v)*dt + v*Math.sqrt(dt)*gauss()); }
+      // 把净值 70~180 映射到画布 y 10~190
+      var y = 190 - (eq-70)/(180-70)*180;
+      y = Math.max(8, Math.min(192, y));
+      pts.push([i/n*360, y]);
+      if(eq>peak) peak=eq;
+      var dd = (eq-peak)/peak; if(dd<maxDD) maxDD=dd;
+    }
+    var d = pts.map(function(p,i){ return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1); }).join(' ');
+    eqLine.setAttribute('d', d);
+    eqArea.setAttribute('d', d + ' L360 190 L0 190 Z');
+    // 回撤水平虚线（最大回撤处）
+    ddLine.setAttribute('d', 'M0 190 L360 '+(190+maxDD*180).toFixed(1));
+    volV.textContent = vol.value+'%'; retV.textContent = ret.value+'%';
+    ddV.textContent = (maxDD*100).toFixed(1)+'%';
+  }
+  vol.addEventListener('input', draw); ret.addEventListener('input', draw); draw();
+
+  function gradeQuiz(){
+    var opts = document.querySelectorAll('#quiz .opt');
+    opts.forEach(function(o){ if(o.dataset.correct==='true') o.classList.add('correct'); });
+    opts[1].classList.add('wrong');
+    QL.toast('答对啦：A 波动小，夏普更高','ok');
+  }
+
+  // AI 追问悬浮窗开关
+  var aiFab = document.getElementById('aiFab'), aiWin = document.getElementById('aiWin'), aiClose = document.getElementById('aiClose');
+  function toggleAI(open){
+    aiWin.classList.toggle('open', open);
+    aiWin.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if(open){ setTimeout(function(){ var i = aiWin.querySelector('input'); if(i) i.focus(); }, 140); }
+  }
+  aiFab.addEventListener('click', function(){ toggleAI(!aiWin.classList.contains('open')); });
+  aiClose.addEventListener('click', function(){ toggleAI(false); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') toggleAI(false); });
+</script>
+</body>
+</html>
