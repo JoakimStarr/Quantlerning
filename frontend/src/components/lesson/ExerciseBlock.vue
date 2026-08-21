@@ -290,10 +290,10 @@ const variantParts = computed(() => {
 <style scoped>
 .exercise-card {
   margin: 20px 0 8px;
-  padding: 16px 18px;
+  padding: 18px 20px;
   border: 1px solid var(--border);
   border-left: 4px solid var(--violet, #7c3aed);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--bg-card);
 }
 

@@ -326,12 +326,13 @@ function parseParams(raw: string): Record<string, unknown> {
 .md-fragment :deep(th) { background: var(--bg-hover); font-weight: 600; }
 
 .md-fragment :deep(blockquote) {
-  margin: 0 0 12px;
-  padding: 10px 16px;
+  margin: 14px 0;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
   border-left: 3px solid var(--primary);
-  background: var(--bg-hover);
-  color: var(--text-2);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--primary-soft);
+  color: var(--text-1);
+  border-radius: var(--radius-md);
 }
 
 .md-fragment :deep(hr) {

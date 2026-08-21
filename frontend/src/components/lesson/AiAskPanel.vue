@@ -440,9 +440,11 @@ watch(
 </script>
 
 <template>
-  <!-- 悬浮按钮 -->
+  <!-- 悬浮按钮：药丸样式（借鉴设计包 lesson.html 的 ai-fab） -->
   <button class="ask-fab" :class="{ active: open }" title="AI 追问" @click="toggle">
-    <Sparkles :size="22" />
+    <Sparkles :size="18" />
+    <span class="ask-fab-text">AI 追问</span>
+    <span class="ask-fab-dot"></span>
   </button>
 
   <!-- 抽屉面板 -->
@@ -624,21 +626,26 @@ watch(
   right: 24px;
   bottom: 24px;
   z-index: 100;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
-  color: #fff;
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 35%, transparent);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  transition: transform 0.15s, background 0.15s, opacity 0.15s;
+  gap: 8px;
+  padding: 12px 18px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card);
+  color: var(--text-1);
+  border-radius: 999px;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 0.15s, background 0.15s, border-color 0.15s;
 }
-.ask-fab:hover { transform: scale(1.06); }
-.ask-fab.active { background: var(--text-3); transform: scale(0.94); }
+.ask-fab svg { width: 18px; height: 18px; color: var(--primary); flex-shrink: 0; }
+.ask-fab-text { line-height: 1; }
+.ask-fab-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.ask-fab:hover { transform: translateY(-2px); border-color: var(--primary); }
+.ask-fab.active { opacity: 0.65; transform: scale(0.98); }
 
 .ask-panel {
   position: fixed;
@@ -1177,7 +1184,7 @@ watch(
 
 /* 移动端适配：全屏聊天体验（无圆角无边框，盖住整个视口） */
 @media (max-width: 900px) {
-  .ask-fab { right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); }
+  .ask-fab { right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); padding: 11px 16px; }
   /* 面板打开时盖住 FAB，避免右下角两个悬浮物 */
   .ask-fab.active { display: none; }
 

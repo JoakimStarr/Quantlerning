@@ -68,8 +68,12 @@ const captionHtml = computed(() =>
 </script>
 
 <template>
-  <!-- 插图式可视化：像书中的图，居中、带图注 -->
+  <!-- 插图式可视化：像书中的图，带头部标题 + 图注 -->
   <figure ref="figRef" class="viz-figure">
+    <div class="viz-head">
+      <span class="viz-head-title">{{ title }}</span>
+      <span class="viz-badge">交互</span>
+    </div>
     <div class="viz-frame">
       <!-- 已实现：渲染真实组件（:key 变化时重挂载，重置交互状态） -->
       <component
@@ -120,12 +124,44 @@ const captionHtml = computed(() =>
   margin: 22px 0;
   text-align: center;
 }
+/* 头部栏：组件标题 + 「交互」徽章（借鉴设计包 lesson.html 的 vb-head） */
+.viz-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  text-align: left;
+}
+.viz-head-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.viz-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--primary);
+  background: var(--primary-soft);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
 .viz-frame {
   display: inline-block;
   width: 100%;
   max-width: 720px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   overflow: hidden;
   background: var(--bg-card);
   box-shadow: var(--shadow-sm);

@@ -313,10 +313,10 @@ function vStateClass(i: number): string {
 <style scoped>
 .quiz-card {
   margin: 20px 0 8px;
-  padding: 16px 18px;
+  padding: 18px 20px;
   border: 1px solid var(--border);
   border-left: 4px solid var(--primary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: var(--bg-card);
 }
 
@@ -334,17 +334,17 @@ function vStateClass(i: number): string {
 
 .quiz-opt {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 11px 13px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
   background: var(--bg-card); color: var(--text-1); cursor: pointer; text-align: left;
   font-size: 14px; line-height: 1.6; transition: border-color .15s, background .15s;
 }
-.quiz-opt:hover:not(.submitted) { border-color: var(--primary); }
+.quiz-opt:hover:not(.submitted) { border-color: var(--primary); background: var(--bg-hover); }
 .quiz-opt.selected { border-color: var(--primary); background: var(--primary-soft); }
 .quiz-opt.correct { border-color: var(--success, #16a34a); background: color-mix(in srgb, var(--success) 8%, transparent); }
 .quiz-opt.wrong { border-color: var(--danger, #dc2626); background: color-mix(in srgb, var(--danger) 8%, transparent); }
 
 .opt-idx {
-  width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+  width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
   background: var(--bg-hover); color: var(--text-2);
   display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;
 }

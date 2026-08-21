@@ -187,6 +187,19 @@ code {
 .faint { color: var(--text-3); }
 .error-text { color: var(--danger); }
 
+/* 公式框（块级公式 $$...$$）：等宽 + 左主色竖条 + 浅底，借鉴设计包 lesson.html 的 .formula */
+.formula {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin: 14px 0;
+  text-align: center;
+  overflow-x: auto;
+}
+.formula .katex { font-size: 1.05em; }
+
 /* 滚动条 */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 4px; }
