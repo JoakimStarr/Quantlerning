@@ -163,6 +163,5 @@ export default function mathPlugin(md: MarkdownItInstance, opts: MathOptions = {
     alt: ['paragraph', 'reference', 'blockquote', 'list'],
   })
   md.renderer.rules.math_inline = ((tokens: any, idx: number) => renderMath(opts, false, tokens[idx].content)) as any
-  md.renderer.rules.math_block = ((tokens: any, idx: number) =>
-    `<div class="formula">${renderMath(opts, true, tokens[idx].content)}</div>\n`) as any
+  md.renderer.rules.math_block = ((tokens: any, idx: number) => `<p>${renderMath(opts, true, tokens[idx].content)}</p>\n`) as any
 }
