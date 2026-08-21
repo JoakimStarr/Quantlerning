@@ -22,14 +22,15 @@ hljs.registerLanguage('bash', bash)
 hljs.registerLanguage('javascript', javascript)
 hljs.registerLanguage('json', json)
 
-const mdUtils = new MarkdownIt().utils
-
-/** 代码块高亮回调：有注册语言则高亮，否则转义兜底（不破坏布局） */
+/**
+ * 代码块高亮回调：有注册语言则高亮；否则返回空串，交给 markdown-it 默认
+ * 兜底逻辑（转义原文本 + 原样包裹），避免为取 escapeHtml 而 new 一个 MarkdownIt 实例。
+ */
 function highlightCode(str: string, lang: string): string {
-  const code = lang && hljs.getLanguage(lang)
-    ? hljs.highlight(str, { language: lang }).value
-    : mdUtils.escapeHtml(str)
-  return `<pre class="hljs"><code>${code}</code></pre>`
+  if (lang && hljs.getLanguage(lang)) {
+    return `<pre class="hljs"><code>${hljs.highlight(str, { language: lang }).value}</code></pre>`
+  }
+  return ''
 }
 
 /**

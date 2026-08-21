@@ -7,7 +7,6 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { ScatterChart, LinesChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, VisualMapComponent } from 'echarts/components'
 import katex from 'katex'
-import 'katex/dist/katex.min.css'
 import { parseBinaryFunction, exprToLatex } from '@/utils/mathExpr'
 
 use([CanvasRenderer, ScatterChart, LinesChart, GridComponent, TooltipComponent, VisualMapComponent])

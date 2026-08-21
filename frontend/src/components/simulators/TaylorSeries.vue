@@ -7,7 +7,6 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent, MarkPointComponent } from 'echarts/components'
 import katex from 'katex'
-import 'katex/dist/katex.min.css'
 import { parseFunction, exprToLatex, taylorCoefficients } from '@/utils/mathExpr'
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent, LegendComponent, MarkPointComponent])

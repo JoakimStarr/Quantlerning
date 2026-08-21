@@ -3,8 +3,6 @@
 // 仅在用户生成规划后才加载。渲染逻辑与 AiAskPanel/ExerciseBlock 的 renderBubble 一致。
 import { computed } from 'vue'
 import { createMarkdown } from '@/utils/markdownIt'
-import 'katex/dist/katex.min.css'
-
 const props = defineProps<{ plan: string }>()
 
 const md = createMarkdown()

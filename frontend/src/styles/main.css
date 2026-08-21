@@ -2,6 +2,9 @@
    Quantlerning 设计系统 — 浅色简约风
    ============================================ */
 
+/* KaTeX 公式样式：全站统一入口（CSS 由构建按需去重，避免多组件重复 import） */
+@import 'katex/dist/katex.min.css';
+
 :root {
   /* 色彩（借鉴设计包：深邃蓝主色 + 冷调中性灰） */
   --bg-page: #f5f6f9;

@@ -74,11 +74,11 @@ async def get_stock_financials(
         """
         SELECT report_date, field_name, value, unit, available_date
         FROM financial_indicator
-        WHERE LOWER(code) = :code
+        WHERE UPPER(code) = UPPER(:code)
         ORDER BY report_date DESC, field_name
         """
     )
-    rows = await db.execute(q, {"code": code.lower()})
+    rows = await db.execute(q, {"code": code})
     units: dict[str, str] = {}
     by_date: dict[str, dict] = {}
     for r in rows:
@@ -88,7 +88,8 @@ async def get_stock_financials(
         by_date[rd][r.field_name] = r.value
         units.setdefault(r.field_name, r.unit)
     periods = list(by_date.values())[:limit]
-    return {"code": code.lower(), "units": units, "periods": periods}
+    # 归一为大写返回，与 get_stock_daily 等查询口径一致（避免调用方拿到小写 code 造成拼接不一致）
+    return {"code": code.upper(), "units": units, "periods": periods}
 
 
 async def get_index_daily(
@@ -364,11 +365,15 @@ async def get_factor_ic_distribution(db: AsyncSession, bins: int = 30) -> dict:
     }
 
 
+@_cached("month_end_snapshot")
 async def _month_end_snapshot(db: AsyncSession, start: date, end: date) -> list[tuple]:
     """每月末日全市场 PE + 下月前向收益（窗口函数版，避免全量扫描）。
 
     返回 [(ym, code, pe_ttm, fwd_ret)]，fwd_ret 为月末收盘到下月末收盘的
     「下月前向收益」（LEAD，区间最后一个月的月末快照无前向收益而被剔除）。
+
+    该函数是 get_pe_layers / get_pe_ic / get_factor_ic_scatter / get_layer_nav
+    四个热点查询的共同基础数据，缓存后四个接口共享同一份月末快照，避免重复全市场扫描。
     """
     q = text(
         """

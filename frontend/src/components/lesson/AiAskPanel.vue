@@ -17,7 +17,6 @@ import {
 } from 'lucide-vue-next'
 import { createMarkdown } from '@/utils/markdownIt'
 import { unwrapOuterFence } from '@/utils/aiOutput'
-import 'katex/dist/katex.min.css'
 import { fetchAIModels, fetchAISettings, streamChat, type ChatTurn } from '@/api'
 import { useChatHistory } from '@/composables/useChatHistory'
 import { aiPanelLayout } from '@/stores/aiPanel'

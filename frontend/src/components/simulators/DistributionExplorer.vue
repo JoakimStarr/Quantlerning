@@ -7,8 +7,6 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import katex from 'katex'
-import 'katex/dist/katex.min.css'
-
 use([CanvasRenderer, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent])
 
 // 分布浏览器：一个图切换多种分布，观察形状与期望/方差（教学示意，非真实数据）
