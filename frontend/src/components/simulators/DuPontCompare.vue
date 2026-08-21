@@ -31,7 +31,7 @@ const codes = computed<[string, string][]>(() => {
   return list.length >= 2 ? list : DEFAULT_CODES
 })
 
-const year = ref(2024) // 默认取 2024 年报（与全书主线一致）
+const year = ref(2025) // 默认取 2025 年报（与全书主线一致）
 const data = ref<Record<string, StockFinancials>>({})
 const loading = ref(true)
 const error = ref('')
@@ -126,7 +126,7 @@ const chartOption = computed(() => {
       </table>
       <ThemedChart class="chart" :option="chartOption" autoresize />
       <p class="hint">
-        读表要点：茅台净利率 52% + 杠杆 1.27 → ROE 36%（质量型）；五粮液三项都略逊（第二梯队）；招行净利率 44% 不低，但周转仅 0.03、靠 11.76 倍杠杆拉到 ROE 14.5%——跨行业看模式，不能直接比高低。图中「净利率 vs ROE」的差距直观展示周转与杠杆对 ROE 的放大/稀释。
+        读表要点（2025 年报）：茅台净利率 50.5% + 杠杆 1.26 → ROE 32.5%，行业下行仍稳（质量型）；五粮液净利率 23.0%、周转 0.20，ROE 从 2024 年的 23.4% 崩到 6.9%（景气退潮的双重打击）；招行净利率 44.8% 不低，但周转仅 0.03、靠 11.78 倍杠杆拉到 ROE 13.4%——跨行业看模式，不能直接比高低。图中「净利率 vs ROE」的差距直观展示周转与杠杆对 ROE 的放大/稀释。切到 2024 年对比，五粮液 ROE 还有 23.4%，一年之差就是行业下行的力量。
       </p>
     </template>
   </div>
