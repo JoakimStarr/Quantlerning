@@ -26,15 +26,16 @@ export interface ChartColors {
   tooltipBorder: string
 }
 
+// 浅色（系列色对齐设计包 --chart-1..6 与 main.css 语义色）
 const LIGHT: ChartColors = {
-  primary: '#2f6ae8',
+  primary: '#2f6ae8', // ≈ chart-1（主蓝，与 --primary 一致）
   primaryHover: '#2456d1',
-  primaryDeep: '#1e3f8c',
-  danger: '#dc2626',
+  primaryDeep: '#1e3a8a', // 对齐 --primary-deep
+  danger: '#e03131', // chart-5（红/涨）
   success: '#16a34a',
-  warning: '#d97706',
-  violet: '#7c3aed',
-  cyan: '#0891b2',
+  warning: '#d97706', // chart-4（琥珀）
+  violet: '#7c3aed', // chart-2（紫）
+  cyan: '#0891b2', // chart-3（青）
   teal: '#0d9488',
   slate: '#94a3b8',
   slateStrong: '#64748b',

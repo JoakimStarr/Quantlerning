@@ -14,10 +14,10 @@
   --blue-200: oklch(0.866 0.072 256);
   --blue-300: oklch(0.788 0.112 256);
   --blue-400: oklch(0.694 0.152 256);
-  --blue-500: oklch(0.694 0.152 256);   /* 标准主色（已调淡：与原 blue-400 同值，降饱和提亮） */
-  --blue-600: oklch(0.612 0.176 256);   /* 主操作/按下（原 blue-500） */
-  --blue-700: oklch(0.480 0.160 259);   /* 深蓝强调/标题 */
-  --blue-800: oklch(0.410 0.132 259);
+  --blue-500: oklch(0.694 0.152 256);   /* 浅一档（与原 blue-400 同值，降饱和提亮） */
+  --blue-600: oklch(0.612 0.176 256);   /* 标准主色（首页主色） */
+  --blue-700: oklch(0.480 0.160 259);   /* 主操作悬停 */
+  --blue-800: oklch(0.410 0.132 259);   /* 主操作按下 */
   --blue-900: oklch(0.344 0.104 259);
 
   /* ---------- 中性灰：带冷调（微偏蓝），与蓝主色同源 ---------- */
@@ -78,9 +78,9 @@
   --text-2: var(--gray-600);
   --text-3: var(--gray-500);
 
-  --primary:        var(--blue-500);
-  --primary-hover:  var(--blue-600);
-  --primary-active: var(--blue-700);
+  --primary:        var(--blue-600);
+  --primary-hover:  var(--blue-700);
+  --primary-active: var(--blue-800);
   --primary-soft:   var(--blue-50);
   --primary-soft-2: var(--blue-100);
 

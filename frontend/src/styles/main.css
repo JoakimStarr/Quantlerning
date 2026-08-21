@@ -16,9 +16,9 @@
   --text-2: #5f6873;   /* 次要文字 */
   --text-3: #868e9b;   /* 弱文字/占位 */
 
-  /* 主色：已调淡（对齐设计包 tokens.css 调淡后的 --blue-500，降饱和提亮） */
-  --primary: oklch(0.694 0.152 256);
-  --primary-hover: oklch(0.612 0.176 256);
+  /* 主色：对齐设计包 --blue-600（oklch 0.612 0.176 256，首页主色） */
+  --primary: oklch(0.612 0.176 256);
+  --primary-hover: oklch(0.480 0.160 259);
   --primary-soft: #edf3fe;
 
   --success: #16a34a;
@@ -67,7 +67,7 @@
 
   /* ---------- 设计系统补齐 token（对齐 quantlerning-design/assets/tokens.css） ---------- */
   --bg-subtle: #f0f1f4;
-  --primary-active: oklch(0.612 0.176 256);
+  --primary-active: oklch(0.410 0.132 259);
   --primary-soft-2: #dbe7fd;
   --font-body: var(--font-base);
 
@@ -100,7 +100,7 @@
   --shadow-lg: 0 18px 40px rgba(16, 24, 40, 0.12), 0 6px 14px rgba(16, 24, 40, 0.07);
 
   /* 图表调色板（6 色，克制、低饱和、互协调） */
-  --chart-1: oklch(0.694 0.152 256);   /* 主蓝（与调淡后的主色一致） */
+  --chart-1: oklch(0.612 0.176 256);   /* 主蓝（与首页主色一致） */
   --chart-2: #7c3aed;   /* 紫 */
   --chart-3: #0891b2;   /* 青 */
   --chart-4: #d97706;   /* 琥珀 */
