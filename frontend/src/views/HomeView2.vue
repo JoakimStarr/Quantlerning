@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowRight, PlayCircle, Sparkles, Target } from 'lucide-vue-next'
-import { fetchCourses, streamPlan, streamReview } from '@/api'
+import { fetchCourses, fetchBacktests, streamPlan, streamReview, type BacktestResult } from '@/api'
 import { getProgress, isCompleted, learningDays, sandboxRunCount, totalExercises } from '@/stores/progress'
 import { linkifyCourses } from '@/utils/linkifyCourses'
 import { chapterLabel, PHASE_STATUS as phaseStatus } from '@/utils/chapter'
@@ -175,6 +175,7 @@ onMounted(async () => {
     lastPath.value = ''
   }
   await load()
+  loadBacktest()
 })
 
 const resume = computed(() => {
@@ -222,6 +223,113 @@ const overall = computed(() => {
 const days = computed(() => learningDays())
 const runs = computed(() => sandboxRunCount())
 const exercises = computed(() => totalExercises())
+
+// ---------- Hero 组合净值 · 回测（真实 QuantLab 回测净值曲线） ----------
+let backtestsCache: BacktestResult[] | null = null
+const backtest = ref<BacktestResult | null>(null)
+
+async function loadBacktest() {
+  try {
+    // 取夏普最高的回测展示（真实数据：组合净值 / 基准净值）
+    if (!backtestsCache) backtestsCache = await fetchBacktests(20)
+    const withNav = (backtestsCache ?? []).filter(
+      (r) => r.nav && r.nav.dates.length > 1 && r.nav.portfolio.length > 1 && r.nav.benchmark.length > 1,
+    )
+    withNav.sort((a, b) => (b.sharpe ?? -Infinity) - (a.sharpe ?? -Infinity))
+    backtest.value = withNav[0] ?? null
+  } catch {
+    backtest.value = null
+  }
+}
+
+const navData = computed(() => backtest.value?.nav ?? null)
+
+// 区间累计收益（净值末/首 - 1）
+const cumReturn = computed(() => {
+  const nav = navData.value
+  if (!nav || !nav.portfolio.length) return 0
+  const p = nav.portfolio
+  return (p[p.length - 1] / p[0] - 1) * 100
+})
+const benchReturn = computed(() => {
+  const nav = navData.value
+  if (!nav || !nav.benchmark.length) return 0
+  const b = nav.benchmark
+  return (b[b.length - 1] / b[0] - 1) * 100
+})
+const beatBench = computed(() => cumReturn.value > benchReturn.value)
+const cumText = computed(() => {
+  const v = cumReturn.value
+  return `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
+})
+
+// 等宽采样到 ≤100 点，保持两条曲线对齐
+function downsample(arr: number[], max = 100): number[] {
+  if (arr.length <= max) return arr
+  const step = (arr.length - 1) / (max - 1)
+  const out: number[] = []
+  for (let i = 0; i < max; i++) out.push(arr[Math.round(i * step)])
+  return out
+}
+
+// 组合/基准同尺度折线 + 组合面积填充
+const chartPaths = computed(() => {
+  const nav = navData.value
+  if (!nav) return { port: '', bench: '', area: '' }
+  const W = 320, H = 120, PAD = 8
+  const p = downsample(nav.portfolio)
+  const b = downsample(nav.benchmark)
+  const all = [...p, ...b]
+  const min = Math.min(...all)
+  const max = Math.max(...all)
+  const range = max - min || 1
+  const x = (i: number, n: number) => PAD + (i / (n - 1)) * (W - 2 * PAD)
+  const y = (v: number) => H - PAD - ((v - min) / range) * (H - 2 * PAD)
+  const line = (arr: number[]) =>
+    arr.map((v, i) => `${i ? 'L' : 'M'}${x(i, arr.length).toFixed(1)} ${y(v).toFixed(1)}`).join(' ')
+  const port = line(p)
+  const bench = line(b)
+  const area = `${port} L${x(p.length - 1, p.length).toFixed(1)} ${H} L${x(0, p.length).toFixed(1)} ${H} Z`
+  return { port, bench, area }
+})
+
+// 横轴刻度：起 / 中 / 末（YYYY-MM）
+const xLabels = computed(() => {
+  const nav = navData.value
+  if (!nav || !nav.dates.length) return ['', '', '']
+  const d = nav.dates
+  return [d[0], d[Math.floor(d.length / 2)], d[d.length - 1]].map((s) => s.slice(0, 7))
+})
+
+const BENCH_NAMES: Record<string, string> = {
+  SH000300: '沪深300',
+  SH000905: '中证500',
+  SH000852: '中证1000',
+  SH000016: '上证50',
+  SH000688: '科创50',
+  SZ399006: '创业板指',
+}
+const benchmarkName = computed(() => {
+  const b = backtest.value?.benchmark ?? ''
+  return BENCH_NAMES[b] || b
+})
+
+const METHOD_NAMES: Record<string, string> = {
+  equal_weight: '等权组合',
+  value_weight: '市值加权',
+  ic_weight: 'IC 加权',
+  max_sharpe: '最大夏普组合',
+  risk_parity: '风险平价',
+}
+const methodName = computed(
+  () => METHOD_NAMES[backtest.value?.combination_method ?? ''] || backtest.value?.combination_method || '多因子组合',
+)
+
+const periodText = computed(() => {
+  const nav = navData.value
+  if (!nav || !nav.dates.length) return ''
+  return `${nav.dates[0].slice(0, 7)} → ${nav.dates[nav.dates.length - 1].slice(0, 7)}`
+})
 
 // 精选模拟器：目标指向真实课程（装饰性 mini 图为示意，非数据）
 interface FeaturedSim { title: string; desc: string; to: string; svg: string }
@@ -290,25 +398,58 @@ function goResume() {
           <div class="hs"><b class="num">{{ overall.total }}</b><span>系统课程</span></div>
           <div class="hs"><b class="num">75<span class="unit">+</span></b><span>交互模拟器</span></div>
           <div class="hs"><b class="num">10<span class="unit">年</span></b><span>真实数据</span></div>
+          <div class="hs"><b class="num">{{ overall.pct }}<span class="unit">%</span></b><span>你的进度</span></div>
         </div>
       </div>
 
-      <!-- hero-visual：真实学习进度（数字全部来自进度存储，非示意） -->
+      <!-- hero-visual：组合净值 · 回测（真实 QuantLab 回测净值曲线；数据不可用时兜底为学习进度） -->
       <div class="hero-visual">
-        <div class="hv-head">
-          <span class="hv-title">学习总进度</span>
-          <span class="badge" :class="overall.pct >= 100 ? 'badge-success' : 'badge-primary'">
-            {{ overall.pct >= 100 ? '已完成' : '进行中' }}
-          </span>
-        </div>
-        <div class="hv-val num">{{ overall.pct }}%</div>
-        <div class="hv-bar"><div class="hv-fill" :style="{ width: overall.pct + '%' }"></div></div>
-        <div class="hv-sub">{{ overall.done }} / {{ overall.total }} 课完成</div>
-        <div class="hv-mini">
-          <div class="mini"><b class="num">{{ days }}</b><span>学习天数</span></div>
-          <div class="mini"><b class="num">{{ runs }}</b><span>沙箱运行</span></div>
-          <div class="mini"><b class="num">{{ exercises }}</b><span>练习提交</span></div>
-        </div>
+        <template v-if="backtest && navData">
+          <div class="hv-head">
+            <span class="hv-title">组合净值 · 回测</span>
+            <span class="badge badge-dot" :class="beatBench ? 'badge-success' : 'badge-danger'">
+              {{ beatBench ? '跑赢基准' : '跑输基准' }}
+            </span>
+          </div>
+          <div class="hv-val" :class="cumReturn >= 0 ? 'up' : 'down'">{{ cumText }}</div>
+          <svg class="hv-chart" viewBox="0 0 320 120" width="100%" height="120" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="hv-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" style="stop-color: var(--chart-1); stop-opacity: 0.28" />
+                <stop offset="1" style="stop-color: var(--chart-1); stop-opacity: 0" />
+              </linearGradient>
+            </defs>
+            <path :d="chartPaths.area" fill="url(#hv-grad)" />
+            <path :d="chartPaths.port" fill="none" stroke="var(--chart-1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+            <path :d="chartPaths.bench" fill="none" stroke="var(--chart-3)" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.85" />
+          </svg>
+          <div class="hv-x">
+            <span>{{ xLabels[0] }}</span><span>{{ xLabels[1] }}</span><span>{{ xLabels[2] }}</span>
+          </div>
+          <div class="hv-legend">
+            <span class="lg"><i class="lgt c1"></i>组合</span>
+            <span class="lg"><i class="lgt c3"></i>{{ benchmarkName }}</span>
+          </div>
+          <div class="hv-meta">{{ methodName }} · {{ periodText }}</div>
+        </template>
+
+        <!-- 回测数据不可用时的兜底：真实学习进度 -->
+        <template v-else>
+          <div class="hv-head">
+            <span class="hv-title">学习总进度</span>
+            <span class="badge" :class="overall.pct >= 100 ? 'badge-success' : 'badge-primary'">
+              {{ overall.pct >= 100 ? '已完成' : '进行中' }}
+            </span>
+          </div>
+          <div class="hv-val num">{{ overall.pct }}%</div>
+          <div class="hv-bar"><div class="hv-fill" :style="{ width: overall.pct + '%' }"></div></div>
+          <div class="hv-sub">{{ overall.done }} / {{ overall.total }} 课完成</div>
+          <div class="hv-mini">
+            <div class="mini"><b class="num">{{ days }}</b><span>学习天数</span></div>
+            <div class="mini"><b class="num">{{ runs }}</b><span>沙箱运行</span></div>
+            <div class="mini"><b class="num">{{ exercises }}</b><span>练习提交</span></div>
+          </div>
+        </template>
       </div>
     </section>
 
@@ -450,53 +591,12 @@ function goResume() {
 </template>
 
 <style scoped>
-/* ============ 组件内设计 token（对齐设计包 tokens.css，作用域仅本组件） ============ */
+/* 设计 token 全部来自全局 main.css（已按设计包 tokens.css 落地）；
+   本组件只做布局与组件样式 */
 .home2 {
-  --bg-subtle: var(--bg-hover);
-  --primary-active: var(--primary-hover);
-  --fs-xs: 0.75rem;
-  --fs-sm: 0.8125rem;
-  --fs-base: 0.9375rem;
-  --fs-md: 1.0625rem;
-  --fs-lg: clamp(1.15rem, 1.05rem + 0.4vw, 1.375rem);
-  --fs-xl: clamp(1.4rem, 1.2rem + 0.9vw, 1.875rem);
-  --fs-2xl: clamp(1.6rem, 1.25rem + 1.6vw, 2.4rem);
-  --fs-3xl: clamp(2rem, 1.5rem + 2.4vw, 3rem);
-  --fs-num: clamp(1.6rem, 1.2rem + 1.6vw, 2.4rem);
-  --sp-5: 24px;
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
-  --r-xl: 22px;
-  --r-pill: 999px;
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
-  --shadow-lg: 0 18px 40px rgba(16, 24, 40, 0.12), 0 6px 14px rgba(16, 24, 40, 0.07);
-  /* 图表调色板（浅色） */
-  --chart-1: #2f6ae8;
-  --chart-2: #7c3aed;
-  --chart-3: #0891b2;
-  --chart-4: #d97706;
-  --chart-5: #e03131;
-  --chart-6: #db2777;
-
   max-width: 1080px;
   margin: 0 auto;
 }
-
-/* 深色主题下的本地图表色（跟随 html[data-theme]） */
-[data-theme="dark"] .home2 {
-  --chart-1: #5c93f5;
-  --chart-2: #a78bfa;
-  --chart-3: #22d3ee;
-  --chart-4: #fbbf24;
-  --chart-5: #f87171;
-  --chart-6: #f472b6;
-  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.55), 0 6px 14px rgba(0, 0, 0, 0.36);
-}
-
-/* 等宽数字（对齐 tabular-nums） */
-.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 
 /* ============ Hero（对齐设计包 home.html） ============ */
 .hero {
@@ -535,6 +635,20 @@ function goResume() {
 .hv-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .hv-title { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); letter-spacing: 0.06em; }
 .hv-val { font-family: var(--font-mono); font-size: var(--fs-num); font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; }
+.hv-val.up { color: var(--up); }
+.hv-val.down { color: var(--down); }
+.hv-chart { display: block; margin-top: 8px; }
+.hv-x {
+  display: flex; justify-content: space-between;
+  font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3);
+  margin-top: 8px;
+}
+.hv-legend { display: flex; gap: 16px; margin-top: 12px; font-size: var(--fs-xs); color: var(--text-2); }
+.hv-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
+.hv-legend .lgt { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.hv-legend .lgt.c1 { background: var(--chart-1); }
+.hv-legend .lgt.c3 { background: var(--chart-3); }
+.hv-meta { margin-top: 8px; font-size: var(--fs-xs); color: var(--text-3); }
 .hv-bar { height: 8px; border-radius: var(--r-pill); background: var(--bg-hover); overflow: hidden; margin: 12px 0 6px; }
 .hv-fill { height: 100%; border-radius: var(--r-pill); background: var(--primary); transition: width 0.4s var(--ease-out); }
 .hv-sub { font-size: var(--fs-sm); color: var(--text-3); }

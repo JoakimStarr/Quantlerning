@@ -63,6 +63,49 @@
 
   /* 代码底色（浅色模式用浅底，深色模式覆盖） */
   --bg-code: #f1f3f5;
+
+  /* ---------- 设计系统补齐 token（对齐 quantlerning-design/assets/tokens.css） ---------- */
+  --bg-subtle: #f0f1f4;
+  --primary-active: #2456d1;
+  --primary-soft-2: #dbe7fd;
+  --font-body: var(--font-base);
+
+  /* 流体字号（clamp：移动端小、桌面端大，比例 ≈1.25） */
+  --fs-xs: 0.75rem;    /* 12 */
+  --fs-sm: 0.8125rem;  /* 13 */
+  --fs-base: 0.9375rem; /* 15 正文 */
+  --fs-md: 1.0625rem;  /* 17 */
+  --fs-lg: clamp(1.15rem, 1.05rem + 0.4vw, 1.375rem);   /* 标题4 */
+  --fs-xl: clamp(1.4rem, 1.2rem + 0.9vw, 1.875rem);     /* 标题3 */
+  --fs-2xl: clamp(1.8rem, 1.4rem + 1.8vw, 2.75rem);     /* 标题2 */
+  --fs-3xl: clamp(2.3rem, 1.7rem + 2.8vw, 3.75rem);     /* 标题1/英雄 */
+  --fs-num: clamp(1.6rem, 1.2rem + 1.6vw, 2.4rem);      /* 大数字/KPI */
+
+  /* 间距（4px 基准）+ 区块节奏 */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px; --sp-9: 96px;
+  --section-y: clamp(48px, 6vw, 96px);
+
+  /* 圆角 */
+  --r-xs: 6px; --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 22px; --r-pill: 999px;
+
+  /* 动效：指数缓动，禁止回弹 */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 0.16s; --dur: 0.24s; --dur-slow: 0.4s;
+
+  /* 阴影补齐（xs / lg） */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-lg: 0 18px 40px rgba(16, 24, 40, 0.12), 0 6px 14px rgba(16, 24, 40, 0.07);
+
+  /* 图表调色板（6 色，克制、低饱和、互协调） */
+  --chart-1: #2f6ae8;   /* 主蓝 */
+  --chart-2: #7c3aed;   /* 紫 */
+  --chart-3: #0891b2;   /* 青 */
+  --chart-4: #d97706;   /* 琥珀 */
+  --chart-5: #e03131;   /* 红（涨） */
+  --chart-6: #db2777;   /* 玫 */
+  --chart-grid: #e1e3e8;
 }
 
 /* 深色模式：切换 <html data-theme="dark"> */
@@ -102,8 +145,21 @@
   --ink: #e7eaf1;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.55), 0 6px 14px rgba(0, 0, 0, 0.36);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
   --bg-code: #1e2638;
+
+  /* 设计系统补齐 token 深色值 */
+  --bg-subtle: #1e2638;
+  --primary-active: #7aa7ff;
+  --primary-soft-2: #22314f;
+  --chart-1: #5c93f5;
+  --chart-2: #a78bfa;
+  --chart-3: #22d3ee;
+  --chart-4: #fbbf24;
+  --chart-5: #f87171;
+  --chart-6: #f472b6;
+  --chart-grid: #2b3448;
 }
 
 * { box-sizing: border-box; }
@@ -181,11 +237,16 @@ code {
 .badge-primary { background: var(--primary-soft); color: var(--primary); }
 .badge-success { background: var(--success-soft); color: var(--success); }
 .badge-warning { background: var(--warning-soft); color: var(--warning); }
+.badge-danger { background: var(--danger-soft); color: var(--danger); }
+.badge-dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
 /* 状态文本 */
 .muted { color: var(--text-2); }
 .faint { color: var(--text-3); }
 .error-text { color: var(--danger); }
+
+/* 等宽数字（对齐设计包：tabular-nums，所有数字对齐） */
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 
 /* KPI 大数字卡（借鉴设计包 components.css）：label + 等宽大数字 + 涨跌 delta */
 .kpi { display: flex; flex-direction: column; gap: 6px; }
