@@ -139,30 +139,18 @@ const moreNav = computed(() => [
 ])
 const isMoreActive = computed(() => moreNav.value.some((n) => n.active))
 
-// 全局键盘体验：Esc 关闭所有弹层/抽屉；「/」聚焦目录搜索（非输入态）
+// 全局键盘体验：Esc 关闭所有弹层/抽屉
 const searchInputRef = ref<HTMLInputElement | null>(null)
 function onGlobalKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
-    if (menuOpen.value) {
-      menuOpen.value = false
-      return
-    }
-    moreOpen.value = false
-    toolsOpen.value = false
-    const si = searchInputRef.value
-    if (si && document.activeElement === si) si.blur()
+  if (e.key !== 'Escape') return
+  if (menuOpen.value) {
+    menuOpen.value = false
     return
   }
-  if (e.key === '/' && !isTypingTarget(e.target)) {
-    e.preventDefault()
-    searchInputRef.value?.focus()
-  }
-}
-function isTypingTarget(t: EventTarget | null): boolean {
-  const el = t as HTMLElement | null
-  if (!el) return false
-  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return true
-  return el.isContentEditable
+  moreOpen.value = false
+  toolsOpen.value = false
+  const si = searchInputRef.value
+  if (si && document.activeElement === si) si.blur()
 }
 
 onMounted(async () => {
@@ -322,7 +310,6 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
           aria-label="搜索课程"
         />
         <button v-if="searchQuery" class="toc-clear" type="button" aria-label="清除搜索" @click="searchQuery = ''"><X :size="13" /></button>
-        <span v-if="!searchQuery" class="toc-kbd">/</span>
       </div>
 
       <nav class="toc">
@@ -616,14 +603,11 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 .toc-icon { flex-shrink: 0; }
 .toc-status { padding: 8px 20px; color: var(--text-3); font-size: 13px; }
 
-.toc-search { position: relative; padding: 0 12px 10px; }
-.toc-search-icon {
-  position: absolute; left: 22px; top: 50%; transform: translateY(-50%);
-  color: var(--text-3); display: flex; pointer-events: none;
-}
+.toc-search { display: flex; align-items: center; gap: 6px; padding: 0 12px 10px; }
+.toc-search-icon { display: flex; color: var(--text-3); flex-shrink: 0; }
 .toc-search input {
-  width: 100%;
-  padding: 7px 34px 7px 30px;
+  flex: 1; min-width: 0;
+  padding: 7px 10px;
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--bg-page);
@@ -634,20 +618,12 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 .toc-search input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent); }
 .toc-search input::placeholder { color: var(--text-3); }
 .toc-clear {
-  position: absolute; right: 22px; top: 50%; transform: translateY(-50%);
   display: flex; align-items: center; justify-content: center;
   width: 20px; height: 20px; border: none; background: none;
-  color: var(--text-3); cursor: pointer; border-radius: 6px;
+  color: var(--text-3); cursor: pointer; border-radius: 6px; flex-shrink: 0;
   transition: background 0.14s, color 0.14s;
 }
 .toc-clear:hover { background: var(--bg-hover); color: var(--text-1); }
-.toc-kbd {
-  position: absolute; right: 22px; top: 50%; transform: translateY(-50%);
-  font-family: var(--font-mono); font-size: 10px; line-height: 1;
-  color: var(--text-3); background: var(--bg-hover);
-  border: 1px solid var(--border); border-radius: 4px;
-  padding: 3px 6px; pointer-events: none;
-}
 
 .toc { flex: 1; overflow-y: auto; padding: 0 8px 12px; }
 
