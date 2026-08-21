@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowRight, PlayCircle, Target } from 'lucide-vue-next'
-import { fetchCourses, streamPlan, streamReview } from '@/api'
+import { fetchCourses, fetchBacktests, streamPlan, streamReview, type BacktestResult } from '@/api'
 import { getProgress, isCompleted, learningDays, sandboxRunCount, totalExercises } from '@/stores/progress'
 import { linkifyCourses } from '@/utils/linkifyCourses'
 import { chapterLabel, PHASE_STATUS as phaseStatus } from '@/utils/chapter'
@@ -175,6 +175,7 @@ onMounted(async () => {
     lastPath.value = ''
   }
   await load()
+  loadBacktest()
 })
 
 const resume = computed(() => {
@@ -217,6 +218,113 @@ const overall = computed(() => {
   }
   return { done, total, pct: total ? Math.round((done / total) * 100) : 0 }
 })
+
+// ---------- Hero 组合净值 · 回测（真实 QuantLab 回测净值曲线） ----------
+let backtestsCache: BacktestResult[] | null = null
+const backtest = ref<BacktestResult | null>(null)
+
+async function loadBacktest() {
+  try {
+    // 取夏普最高的回测展示（真实数据：组合净值 / 基准净值）
+    if (!backtestsCache) backtestsCache = await fetchBacktests(20)
+    const withNav = (backtestsCache ?? []).filter(
+      (r) => r.nav && r.nav.dates.length > 1 && r.nav.portfolio.length > 1 && r.nav.benchmark.length > 1,
+    )
+    withNav.sort((a, b) => (b.sharpe ?? -Infinity) - (a.sharpe ?? -Infinity))
+    backtest.value = withNav[0] ?? null
+  } catch {
+    backtest.value = null
+  }
+}
+
+const navData = computed(() => backtest.value?.nav ?? null)
+
+// 区间累计收益（净值末/首 - 1）
+const cumReturn = computed(() => {
+  const nav = navData.value
+  if (!nav || !nav.portfolio.length) return 0
+  const p = nav.portfolio
+  return (p[p.length - 1] / p[0] - 1) * 100
+})
+const benchReturn = computed(() => {
+  const nav = navData.value
+  if (!nav || !nav.benchmark.length) return 0
+  const b = nav.benchmark
+  return (b[b.length - 1] / b[0] - 1) * 100
+})
+const beatBench = computed(() => cumReturn.value > benchReturn.value)
+const cumText = computed(() => {
+  const v = cumReturn.value
+  return `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
+})
+
+// 等宽采样到 ≤100 点，保持两条曲线对齐
+function downsample(arr: number[], max = 100): number[] {
+  if (arr.length <= max) return arr
+  const step = (arr.length - 1) / (max - 1)
+  const out: number[] = []
+  for (let i = 0; i < max; i++) out.push(arr[Math.round(i * step)])
+  return out
+}
+
+// 组合/基准同尺度折线 + 组合面积填充
+const chartPaths = computed(() => {
+  const nav = navData.value
+  if (!nav) return { port: '', bench: '', area: '' }
+  const W = 320, H = 120, PAD = 8
+  const p = downsample(nav.portfolio)
+  const b = downsample(nav.benchmark)
+  const all = [...p, ...b]
+  const min = Math.min(...all)
+  const max = Math.max(...all)
+  const range = max - min || 1
+  const x = (i: number, n: number) => PAD + (i / (n - 1)) * (W - 2 * PAD)
+  const y = (v: number) => H - PAD - ((v - min) / range) * (H - 2 * PAD)
+  const line = (arr: number[]) =>
+    arr.map((v, i) => `${i ? 'L' : 'M'}${x(i, arr.length).toFixed(1)} ${y(v).toFixed(1)}`).join(' ')
+  const port = line(p)
+  const bench = line(b)
+  const area = `${port} L${x(p.length - 1, p.length).toFixed(1)} ${H} L${x(0, p.length).toFixed(1)} ${H} Z`
+  return { port, bench, area }
+})
+
+// 横轴刻度：起 / 中 / 末（YYYY-MM）
+const xLabels = computed(() => {
+  const nav = navData.value
+  if (!nav || !nav.dates.length) return ['', '', '']
+  const d = nav.dates
+  return [d[0], d[Math.floor(d.length / 2)], d[d.length - 1]].map((s) => s.slice(0, 7))
+})
+
+const BENCH_NAMES: Record<string, string> = {
+  SH000300: '沪深300',
+  SH000905: '中证500',
+  SH000852: '中证1000',
+  SH000016: '上证50',
+  SH000688: '科创50',
+  SZ399006: '创业板指',
+}
+const benchmarkName = computed(() => {
+  const b = backtest.value?.benchmark ?? ''
+  return BENCH_NAMES[b] || b
+})
+
+const METHOD_NAMES: Record<string, string> = {
+  equal_weight: '等权组合',
+  value_weight: '市值加权',
+  ic_weight: 'IC 加权',
+  max_sharpe: '最大夏普组合',
+  risk_parity: '风险平价',
+}
+const methodName = computed(
+  () => METHOD_NAMES[backtest.value?.combination_method ?? ''] || backtest.value?.combination_method || '多因子组合',
+)
+
+const periodText = computed(() => {
+  const nav = navData.value
+  if (!nav || !nav.dates.length) return ''
+  return `${nav.dates[0].slice(0, 7)} → ${nav.dates[nav.dates.length - 1].slice(0, 7)}`
+})
 </script>
 
 <template>
@@ -237,11 +345,42 @@ const overall = computed(() => {
           <div class="hs"><b>10<span class="hs-unit">年</span></b><span>真实数据</span></div>
         </div>
       </div>
+      <!-- 组合净值 · 回测（真实 QuantLab 回测净值曲线；数据不可用时兜底为总进度） -->
       <div class="overall-card">
-        <div class="overall-label">总进度</div>
-        <div class="overall-num">{{ overall.pct }}%</div>
-        <div class="overall-bar"><div class="bar-fill" :style="{ width: overall.pct + '%' }"></div></div>
-        <div class="faint overall-detail">{{ overall.done }}/{{ overall.total }} 课</div>
+        <template v-if="backtest && navData">
+          <div class="hv-head">
+            <span class="hv-title">组合净值 · 回测</span>
+            <span class="badge badge-dot" :class="beatBench ? 'badge-success' : 'badge-danger'">
+              {{ beatBench ? '跑赢基准' : '跑输基准' }}
+            </span>
+          </div>
+          <div class="hv-val" :class="cumReturn >= 0 ? 'up' : 'down'">{{ cumText }}</div>
+          <svg class="hv-chart" viewBox="0 0 320 120" width="100%" height="120" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="hv-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" style="stop-color: var(--chart-1); stop-opacity: 0.28" />
+                <stop offset="1" style="stop-color: var(--chart-1); stop-opacity: 0" />
+              </linearGradient>
+            </defs>
+            <path :d="chartPaths.area" fill="url(#hv-grad)" />
+            <path :d="chartPaths.port" fill="none" stroke="var(--chart-1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+            <path :d="chartPaths.bench" fill="none" stroke="var(--chart-3)" stroke-width="1.8" stroke-dasharray="4 3" opacity="0.85" />
+          </svg>
+          <div class="hv-x">
+            <span>{{ xLabels[0] }}</span><span>{{ xLabels[1] }}</span><span>{{ xLabels[2] }}</span>
+          </div>
+          <div class="hv-legend">
+            <span class="lg"><i class="lgt c1"></i>组合</span>
+            <span class="lg"><i class="lgt c3"></i>{{ benchmarkName }}</span>
+          </div>
+          <div class="hv-meta">{{ methodName }} · {{ periodText }}</div>
+        </template>
+        <template v-else>
+          <div class="overall-label">总进度</div>
+          <div class="overall-num">{{ overall.pct }}%</div>
+          <div class="overall-bar"><div class="bar-fill" :style="{ width: overall.pct + '%' }"></div></div>
+          <div class="faint overall-detail">{{ overall.done }}/{{ overall.total }} 课</div>
+        </template>
       </div>
     </section>
 
@@ -368,12 +507,27 @@ const overall = computed(() => {
 .hs .hs-unit { font-size: 0.6em; }
 .hs span { font-size: 12px; color: var(--text-3); }
 
-.overall-card { width: 200px; flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px 18px; box-shadow: var(--shadow-sm); }
+.overall-card { width: 280px; flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px 20px; box-shadow: var(--shadow-sm); }
 .overall-label { font-size: 12px; color: var(--text-3); }
 .overall-num { font-size: 26px; font-weight: 700; color: var(--primary); margin: 2px 0 8px; }
 .overall-bar { height: 6px; background: var(--bg-hover); border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
 .bar-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width 0.3s; }
 .overall-detail { font-size: 12px; }
+
+/* 组合净值 · 回测（对齐设计包 home.html 的 hero-visual） */
+.hv-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.hv-title { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); letter-spacing: 0.06em; }
+.hv-val { font-family: var(--font-mono); font-size: 26px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; }
+.hv-val.up { color: var(--up); }
+.hv-val.down { color: var(--down); }
+.hv-chart { display: block; margin-top: 8px; }
+.hv-x { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 12px; color: var(--text-3); margin-top: 8px; }
+.hv-legend { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--text-2); }
+.hv-legend .lg { display: inline-flex; align-items: center; gap: 6px; }
+.hv-legend .lgt { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.hv-legend .lgt.c1 { background: var(--chart-1); }
+.hv-legend .lgt.c3 { background: var(--chart-3); }
+.hv-meta { margin-top: 8px; font-size: 12px; color: var(--text-3); }
 
 .status { padding: 40px; text-align: center; }
 
