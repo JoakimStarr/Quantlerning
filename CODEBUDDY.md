@@ -159,6 +159,7 @@ H: 提示（可选）
 4. **可视化嵌入正文**：不是单独占位块，而是像插图一样嵌在文字流中（figure+caption），图文交融
 5. **前端改完跑 `vue-tsc --noEmit`**，后端内容文件改完跑 Python ast 检查
 6. **不加「标记已完成」按钮**（已移除），进度靠阅读行为
+7. **AI provider 多供应商**：设置页「模型 Provider」管理内置三家（智谱 GLM / OpenCodeZen / 硅基流动，常驻、可编辑可重置不可删）+ 自定义 provider，持久化在 `backend/app/data/ai_settings.json`（旧「主/备配置」格式首次读取自动迁移为 provider）。生效配置 = 当前 provider 的 base_url/api_key/model 覆盖 .env；AI 调用在限流（429）或模型不可用时**自动轮换**其他已配置 key 的 provider（`settings_store.get_rotation_providers()`）
 
 ### 课程写作规范（2026-08 定稿，全书通用）
 
@@ -246,8 +247,15 @@ python scripts/check_content.py p5-l3    # 指定课
 | `POST /api/v1/chat/gen-exercise` | 生成变式应用题：同知识点、相近难度（SSE 流式） |
 | `POST /api/v1/chat/quiz-variant` | 生成随堂测验变式单选题（JSON 返回，非流式；含 JSON 解析失败自动纠偏重试） |
 | `POST /api/v1/chat/plan` | 学习路径规划：基于前端汇总的进度输出复习重点与建议（SSE 流式） |
-| `GET/PUT /api/v1/settings/ai` | AI 模型配置（base_url/model/api_key，密钥掩码存储） |
-| `POST /api/v1/settings/ai/test` | 测试 AI 连接是否可用 |
+| `GET/PUT /api/v1/settings/ai` | AI 全局配置：GET 返回 provider 列表（打码）+ 当前 provider + 生成参数/联网搜索；PUT 只存全局参数（max_tokens/temperature/web_search_key） |
+| `POST /api/v1/settings/ai/providers` | 新增自定义 provider（name/base_url/model/api_key，即时落盘） |
+| `PUT /api/v1/settings/ai/providers/{id}` | 更新 provider（内置 id → 写入覆盖；partial update，未提交字段保留） |
+| `DELETE /api/v1/settings/ai/providers/{id}` | 删除自定义 / 重置内置；返回新的 active_provider_id |
+| `POST /api/v1/settings/ai/providers/{id}/activate` | 设为当前使用 provider |
+| `POST /api/v1/settings/ai/providers/{id}/test` | 用存储配置测连接 |
+| `GET /api/v1/settings/ai/models` | 当前 provider 可用模型列表（GET {base_url}/models，失败回退已配置模型） |
+| `POST /api/v1/settings/ai/models` | 按表单 base_url/api_key 拉模型列表（保存前预览） |
+| `POST /api/v1/settings/ai/test` | 按表单配置测试 AI 连接是否可用 |
 
 ## 里程碑
 

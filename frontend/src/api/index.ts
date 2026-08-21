@@ -494,19 +494,22 @@ export async function streamReview(
 
 export default api
 
-// ---------- 设置（AI 模型配置）----------
-export interface AISettings {
+// ---------- 设置（AI 模型配置 / provider 管理）----------
+export interface AIProvider {
+  id: string
+  name: string
   base_url: string
   model: string
-  max_tokens: number
-  temperature: number
   api_key_masked: string
   configured: boolean
-  fallback_base_url: string
-  fallback_model: string
-  fallback_max_tokens: number | null
-  fallback_api_key_masked: string
-  fallback_configured: boolean
+  builtin: boolean
+}
+
+export interface AISettings {
+  providers: AIProvider[]
+  active_provider_id: string
+  max_tokens: number
+  temperature: number
   web_search_key_masked: string
   web_search_configured: boolean
 }
@@ -516,19 +519,49 @@ export async function fetchAISettings(): Promise<AISettings> {
   return data
 }
 
+/** 保存全局参数（生成参数 + 联网搜索）；provider 走独立端点 */
 export async function saveAISettings(payload: {
-  base_url: string
-  api_key?: string
-  model: string
   max_tokens?: number | null
   temperature?: number | null
-  fallback_base_url?: string
-  fallback_api_key?: string
-  fallback_model?: string
-  fallback_max_tokens?: number | null
   web_search_key?: string
 }): Promise<AISettings> {
   const { data } = await api.put('/settings/ai', payload)
+  return data
+}
+
+export async function createAIProvider(payload: {
+  name: string
+  base_url: string
+  model: string
+  api_key?: string
+}): Promise<AIProvider> {
+  const { data } = await api.post('/settings/ai/providers', payload)
+  return data
+}
+
+export async function updateAIProvider(
+  id: string,
+  payload: { name?: string; base_url?: string; model?: string; api_key?: string },
+): Promise<AIProvider> {
+  const { data } = await api.put(`/settings/ai/providers/${id}`, payload)
+  return data
+}
+
+export async function deleteAIProvider(id: string): Promise<{ active_provider_id: string }> {
+  const { data } = await api.delete(`/settings/ai/providers/${id}`)
+  return data
+}
+
+export async function activateAIProvider(id: string): Promise<{ active_provider_id: string }> {
+  const { data } = await api.post(`/settings/ai/providers/${id}/activate`)
+  return data
+}
+
+/** 用存储的 provider 配置测连接（provider 列表「测试」按钮） */
+export async function testAIProvider(
+  id: string,
+): Promise<{ ok: boolean; message: string; reply?: string }> {
+  const { data } = await api.post(`/settings/ai/providers/${id}/test`)
   return data
 }
 

@@ -3,121 +3,88 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   Bot,
   Check,
-  ChevronDown,
-  ChevronRight,
   Globe,
   List,
+  Pencil,
+  Plus,
   RefreshCw,
+  RotateCcw,
   Search,
   SlidersHorizontal,
+  Trash2,
   X,
 } from 'lucide-vue-next'
-import { fetchAIModelsByConfig, fetchAISettings, saveAISettings, testAISettings } from '@/api'
+import {
+  activateAIProvider,
+  createAIProvider,
+  deleteAIProvider,
+  fetchAIModelsByConfig,
+  fetchAISettings,
+  saveAISettings,
+  testAIProvider,
+  testAISettings,
+  updateAIProvider,
+  type AIProvider,
+} from '@/api'
 import AppSpinner from '@/components/common/AppSpinner.vue'
 import AppError from '@/components/common/AppError.vue'
 import PageBreadcrumb from '@/components/common/PageBreadcrumb.vue'
 
-// AI 模型设置页：主/备用模型 + 联网搜索 + 生成参数。
-// 显式保存：底部操作栏 + 「未保存修改」提示；api key 只存后端，不回显。
+// AI 模型设置页：多 provider 管理（内置三家 + 自定义，均持久化到后端）+ 联网搜索 + 生成参数。
+// provider 增删改/切换各自即时落盘（调独立端点）；底部「保存设置」只存全局参数。
 
-// 内置供应商预设（OpenAI 兼容接口）
-interface ProviderPreset {
+// 新增 provider 时的预设快捷填充
+interface Preset {
   name: string
   base_url: string
   model: string
-  hint: string
 }
-const PRESETS: ProviderPreset[] = [
+const EDIT_PRESETS: Preset[] = [
   {
     name: '智谱 GLM',
     base_url: 'https://open.bigmodel.cn/api/paas/v4',
     model: 'glm-4.7-flash',
-    hint: '智谱 AI 开放平台，glm-4.7-flash 永久免费（200K 上下文）',
   },
   {
     name: 'OpenCodeZen',
     base_url: 'https://opencode.ai/zen/v1',
     model: 'deepseek-v4-flash-free',
-    hint: '当前 .env 默认配置',
   },
   {
     name: '硅基流动 SiliconFlow',
     base_url: 'https://api.siliconflow.cn/v1',
     model: 'Qwen/Qwen2.5-7B-Instruct',
-    hint: '硅基流动，需在其平台申请 key',
   },
-  {
-    name: '自定义',
-    base_url: '',
-    model: '',
-    hint: '任何 OpenAI 兼容接口：填 base_url + model + api key',
-  },
+  { name: '自定义', base_url: '', model: '' },
 ]
 
-const activePreset = ref('')
-const activePresetHint = computed(
-  () => PRESETS.find((p) => p.name === activePreset.value)?.hint || '',
+const providers = ref<AIProvider[]>([])
+const activeProviderId = ref('')
+const activeProvider = computed(
+  () => providers.value.find((p) => p.id === activeProviderId.value) || providers.value[0],
 )
-const baseUrl = ref('')
-const model = ref('')
-const apiKey = ref('')
+
+// 全局参数（生成参数 + 联网搜索，底部统一保存）
 const maxTokens = ref(1024)
 const temperature = ref(0.4)
-
-// 备用模型（主模型限流时自动切换）；默认折叠
-const fbOpen = ref(false)
-const fbBaseUrl = ref('')
-const fbModel = ref('')
-const fbApiKey = ref('')
-const fbMaxTokens = ref(1024)
-const fbKeyMasked = ref('')
-const fbConfigured = ref(false)
-
-// 联网搜索（Tavily，可选）
 const webSearchKey = ref('')
 const webKeyMasked = ref('')
 const webConfigured = ref(false)
 
 const loading = ref(true)
 const saving = ref(false)
-const testing = ref(false)
-const savedKeyMasked = ref('')
-const configured = ref(false)
 const error = ref('')
 const notice = ref('')
-const testResult = ref<{ ok: boolean; message: string; reply?: string } | null>(null)
+const testResult = ref<{ ok: boolean; message: string; reply?: string; target?: string } | null>(null)
 
-// 已保存值快照：用于「未保存修改」提示（key 输入框始终清空，非空即视为待保存）
-const savedSnapshot = reactive({
-  baseUrl: '',
-  model: '',
-  maxTokens: 1024,
-  temperature: 0.4,
-  fbBaseUrl: '',
-  fbModel: '',
-  fbMaxTokens: 1024,
-})
-function snapshotCurrent() {
-  savedSnapshot.baseUrl = baseUrl.value
-  savedSnapshot.model = model.value
-  savedSnapshot.maxTokens = maxTokens.value
-  savedSnapshot.temperature = temperature.value
-  savedSnapshot.fbBaseUrl = fbBaseUrl.value
-  savedSnapshot.fbModel = fbModel.value
-  savedSnapshot.fbMaxTokens = fbMaxTokens.value
-}
-const dirty = computed(() => {
-  if (apiKey.value.trim() || fbApiKey.value.trim() || webSearchKey.value.trim()) return true
-  return (
-    baseUrl.value !== savedSnapshot.baseUrl ||
-    model.value !== savedSnapshot.model ||
-    maxTokens.value !== savedSnapshot.maxTokens ||
-    temperature.value !== savedSnapshot.temperature ||
-    fbBaseUrl.value !== savedSnapshot.fbBaseUrl ||
-    fbModel.value !== savedSnapshot.fbModel ||
-    fbMaxTokens.value !== savedSnapshot.fbMaxTokens
-  )
-})
+// 已保存全局值快照（用于「未保存修改」提示）
+const savedGlobal = reactive({ maxTokens: 1024, temperature: 0.4 })
+const dirty = computed(
+  () =>
+    maxTokens.value !== savedGlobal.maxTokens ||
+    temperature.value !== savedGlobal.temperature ||
+    webSearchKey.value.trim() !== '',
+)
 
 const tempHint = computed(() => {
   const t = temperature.value
@@ -127,7 +94,172 @@ const tempHint = computed(() => {
   return '高随机：创意优先，但可能不够严谨'
 })
 
-// 模型选择器：点「获取模型」按当前表单 base_url/api_key 拉列表，支持搜索筛选
+async function reloadSettings() {
+  loading.value = true
+  error.value = ''
+  try {
+    const cfg = await fetchAISettings()
+    providers.value = cfg.providers
+    activeProviderId.value = cfg.active_provider_id
+    maxTokens.value = cfg.max_tokens || 1024
+    temperature.value = typeof cfg.temperature === 'number' ? cfg.temperature : 0.4
+    webKeyMasked.value = cfg.web_search_key_masked || ''
+    webConfigured.value = !!cfg.web_search_configured
+    savedGlobal.maxTokens = maxTokens.value
+    savedGlobal.temperature = temperature.value
+  } catch (e: any) {
+    error.value = e?.message || '加载设置失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(reloadSettings)
+
+// ---------- provider 操作 ----------
+const actingId = ref('') // 设为当前/删除 进行中的 id
+const testingId = ref('')
+
+async function activate(id: string) {
+  actingId.value = id
+  error.value = ''
+  notice.value = ''
+  try {
+    const res = await activateAIProvider(id)
+    activeProviderId.value = res.active_provider_id
+    notice.value = '已切换当前使用。课程内「AI 追问」的模型下拉将跟随该 provider。'
+  } catch (e: any) {
+    error.value = e?.message || '切换失败'
+  } finally {
+    actingId.value = ''
+  }
+}
+
+async function testProvider(p: AIProvider) {
+  testingId.value = p.id
+  error.value = ''
+  notice.value = ''
+  testResult.value = null
+  try {
+    testResult.value = { ...(await testAIProvider(p.id)), target: p.name }
+  } catch (e: any) {
+    testResult.value = { ok: false, message: e?.message || '连接测试失败', target: p.name }
+  } finally {
+    testingId.value = ''
+  }
+}
+
+async function removeProvider(p: AIProvider) {
+  const label = p.builtin ? '重置为内置默认' : '删除该 provider'
+  if (!window.confirm(`${label}「${p.name}」？`)) return
+  actingId.value = p.id
+  error.value = ''
+  notice.value = ''
+  try {
+    await deleteAIProvider(p.id)
+    await reloadSettings()
+    notice.value = p.builtin ? `「${p.name}」已重置为内置默认。` : `「${p.name}」已删除。`
+  } catch (e: any) {
+    error.value = e?.message || '操作失败'
+  } finally {
+    actingId.value = ''
+  }
+}
+
+// ---------- 添加 / 编辑表单 ----------
+const editorOpen = ref(false)
+const editor = reactive({
+  id: null as string | null, // null = 新增
+  name: '',
+  baseUrl: '',
+  model: '',
+  apiKey: '',
+})
+const editorConfigured = ref(false) // 编辑的 provider 是否已有 key（打码提示）
+const editPreset = ref('自定义')
+const editorSaving = ref(false)
+const editorTesting = ref(false)
+
+function openCreate() {
+  editor.id = null
+  editor.name = ''
+  editor.baseUrl = ''
+  editor.model = ''
+  editor.apiKey = ''
+  editorConfigured.value = false
+  editPreset.value = '自定义'
+  editorOpen.value = true
+  modelList.value = []
+  modelError.value = ''
+  testResult.value = null
+}
+
+function openEdit(p: AIProvider) {
+  editor.id = p.id
+  editor.name = p.name
+  editor.baseUrl = p.base_url
+  editor.model = p.model
+  editor.apiKey = ''
+  editorConfigured.value = p.configured
+  editPreset.value = '自定义'
+  editorOpen.value = true
+  modelList.value = []
+  modelError.value = ''
+  testResult.value = null
+}
+
+function closeEditor() {
+  editorOpen.value = false
+}
+
+function applyEditPreset(e: Event) {
+  const p = EDIT_PRESETS.find((x) => x.name === (e.target as HTMLSelectElement).value)
+  if (!p) return
+  editor.name = p.name
+  editor.baseUrl = p.base_url
+  editor.model = p.model
+}
+
+async function saveProvider() {
+  error.value = ''
+  notice.value = ''
+  const name = editor.name.trim()
+  const baseUrl = editor.baseUrl.trim()
+  const model = editor.model.trim()
+  if (!name || !baseUrl || !model) {
+    error.value = '请填写 名称 / Base URL / 模型名称 后再保存'
+    return
+  }
+  editorSaving.value = true
+  try {
+    if (editor.id) {
+      const payload: { name?: string; base_url?: string; model?: string; api_key?: string } = {
+        name,
+        base_url: baseUrl,
+        model,
+      }
+      if (editor.apiKey.trim()) payload.api_key = editor.apiKey.trim()
+      await updateAIProvider(editor.id, payload)
+      notice.value = '已保存。'
+    } else {
+      await createAIProvider({
+        name,
+        base_url: baseUrl,
+        model,
+        ...(editor.apiKey.trim() ? { api_key: editor.apiKey.trim() } : {}),
+      })
+      notice.value = '已添加并保存。可在列表中设为当前使用。'
+    }
+    editorOpen.value = false
+    await reloadSettings()
+  } catch (e: any) {
+    error.value = e?.message || '保存失败'
+  } finally {
+    editorSaving.value = false
+  }
+}
+
+// 编辑器内「获取模型」下拉（按当前表单 base_url/api_key 拉取）
 const modelList = ref<string[]>([])
 const modelOpen = ref(false)
 const modelQuery = ref('')
@@ -141,15 +273,15 @@ const filteredModels = computed(() => {
   return modelList.value.filter((m) => m.toLowerCase().includes(q))
 })
 
-async function fetchModels() {
+async function fetchEditorModels() {
   modelLoading.value = true
   modelError.value = ''
   modelOpen.value = true
   try {
     const res = await fetchAIModelsByConfig({
-      base_url: baseUrl.value.trim(),
-      api_key: apiKey.value.trim() || undefined,
-      model: model.value.trim(),
+      base_url: editor.baseUrl.trim(),
+      api_key: editor.apiKey.trim() || undefined,
+      model: editor.model.trim(),
     })
     modelList.value = res.models
     modelError.value = res.error || ''
@@ -161,9 +293,8 @@ async function fetchModels() {
   }
 }
 
-function pickModel(m: string) {
-  model.value = m
-  testResult.value = null
+function pickEditorModel(m: string) {
+  editor.model = m
   modelOpen.value = false
 }
 
@@ -176,133 +307,47 @@ watch(modelOpen, (v) => {
 })
 onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
-// 提取 host 用于「是否同一供应商」判断（容错 base_url 尾斜杠/路径差异）
-function hostOf(u: string): string {
-  try {
-    return new URL(u).hostname
-  } catch {
-    return ''
-  }
-}
-
-function applyPreset(p: ProviderPreset) {
-  const sameProvider = !!p.base_url && hostOf(p.base_url) === hostOf(baseUrl.value.trim())
-  activePreset.value = p.name
-  baseUrl.value = p.base_url
-  // 已配置同一供应商时保留当前 model；切换供应商或 model 为空才用预设默认值
-  if (!sameProvider || !model.value) {
-    model.value = p.model
-  }
-  modelOpen.value = false
-  modelList.value = []
-  testResult.value = null
-}
-function onPresetChange(e: Event) {
-  const p = PRESETS.find((x) => x.name === (e.target as HTMLSelectElement).value)
-  if (p) applyPreset(p)
-}
-
-async function reloadSettings() {
-  loading.value = true
-  error.value = ''
-  try {
-    const cfg = await fetchAISettings()
-    baseUrl.value = cfg.base_url
-    model.value = cfg.model
-    maxTokens.value = cfg.max_tokens || 1024
-    temperature.value = typeof cfg.temperature === 'number' ? cfg.temperature : 0.4
-    savedKeyMasked.value = cfg.api_key_masked
-    configured.value = cfg.configured
-    fbBaseUrl.value = cfg.fallback_base_url || ''
-    fbModel.value = cfg.fallback_model || ''
-    fbMaxTokens.value = cfg.fallback_max_tokens || 1024
-    fbKeyMasked.value = cfg.fallback_api_key_masked || ''
-    fbConfigured.value = !!cfg.fallback_configured
-    webKeyMasked.value = cfg.web_search_key_masked || ''
-    webConfigured.value = !!cfg.web_search_configured
-    // 匹配预设（按 base_url 前缀）
-    const hit = PRESETS.find((p) => p.base_url && cfg.base_url.startsWith(p.base_url.split('/')[2] ?? ''))
-    activePreset.value = hit?.name ?? (PRESETS[PRESETS.length - 1].name)
-    snapshotCurrent()
-  } catch (e: any) {
-    error.value = e?.message || '加载设置失败'
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(reloadSettings)
-
-async function save() {
-  error.value = ''
-  notice.value = ''
-  saving.value = true
-  // 已拉取过模型列表且当前 model 不在其中 → 保存后提示可能失效
-  const modelWarn =
-    modelList.value.length > 0 && !modelList.value.includes(model.value.trim())
-  try {
-    const payload: {
-      base_url: string
-      model: string
-      max_tokens: number
-      temperature: number
-      api_key?: string
-      fallback_base_url?: string
-      fallback_model?: string
-      fallback_max_tokens?: number | null
-      fallback_api_key?: string
-      web_search_key?: string
-    } = {
-      base_url: baseUrl.value.trim(),
-      model: model.value.trim(),
-      max_tokens: maxTokens.value,
-      temperature: temperature.value,
-      fallback_base_url: fbBaseUrl.value.trim(),
-      fallback_model: fbModel.value.trim(),
-      fallback_max_tokens: fbMaxTokens.value,
-    }
-    // api_key 未输入 → 不发该字段，保留后端已保存的 key（避免误删）
-    if (apiKey.value.trim()) payload.api_key = apiKey.value.trim()
-    if (fbApiKey.value.trim()) payload.fallback_api_key = fbApiKey.value.trim()
-    if (webSearchKey.value.trim()) payload.web_search_key = webSearchKey.value.trim()
-    const cfg = await saveAISettings(payload)
-    savedKeyMasked.value = cfg.api_key_masked
-    configured.value = cfg.configured
-    apiKey.value = '' // 清空输入（已保存到后端，不回显）
-    fbKeyMasked.value = cfg.fallback_api_key_masked || ''
-    fbConfigured.value = !!cfg.fallback_configured
-    fbApiKey.value = ''
-    webKeyMasked.value = cfg.web_search_key_masked || ''
-    webConfigured.value = !!cfg.web_search_configured
-    webSearchKey.value = ''
-    snapshotCurrent()
-    notice.value = modelWarn
-      ? '已保存。注意：该模型不在当前供应商列表中，可能已失效，建议点「测试连接」验证。'
-      : '已保存并设为默认模型。api key 仅存后端；如需修改重新输入即可。'
-  } catch (e: any) {
-    error.value = e?.message || '保存失败'
-  } finally {
-    saving.value = false
-  }
-}
-
-async function test() {
+async function testEditor() {
   error.value = ''
   notice.value = ''
   testResult.value = null
-  testing.value = true
+  editorTesting.value = true
   try {
     testResult.value = await testAISettings({
-      base_url: baseUrl.value.trim(),
-      api_key: apiKey.value.trim(),
-      model: model.value.trim(),
+      base_url: editor.baseUrl.trim(),
+      api_key: editor.apiKey.trim() || undefined,
+      model: editor.model.trim(),
       max_tokens: maxTokens.value,
       temperature: temperature.value,
     })
   } catch (e: any) {
     testResult.value = { ok: false, message: e?.message || '连接测试失败' }
   } finally {
-    testing.value = false
+    editorTesting.value = false
+  }
+}
+
+// ---------- 全局参数保存（底部） ----------
+async function saveGlobal() {
+  error.value = ''
+  notice.value = ''
+  saving.value = true
+  try {
+    const cfg = await saveAISettings({
+      max_tokens: maxTokens.value,
+      temperature: temperature.value,
+      ...(webSearchKey.value.trim() ? { web_search_key: webSearchKey.value.trim() } : {}),
+    })
+    webKeyMasked.value = cfg.web_search_key_masked || ''
+    webConfigured.value = !!cfg.web_search_configured
+    webSearchKey.value = ''
+    savedGlobal.maxTokens = maxTokens.value
+    savedGlobal.temperature = temperature.value
+    notice.value = '已保存。生成参数与联网搜索设置已生效。'
+  } catch (e: any) {
+    error.value = e?.message || '保存失败'
+  } finally {
+    saving.value = false
   }
 }
 </script>
@@ -311,202 +356,217 @@ async function test() {
   <div class="settings-page">
     <PageBreadcrumb current="设置" />
     <h1 class="page-title">设置</h1>
-    <p class="page-desc">配置课程内「AI 追问」与应用题批改所使用的模型。配置保存在后端，api key 不会显示在浏览器中。</p>
+    <p class="page-desc">
+      配置课程内「AI 追问」与应用题批改所使用的模型。可管理多个供应商（内置三家 + 自定义），配置保存在后端，
+      api key 不会显示在浏览器中。
+    </p>
 
     <AppSpinner v-if="loading" text="加载设置…" />
-    <AppError v-else-if="error && !baseUrl && !model" :message="error" @retry="reloadSettings" />
+    <AppError v-else-if="error && !activeProvider" :message="error" @retry="reloadSettings" />
 
     <div v-else class="settings-stack">
-      <!-- 当前配置状态条 -->
+      <!-- 当前使用 provider 状态条 -->
       <div class="status-bar">
-        <span class="status-dot" :class="configured ? 'ok' : 'warn'"></span>
+        <span class="status-dot" :class="activeProvider?.configured ? 'ok' : 'warn'"></span>
         <div class="status-info">
-          <span class="status-label">{{ configured ? '已配置' : '未配置 API Key' }}</span>
-          <span class="status-model">{{ model || '（未设置模型）' }}</span>
-          <span class="status-url">{{ baseUrl }}</span>
+          <span class="status-label">
+            {{ activeProvider?.configured ? '已配置' : '未配置 API Key' }} · {{ activeProvider?.name }}
+          </span>
+          <span class="status-model">{{ activeProvider?.model || '（未设置模型）' }}</span>
+          <span class="status-url">{{ activeProvider?.base_url }}</span>
         </div>
-        <button class="btn btn-ghost status-test" :disabled="testing || saving" @click="test">
-          {{ testing ? '测试中…' : '测试连接' }}
+        <button
+          class="btn btn-ghost status-test"
+          :disabled="testingId === activeProvider?.id"
+          @click="activeProvider && testProvider(activeProvider)"
+        >
+          {{ testingId === activeProvider?.id ? '测试中…' : '测试连接' }}
         </button>
       </div>
 
-      <!-- 模型：主模型 + 备用模型（折叠） -->
+      <!-- Provider 管理 -->
       <section class="settings-card">
         <div class="card-head card-head-icon">
           <Bot :size="16" class="card-head-ico" />
-          <div>
-            <h2 class="card-title">模型</h2>
-            <p class="card-desc">主模型用于日常回答；备用模型在主模型限流时自动顶上。</p>
+          <div class="card-head-txt">
+            <h2 class="card-title">模型 Provider</h2>
+            <p class="card-desc">
+              当前使用（绿点）的 provider 用于日常回答；主 provider 限流或模型不可用时，自动轮换其他已配置 key 的
+              provider。内置三家可修改（保存覆盖）、可重置，不可删除。
+            </p>
           </div>
         </div>
 
-        <div class="field-group">
-          <label class="field-label" for="preset">供应商预设</label>
-          <select id="preset" class="preset-select" :value="activePreset" @change="onPresetChange">
-            <option v-for="p in PRESETS" :key="p.name" :value="p.name">{{ p.name }}</option>
-          </select>
-          <p class="field-help" v-if="activePresetHint">{{ activePresetHint }}</p>
-        </div>
+        <!-- provider 列表 -->
+        <ul class="prov-list">
+          <li
+            v-for="p in providers"
+            :key="p.id"
+            class="prov-item"
+            :class="{ active: p.id === activeProviderId }"
+          >
+            <div class="prov-main">
+              <div class="prov-head">
+                <span class="prov-name">{{ p.name }}</span>
+                <span v-if="p.builtin" class="badge badge-builtin">内置</span>
+                <span v-if="p.id === activeProviderId" class="badge badge-active">使用中</span>
+              </div>
+              <div class="prov-sub">
+                <span class="prov-model">{{ p.model || '（未设置模型）' }}</span>
+                <span class="prov-url">{{ p.base_url }}</span>
+              </div>
+            </div>
+            <div class="prov-key">
+              <span v-if="p.configured" class="key-ok" :title="p.api_key_masked">key {{ p.api_key_masked }}</span>
+              <span v-else class="key-miss">未配置 key</span>
+            </div>
+            <div class="prov-actions">
+              <button
+                v-if="p.id !== activeProviderId"
+                class="btn btn-ghost"
+                :disabled="actingId === p.id"
+                @click="activate(p.id)"
+              >
+                设为当前
+              </button>
+              <button class="btn btn-ghost" :disabled="testingId === p.id" @click="testProvider(p)">
+                {{ testingId === p.id ? '测试中…' : '测试' }}
+              </button>
+              <button class="btn btn-ghost" @click="openEdit(p)">
+                <Pencil :size="12" /> 编辑
+              </button>
+              <button
+                class="btn btn-ghost danger"
+                :disabled="actingId === p.id"
+                :title="p.builtin ? '重置为内置默认' : '删除该 provider'"
+                @click="removeProvider(p)"
+              >
+                <RotateCcw v-if="p.builtin" :size="12" />
+                <Trash2 v-else :size="12" />
+                {{ p.builtin ? '重置' : '删除' }}
+              </button>
+            </div>
+          </li>
+        </ul>
 
-        <!-- 主模型（默认） -->
-        <div class="section-block">
-          <div class="section-title">主模型（默认）</div>
+        <!-- 添加 / 编辑表单 -->
+        <div class="prov-editor">
+          <button v-if="!editorOpen" class="btn btn-primary add-btn" @click="openCreate">
+            <Plus :size="14" /> 添加 Provider
+          </button>
 
-          <div class="field-group">
-            <label class="field-label" for="base-url">Base URL</label>
-            <input
-              id="base-url"
-              v-model="baseUrl"
-              class="field-input"
-              type="text"
-              placeholder="https://open.bigmodel.cn/api/paas/v4"
-              spellcheck="false"
-            />
-            <p class="field-help">OpenAI 兼容接口地址，末尾无需斜杠。</p>
-          </div>
+          <div v-else class="editor-box">
+            <div class="editor-title">{{ editor.id ? '编辑 Provider' : '添加 Provider' }}</div>
 
-          <div class="field-row">
-            <div class="field-group grow">
-              <label class="field-label" for="model">模型名称</label>
-              <div ref="modelPopRef" class="model-picker">
-                <div class="model-input-wrap">
-                  <input
-                    id="model"
-                    v-model="model"
-                    class="field-input"
-                    type="text"
-                    placeholder="glm-4-flash"
-                    spellcheck="false"
-                  />
-                  <button
-                    type="button"
-                    class="model-fetch-btn"
-                    :disabled="modelLoading"
-                    :title="'从当前 base_url 拉取可用模型列表'"
-                    @click="fetchModels"
-                  >
-                    <RefreshCw v-if="modelLoading" :size="13" class="spin" />
-                    <List v-else :size="13" />
-                    {{ modelLoading ? '获取中' : '获取模型' }}
-                  </button>
-                </div>
-                <Transition name="drop">
-                  <div v-if="modelOpen" class="model-pop">
-                    <div class="model-search">
-                      <Search :size="13" />
-                      <input v-model="modelQuery" placeholder="搜索模型…" spellcheck="false" @click.stop />
-                    </div>
-                    <div v-if="modelError" class="model-pop-error">{{ modelError }}</div>
-                    <div class="model-list">
-                      <button
-                        v-for="m in filteredModels"
-                        :key="m"
-                        type="button"
-                        class="model-item"
-                        :class="{ cur: m === model }"
-                        @click="pickModel(m)"
-                      >
-                        <span class="model-name">{{ m }}</span>
-                      </button>
-                      <div v-if="modelList.length === 0 && !modelError" class="model-empty">
-                        点击「获取模型」从服务商拉取列表；也可直接手动输入模型名称。
+            <div class="field-group">
+              <label class="field-label" for="edit-preset">预设快捷填充</label>
+              <select id="edit-preset" class="preset-select" :value="editPreset" @change="applyEditPreset">
+                <option v-for="p in EDIT_PRESETS" :key="p.name" :value="p.name">{{ p.name }}</option>
+              </select>
+              <p class="field-help">选择预设自动填入名称 / Base URL / 模型；自定义则手动填写。</p>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="edit-name">名称</label>
+              <input
+                id="edit-name"
+                v-model="editor.name"
+                class="field-input"
+                type="text"
+                placeholder="如：我的 DeepSeek"
+                spellcheck="false"
+              />
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="edit-base-url">Base URL</label>
+              <input
+                id="edit-base-url"
+                v-model="editor.baseUrl"
+                class="field-input"
+                type="text"
+                placeholder="https://open.bigmodel.cn/api/paas/v4"
+                spellcheck="false"
+              />
+              <p class="field-help">OpenAI 兼容接口地址，末尾无需斜杠。</p>
+            </div>
+
+            <div class="field-row">
+              <div class="field-group grow">
+                <label class="field-label" for="edit-model">模型名称</label>
+                <div ref="modelPopRef" class="model-picker">
+                  <div class="model-input-wrap">
+                    <input
+                      id="edit-model"
+                      v-model="editor.model"
+                      class="field-input"
+                      type="text"
+                      placeholder="glm-4-flash"
+                      spellcheck="false"
+                    />
+                    <button
+                      type="button"
+                      class="model-fetch-btn"
+                      :disabled="modelLoading"
+                      :title="'从当前 base_url 拉取可用模型列表'"
+                      @click="fetchEditorModels"
+                    >
+                      <RefreshCw v-if="modelLoading" :size="13" class="spin" />
+                      <List v-else :size="13" />
+                      {{ modelLoading ? '获取中' : '获取模型' }}
+                    </button>
+                  </div>
+                  <Transition name="drop">
+                    <div v-if="modelOpen" class="model-pop">
+                      <div class="model-search">
+                        <Search :size="13" />
+                        <input v-model="modelQuery" placeholder="搜索模型…" spellcheck="false" @click.stop />
+                      </div>
+                      <div v-if="modelError" class="model-pop-error">{{ modelError }}</div>
+                      <div class="model-list">
+                        <button
+                          v-for="m in filteredModels"
+                          :key="m"
+                          type="button"
+                          class="model-item"
+                          :class="{ cur: m === editor.model }"
+                          @click="pickEditorModel(m)"
+                        >
+                          <span class="model-name">{{ m }}</span>
+                        </button>
+                        <div v-if="modelList.length === 0 && !modelError" class="model-empty">
+                          点击「获取模型」从服务商拉取列表；也可直接手动输入模型名称。
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Transition>
+                  </Transition>
+                </div>
+              </div>
+              <div class="field-group grow">
+                <label class="field-label" for="edit-api-key">API Key</label>
+                <input
+                  id="edit-api-key"
+                  v-model="editor.apiKey"
+                  class="field-input"
+                  type="password"
+                  :placeholder="editorConfigured ? '已配置，留空保持不变' : '粘贴 API Key'"
+                  autocomplete="off"
+                />
+                <p class="field-help" v-if="editorConfigured">已配置 key，留空则保留原值。</p>
               </div>
             </div>
-            <div class="field-group grow">
-              <label class="field-label" for="api-key">API Key</label>
-              <input
-                id="api-key"
-                v-model="apiKey"
-                class="field-input"
-                type="password"
-                placeholder="输入后保存到后端"
-                autocomplete="off"
-              />
-              <p class="field-help" v-if="configured">
-                已配置：<code class="masked">{{ savedKeyMasked }}</code>（重新输入可更换）
-              </p>
-              <p class="field-help help-warn" v-else>尚未配置 api key——AI 追问与应用题批改将不可用。</p>
+
+            <div class="editor-actions">
+              <button class="btn btn-ghost" :disabled="editorTesting || editorSaving" @click="testEditor">
+                {{ editorTesting ? '测试中…' : '测试连接' }}
+              </button>
+              <span class="spacer"></span>
+              <button class="btn btn-ghost" :disabled="editorSaving" @click="closeEditor">取消</button>
+              <button class="btn btn-primary" :disabled="editorSaving" @click="saveProvider">
+                {{ editorSaving ? '保存中…' : '保存' }}
+              </button>
             </div>
           </div>
-        </div>
-
-        <!-- 备用模型（折叠） -->
-        <div class="section-block fb-block">
-          <button
-            type="button"
-            class="fb-head"
-            :aria-expanded="fbOpen"
-            @click="fbOpen = !fbOpen"
-          >
-            <ChevronDown v-if="fbOpen" :size="14" class="fb-chev" />
-            <ChevronRight v-else :size="14" class="fb-chev" />
-            <span class="fb-title">备用模型（可选）</span>
-            <span v-if="fbConfigured" class="fb-status ok">已配置 {{ fbKeyMasked }}</span>
-            <span v-else class="fb-status">未配置</span>
-          </button>
-          <Transition name="fb">
-            <div v-if="fbOpen" class="fb-body">
-              <p class="field-help fb-desc">
-                主模型限流（429）时自动切换，避免追问/批改中断。API Key 留空时复用主模型 key。
-              </p>
-              <div class="field-row">
-                <div class="field-group grow">
-                  <label class="field-label" for="fb-base-url">Base URL</label>
-                  <input
-                    id="fb-base-url"
-                    v-model="fbBaseUrl"
-                    class="field-input"
-                    type="text"
-                    placeholder="如 https://opencode.ai/zen/v1"
-                    spellcheck="false"
-                  />
-                </div>
-                <div class="field-group grow">
-                  <label class="field-label" for="fb-model">模型名称</label>
-                  <input
-                    id="fb-model"
-                    v-model="fbModel"
-                    class="field-input"
-                    type="text"
-                    placeholder="如 deepseek-v4-flash-free"
-                    spellcheck="false"
-                  />
-                </div>
-              </div>
-              <div class="field-row">
-                <div class="field-group grow">
-                  <label class="field-label" for="fb-api-key">API Key</label>
-                  <input
-                    id="fb-api-key"
-                    v-model="fbApiKey"
-                    class="field-input"
-                    type="password"
-                    placeholder="留空则复用主模型 key"
-                    autocomplete="off"
-                  />
-                  <p class="field-help" v-if="fbConfigured">
-                    已配置：<code class="masked">{{ fbKeyMasked }}</code>（重新输入可更换）
-                  </p>
-                </div>
-                <div class="field-group grow">
-                  <label class="field-label" for="fb-max-tokens">最大输出 token 数</label>
-                  <input
-                    id="fb-max-tokens"
-                    v-model.number="fbMaxTokens"
-                    class="field-input"
-                    type="number"
-                    min="16"
-                    max="8192"
-                    step="16"
-                  />
-                </div>
-              </div>
-            </div>
-          </Transition>
         </div>
       </section>
 
@@ -546,7 +606,7 @@ async function test() {
           <SlidersHorizontal :size="16" class="card-head-ico" />
           <div>
             <h2 class="card-title">生成参数</h2>
-            <p class="card-desc">控制 AI 回答的随机度与长度（作用于主模型）</p>
+            <p class="card-desc">控制 AI 回答的随机度与长度（作用于当前 provider）</p>
           </div>
         </div>
 
@@ -589,22 +649,22 @@ async function test() {
       <div v-if="error" class="msg-error">{{ error }}</div>
       <div v-if="notice" class="msg-notice">{{ notice }}</div>
       <div v-if="testResult" class="msg-test" :class="testResult.ok ? 'ok' : 'bad'">
-        <strong class="test-mark"><Check v-if="testResult.ok" :size="14" /><X v-else :size="14" /> {{ testResult.message }}</strong>
+        <strong class="test-mark">
+          <Check v-if="testResult.ok" :size="14" /><X v-else :size="14" />
+          {{ testResult.target ? `「${testResult.target}」` : '' }}{{ testResult.message }}
+        </strong>
         <div v-if="testResult.reply" class="test-reply">{{ testResult.reply }}</div>
       </div>
 
       <div class="actions-bar">
-        <span v-if="dirty" class="dirty-hint">有未保存的修改</span>
+        <span v-if="dirty" class="dirty-hint">有未保存的生成参数 / 联网搜索修改</span>
         <div class="actions">
-          <button class="btn btn-ghost" :disabled="testing || saving" @click="test">
-            {{ testing ? '测试中…' : '测试连接' }}
-          </button>
-          <button class="btn btn-primary" :disabled="saving" @click="save">
+          <button class="btn btn-primary" :disabled="saving" @click="saveGlobal">
             {{ saving ? '保存中…' : '保存设置' }}
           </button>
         </div>
       </div>
-      <p class="actions-help">保存后，课程内的「AI 追问」与应用题批改立即使用该配置。</p>
+      <p class="actions-help">Provider 的增删改、切换即时保存；此按钮只保存生成参数与联网搜索。</p>
     </div>
   </div>
 </template>
@@ -616,7 +676,7 @@ async function test() {
 
 .settings-stack { display: flex; flex-direction: column; gap: 16px; }
 
-/* 当前配置状态条 */
+/* 当前使用 provider 状态条 */
 .status-bar {
   display: flex;
   align-items: center;
@@ -656,6 +716,7 @@ async function test() {
 .card-title { font-size: 16px; margin: 0 0 2px; }
 .card-desc { font-size: 12.5px; color: var(--text-3); margin: 0; }
 .card-head-icon { display: flex; align-items: flex-start; gap: 10px; }
+.card-head-txt { min-width: 0; }
 .card-head-ico { color: var(--primary); margin-top: 2px; flex-shrink: 0; }
 
 .field-group { margin-bottom: 18px; }
@@ -674,21 +735,56 @@ async function test() {
 }
 .field-input:focus { outline: none; border-color: var(--primary); }
 .field-help { font-size: 12px; color: var(--text-3); margin-top: 5px; line-height: 1.6; }
-.field-help.help-warn { color: var(--warning); }
 .masked { font-family: var(--font-mono); background: var(--bg-hover); padding: 1px 6px; border-radius: 4px; }
 
-/* 卡片内分区（主模型 / 备用模型） */
-.section-block {
-  border-top: 1px solid var(--border);
-  padding-top: 16px;
-  margin-bottom: 18px;
+/* provider 列表 */
+.prov-list { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.prov-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  flex-wrap: wrap;
 }
-.section-title {
-  font-size: 13px;
+.prov-item.active {
+  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+  background: color-mix(in srgb, var(--primary) 6%, var(--bg-card));
+}
+.prov-main { min-width: 0; flex: 1; }
+.prov-head { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; flex-wrap: wrap; }
+.prov-name { font-size: 13.5px; font-weight: 700; color: var(--text-1); }
+.prov-sub { display: flex; flex-direction: column; gap: 1px; }
+.prov-model { font-size: 12px; color: var(--text-2); font-family: var(--font-mono); }
+.prov-url { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 360px; }
+.badge {
+  font-size: 10.5px; line-height: 1; padding: 3px 6px; border-radius: 999px;
   font-weight: 600;
-  color: var(--text-2);
-  margin-bottom: 12px;
 }
+.badge-builtin { background: var(--bg-hover); color: var(--text-3); }
+.badge-active { background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); }
+.prov-key { font-size: 11.5px; font-family: var(--font-mono); flex-shrink: 0; }
+.key-ok { color: var(--success); }
+.key-miss { color: var(--warning); }
+.prov-actions { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
+.prov-actions .btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; }
+.btn.danger { color: var(--danger, #dc2626); }
+.btn.danger:hover { border-color: var(--danger, #dc2626); background: color-mix(in srgb, var(--danger, #dc2626) 6%, transparent); }
+
+/* 添加 / 编辑表单 */
+.prov-editor { border-top: 1px solid var(--border); padding-top: 16px; }
+.add-btn { display: inline-flex; align-items: center; gap: 6px; }
+.editor-box {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--bg-hover) 40%, transparent);
+  padding: 16px;
+}
+.editor-title { font-size: 13.5px; font-weight: 700; color: var(--text-1); margin-bottom: 14px; }
+.editor-actions { display: flex; gap: 8px; margin-top: 4px; }
+.spacer { flex: 1; }
 
 /* 供应商预设下拉 */
 .preset-select {
@@ -704,45 +800,6 @@ async function test() {
   cursor: pointer;
 }
 .preset-select:focus { outline: none; border-color: var(--primary); }
-
-/* 备用模型折叠面板 */
-.fb-block { margin-bottom: 0; }
-.fb-head {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  width: 100%;
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  border-radius: var(--radius-sm);
-  padding: 9px 12px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: border-color 0.12s, background 0.12s;
-}
-.fb-head:hover { border-color: var(--primary); background: var(--bg-hover); }
-.fb-chev { color: var(--text-3); flex-shrink: 0; }
-.fb-title { font-size: 13px; font-weight: 600; color: var(--text-1); }
-.fb-status {
-  margin-left: auto;
-  font-size: 11.5px;
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.fb-status.ok { color: var(--success); }
-.fb-body {
-  border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-  background: color-mix(in srgb, var(--bg-hover) 40%, transparent);
-  padding: 14px;
-}
-.fb-desc { margin-top: 0; margin-bottom: 12px; }
-.fb-enter-active, .fb-leave-active { transition: opacity 0.15s, transform 0.15s; }
-.fb-enter-from, .fb-leave-to { opacity: 0; transform: translateY(-6px); }
 
 /* 模型选择器：输入框 + 获取按钮 + 可搜索下拉 */
 .model-picker { position: relative; }
@@ -879,5 +936,6 @@ async function test() {
 
 @media (max-width: 560px) {
   .field-row { flex-direction: column; gap: 0; }
+  .prov-actions { width: 100%; justify-content: flex-end; }
 }
 </style>

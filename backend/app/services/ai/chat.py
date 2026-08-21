@@ -582,42 +582,50 @@ async def _stream_once(
 async def stream_chat(
     messages: list[dict], model: str | None = None, deep: bool = False
 ) -> AsyncGenerator[str, None]:
-    """流式调用 LLM：先走主配置，异常时自动切换备用模型。
+    """流式调用 LLM：先走当前 provider，异常时自动轮换其他已配置 key 的 provider。
 
     model 非空时覆盖本次使用的模型（如用户在面板手动选择）；deep=True 启用深度思考。
     可降级异常：限流(429) 或 模型不可用（401 Model not supported 等）。
-    备用模型未配置/也失败时，模型错误给友好引导（去设置页换模型）。
+    全部 provider 失败时，模型错误给友好引导（去设置页换模型）。
     """
-    from app.services.ai.settings_store import get_effective_config, get_fallback_config
+    from app.services.ai.settings_store import get_effective_config, get_rotation_providers
 
     cfg = get_effective_config()
     if model:
         cfg["model"] = model
+    rotations = get_rotation_providers()
+    first_err: Exception | None = None
     try:
         async for delta in _stream_once(messages, cfg, deep=deep):
             yield delta
         return
     except (AIRateLimitError, AIProviderError) as e:
-        recoverable = isinstance(e, AIRateLimitError) or is_model_error(str(e))
-        fb = get_fallback_config()
-        if recoverable and fb:
-            logger.info(
-                "主模型异常（%s），切换备用模型 %s", e.__class__.__name__, fb.get("model")
-            )
-            try:
-                async for delta in _stream_once(messages, fb, deep=deep):
-                    yield delta
-                return
-            except (AIRateLimitError, AIProviderError) as fb_e:
-                if is_model_error(str(fb_e)) or isinstance(fb_e, AIRateLimitError):
-                    if is_model_error(str(fb_e)):
-                        raise AIProviderError(friendly_model_error(str(fb_e))) from fb_e
-                    raise
-                raise
-        # 不可降级或未启用备用：模型错误给友好引导
-        if is_model_error(str(e)):
-            raise AIProviderError(friendly_model_error(str(e))) from e
-        raise
+        if not (isinstance(e, AIRateLimitError) or is_model_error(str(e))):
+            if is_model_error(str(e)):
+                raise AIProviderError(friendly_model_error(str(e))) from e
+            raise
+        first_err = e
+    # 当前 provider 限流/模型不可用 → 依次轮换其他已配置 key 的 provider
+    last_err: Exception | None = None
+    for p in rotations:
+        alt = dict(cfg)
+        alt.update(base_url=p["base_url"], model=p["model"], api_key=p["api_key"])
+        logger.info("主 provider 异常（%s），轮换 %s", first_err.__class__.__name__, p["model"])
+        try:
+            async for delta in _stream_once(messages, alt, deep=deep):
+                yield delta
+            return
+        except (AIRateLimitError, AIProviderError) as e2:
+            last_err = e2
+            if not (isinstance(e2, AIRateLimitError) or is_model_error(str(e2))):
+                break
+    # 全部失败：模型错误给友好引导
+    err = last_err or first_err
+    if isinstance(err, AIProviderError) and is_model_error(str(err)):
+        raise AIProviderError(friendly_model_error(str(err))) from err
+    if err:
+        raise err
+    return
 
 
 async def complete_chat(
@@ -626,7 +634,7 @@ async def complete_chat(
     """非流式调用：收集完整回答文本。
 
     供结构化输出端点（如 /chat/quiz-variant）使用；复用 stream_chat 的
-    主/备用模型降级逻辑，仅把流式增量拼成整段文本。
+    provider 自动轮换逻辑，仅把流式增量拼成整段文本。
     """
     parts: list[str] = []
     async for delta in stream_chat(messages, model=model):
