@@ -3,8 +3,9 @@
 # 端口规划：5432 PG | 8000 QuantLab 后端 | 8100 Quantlerning 后端 | 5173 前端
 #
 # 用法：
-#   ./start.sh            静默启动：后台运行、不占用终端（默认）
+#   ./start.sh            静默启动：后台运行、不占用终端（默认 dev 模式）
 #   ./start.sh -f         前台启动：占用终端，Ctrl+C 停止
+#   ./start.sh --prod     生产模式：构建前端并只启动后端 8100（外网穿透用，配 ./tunnel.sh --prod）
 #   ./start.sh --stop     停止后台运行的后端/前端
 #   ./start.sh --status   查看运行状态
 #   ./start.sh -h         查看帮助
@@ -33,8 +34,9 @@ usage() {
 Quantlerning 启动脚本
 
 用法：
-  ./start.sh            静默启动：后台运行、不占用终端（默认）
+  ./start.sh            静默启动：后台运行、不占用终端（默认 dev 模式）
   ./start.sh -f         前台启动：占用终端，Ctrl+C 停止
+  ./start.sh --prod     生产模式：构建前端并只启动后端 8100（外网穿透用，配 ./tunnel.sh --prod）
   ./start.sh --stop     停止后台运行的后端/前端
   ./start.sh --status   查看运行状态
   ./start.sh -h         查看帮助
@@ -133,6 +135,30 @@ start_background() {
   fi
 }
 
+# 生产模式：构建前端 + 只启动后端（8100 托管 dist，供 ./tunnel.sh --prod 外网访问）
+start_prod() {
+  echo "── 构建前端生产产物 ──"
+  (cd "$ROOT/frontend" && npm run build)
+
+  if is_backend_up; then
+    echo "✓ 后端 8100 已在运行，跳过（若已用 dev 模式启动请先 --stop 再 --prod）"
+  else
+    echo "── 静默启动后端 (8100, 生产模式) ──"
+    export BACKEND_PID_FILE ROOT
+    setsid bash -c 'echo $$ > "$BACKEND_PID_FILE"; cd "$ROOT/backend" && exec "$ROOT/.venv/bin/python" -m uvicorn app.main:app --host 0.0.0.0 --port 8100' >>"$BACKEND_LOG" 2>&1 < /dev/null &
+  fi
+
+  if ! wait_for_backend; then
+    stop
+    exit 1
+  fi
+  echo "── 已启动（生产模式）──"
+  echo "  后端（托管前端静态 + API）: http://localhost:8100"
+  echo "  外网访问: ./tunnel.sh --prod"
+  echo "  日志: $BACKEND_LOG"
+  echo "  停止: ./start.sh --stop"
+}
+
 # 前台启动：保留终端，Ctrl+C 停止
 start_foreground() {
   echo "── 启动后端 (8100) ──"
@@ -164,6 +190,7 @@ case "${1:-}" in
                echo "  日志: $BACKEND_LOG | $FRONTEND_LOG"
                echo "  停止: ./start.sh --stop" ;;
   -f|--foreground) start_foreground ;;
+  --prod)      start_prod ;;
   --stop)      stop ;;
   --status)    status ;;
   -h|--help)   usage ;;

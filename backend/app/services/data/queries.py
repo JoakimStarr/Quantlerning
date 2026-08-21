@@ -28,6 +28,7 @@ def _cached(key: str):
     return deco
 
 
+@_cached("stock_daily")
 async def get_stock_daily(
     db: AsyncSession, code: str, start: date, end: date, limit: int = 5000
 ) -> list[dict]:
@@ -61,6 +62,7 @@ async def get_stock_daily(
     ]
 
 
+@_cached("stock_financials")
 async def get_stock_financials(
     db: AsyncSession, code: str, limit: int = 24
 ) -> dict:
@@ -92,6 +94,7 @@ async def get_stock_financials(
     return {"code": code.upper(), "units": units, "periods": periods}
 
 
+@_cached("index_daily")
 async def get_index_daily(
     db: AsyncSession, code: str, start: date, end: date, limit: int = 5000
 ) -> list[dict]:
@@ -125,6 +128,7 @@ async def get_index_daily(
     ]
 
 
+@_cached("stock_search")
 async def search_stock(db: AsyncSession, query: str, limit: int = 20) -> list[dict]:
     """股票搜索（按代码或名称模糊匹配）。"""
     q = text(
@@ -140,6 +144,7 @@ async def search_stock(db: AsyncSession, query: str, limit: int = 20) -> list[di
     return [{"code": r.code, "name": r.name, "type": r.type, "status": r.status} for r in rows]
 
 
+@_cached("stock_valuation")
 async def get_stock_valuation(db: AsyncSession, code: str, limit: int = 2000) -> list[dict]:
     """个股估值时间序列（PE/PB/PS）。"""
     q = text(
@@ -158,6 +163,7 @@ async def get_stock_valuation(db: AsyncSession, code: str, limit: int = 2000) ->
     ]
 
 
+@_cached("market_pe_distribution")
 async def get_market_pe_distribution(
     db: AsyncSession, trade_date: date, bins: int = 40
 ) -> dict:
@@ -213,6 +219,7 @@ async def get_market_pe_distribution(
     }
 
 
+@_cached("macro_indicator")
 async def get_macro_indicator(
     db: AsyncSession, indicator: str, start: date, end: date, limit: int = 5000
 ) -> list[dict]:
