@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import {
+  Bookmark,
   Brain,
+  Check,
   ChevronDown,
   Copy,
   Globe,
@@ -9,6 +11,7 @@ import {
   Link2,
   Maximize2,
   Minimize2,
+  RotateCw,
   Search,
   Send,
   Sparkles,
@@ -32,12 +35,16 @@ const bubbleMd = createMarkdown({ breaks: false })
 // 统一归一化为行内 $...$，避免块级 $$ 不在行首时无法渲染；
 // trim 掉公式首尾空白，防止 $ 与空白相邻而被识别为普通文本
 // 先剥掉外层代码围栏：模型把整段 Markdown 包在 ```…``` 里时会整块显示为代码框
-function renderBubble(content: string): string {
-  const normalized = unwrapOuterFence(content)
+// 归一化后的文本就是「可复制的 Markdown 源码」，渲染与复制共用同一份
+function toMarkdown(content: string): string {
+  return unwrapOuterFence(content)
     .replace(/\$\$([\s\S]+?)\$\$/g, (_, m: string) => `$${m.trim()}$`)
     .replace(/\\\[([\s\S]+?)\\\]/g, (_, m: string) => `$${m.trim()}$`)
     .replace(/\\\(([\s\S]+?)\\\)/g, (_, m: string) => `$${m.trim()}$`)
-  return bubbleMd.render(normalized)
+}
+
+function renderBubble(content: string): string {
+  return bubbleMd.render(toMarkdown(content))
 }
 
 // 提取链接域名（去掉 www. 前缀），用于参考文献的灰色域名标注
@@ -343,13 +350,43 @@ function clearHistory() {
   error.value = ''
 }
 
-// 复制 AI 回答全文（含 LaTeX 源码）
-function copyMessage(text: string) {
-  // 非安全上下文（http）下 navigator.clipboard 为 undefined，需整链可选
-  navigator.clipboard?.writeText(text)?.catch(() => {})
+// 复制 AI 回答全文（Markdown 源码：归一化公式分隔符、剥掉外层代码围栏，可直接粘贴到任意 Markdown 编辑器）
+const copiedIdx = ref<number | null>(null)
+async function copyMessage(i: number, text: string) {
+  try {
+    await navigator.clipboard?.writeText(toMarkdown(text))
+    copiedIdx.value = i
+    window.setTimeout(() => {
+      if (copiedIdx.value === i) copiedIdx.value = null
+    }, 1600)
+  } catch {
+    // 剪贴板不可用：忽略
+  }
 }
 
-async function send() {
+// 收藏 AI 回答：按内容存取 localStorage（ql:aiAskFavs），跨课程/会话持久
+const favs = ref<string[]>([])
+try {
+  const saved = JSON.parse(localStorage.getItem('ql:aiAskFavs') || '[]')
+  if (Array.isArray(saved)) favs.value = saved
+} catch {
+  // 存储损坏：忽略
+}
+function isFav(content: string) {
+  return favs.value.includes(content)
+}
+function toggleFav(content: string) {
+  favs.value = isFav(content)
+    ? favs.value.filter((c) => c !== content)
+    : [...favs.value, content]
+  try {
+    localStorage.setItem('ql:aiAskFavs', JSON.stringify(favs.value))
+  } catch {
+    // 存储不可用：忽略
+  }
+}
+
+function send() {
   const text = input.value.trim()
   if (!text || thinking.value) return
 
@@ -361,6 +398,11 @@ async function send() {
 
   error.value = ''
   input.value = ''
+  void sendText(text)
+}
+
+// 发送指定文本（send 与「重新生成」共用）：push 用户问题 + 空气泡，SSE 流式填充
+async function sendText(text: string) {
   const question: ChatTurn = { role: 'user', content: text.slice(0, maxLen) }
   messages.value.push(question)
   messages.value.push({ role: 'assistant', content: '', guided: guided.value })
@@ -420,6 +462,24 @@ async function send() {
     abortCtrl.value = null
     await scrollToBottom()
   }
+}
+
+// 重新生成：删除「该回答 + 对应问题」两条消息，用原问题重新提问
+async function regenerate(i: number) {
+  const a = messages.value[i]
+  if (!a || a.role !== 'assistant' || thinking.value) return
+  let userIdx = -1
+  for (let j = i - 1; j >= 0; j--) {
+    if (messages.value[j].role === 'user') {
+      userIdx = j
+      break
+    }
+  }
+  if (userIdx < 0) return
+  const question = messages.value[userIdx].content
+  messages.value.splice(userIdx, i - userIdx + 1)
+  await scrollToBottom()
+  void sendText(question)
 }
 
 async function scrollToBottom() {
@@ -523,7 +583,34 @@ watch(
                   </li>
                 </ul>
               </div>
-              <button v-if="m.content" class="copy-btn" title="复制回答" @click="copyMessage(m.content)"><Copy :size="13" /></button>
+              <!-- 气泡底部操作栏：复制 / 收藏 / 重新生成，全图标 -->
+              <div v-if="m.content" class="msg-actions">
+                <button
+                  class="msg-action-btn"
+                  :class="{ on: copiedIdx === i }"
+                  :title="copiedIdx === i ? '已复制为 Markdown' : '复制回答为 Markdown'"
+                  @click="copyMessage(i, m.content)"
+                >
+                  <Check v-if="copiedIdx === i" :size="13" />
+                  <Copy v-else :size="13" />
+                </button>
+                <button
+                  class="msg-action-btn"
+                  :class="{ faved: isFav(m.content) }"
+                  :title="isFav(m.content) ? '取消收藏' : '收藏回答'"
+                  @click="toggleFav(m.content)"
+                >
+                  <Bookmark :size="13" :fill="isFav(m.content) ? 'currentColor' : 'none'" />
+                </button>
+                <button
+                  class="msg-action-btn"
+                  :disabled="thinking && i === messages.length - 1"
+                  :title="thinking && i === messages.length - 1 ? '正在生成…' : '重新生成回答'"
+                  @click="regenerate(i)"
+                >
+                  <RotateCw :size="13" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -885,17 +972,36 @@ watch(
   position: relative;
   white-space: normal;
 }
-.copy-btn {
-  position: absolute;
-  top: 4px; right: 4px;
-  border: none; background: none; cursor: pointer;
-  color: var(--text-3); font-size: 13px; line-height: 1;
-  padding: 3px 6px; border-radius: 4px;
-  opacity: 0;
-  transition: opacity 0.15s;
+
+/* 气泡底部操作栏：复制 / 收藏 / 重新生成（纯图标，常驻显示） */
+.msg-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
 }
-.bubble-md:hover .copy-btn { opacity: 1; }
-.copy-btn:hover { color: var(--primary); background: var(--bg-card); }
+/* 参考文献上方已有分隔线，操作栏紧随其下时不再重复加线 */
+.refs + .msg-actions { border-top: none; margin-top: 4px; padding-top: 0; }
+.msg-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-3);
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: color 0.12s, background 0.12s;
+}
+.msg-action-btn:hover { color: var(--primary); background: var(--bg-card); }
+.msg-action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.msg-action-btn.on { color: var(--success); }
+.msg-action-btn.faved { color: #f59e0b; }
+
 .bubble-md :deep(p) { margin: 0 0 8px; }
 .bubble-md :deep(p:last-child) { margin-bottom: 0; }
 .bubble-md :deep(strong) { font-weight: 600; }
