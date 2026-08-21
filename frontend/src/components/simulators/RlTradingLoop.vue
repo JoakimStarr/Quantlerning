@@ -62,7 +62,7 @@ const option = computed(() => {
     animation: false,
     axisPointer: { link: [{ xAxisIndex: 'all' }] },
     grid: [
-      { left: 52, right: 24, top: 44, height: '52%' },
+      { left: 52, right: 24, top: 28, height: '52%' },
       { left: 52, right: 24, top: '68%', height: '22%' },
     ],
     tooltip: {
@@ -83,20 +83,6 @@ const option = computed(() => {
       },
     },
     legend: { top: 0, textStyle: { fontSize: 11 } },
-    title: [
-      {
-        text: '① 策略净值 vs 买入持有（起点 1）',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-      {
-        text: '② 仓位（动作）（0/1）',
-        left: 52,
-        top: '64%',
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
     dataZoom: [
       {
         type: 'inside',

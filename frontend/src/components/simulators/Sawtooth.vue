@@ -106,15 +106,7 @@ const mainOption = computed(() => {
   }))
   return {
     animation: true,
-    grid: { left: 56, right: 24, top: 40, bottom: 44 },
-    title: [
-      {
-        text: `① 样本内（2020~2023）快线扫描年化：锯齿形态（慢线 MA${slow.value}）`,
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
+    grid: { left: 56, right: 24, top: 24, bottom: 44 },
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
@@ -178,15 +170,7 @@ const outerOption = computed(() => {
   }))
   return {
     animation: true,
-    grid: { left: 56, right: 24, top: 40, bottom: 44 },
-    title: [
-      {
-        text: `② 样本外（2024~2026）同一批参数：冠军位置是否失效？`,
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
+    grid: { left: 56, right: 24, top: 24, bottom: 44 },
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },

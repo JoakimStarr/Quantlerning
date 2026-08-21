@@ -45,12 +45,8 @@ const option = computed(() => {
   return {
     animation: true,
     grid: [
-      { left: 52, right: 20, top: 48, height: '52%' },
+      { left: 52, right: 20, top: 28, height: '52%' },
       { left: 52, right: 20, top: '70%', height: '22%' },
-    ],
-    title: [
-      { text: '① 日收益（%）', left: 52, top: 8, textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text } },
-      { text: '② 滚动年化波动（%）', left: 52, top: '66%', textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text } },
     ],
     tooltip: {
       trigger: 'axis',

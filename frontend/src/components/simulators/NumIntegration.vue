@@ -378,7 +378,6 @@ const orderHtml = computed(() =>
 
     <!-- 收敛曲线：误差随 n 增大（对数坐标，斜率=收敛阶） -->
     <div class="converge-head">
-      <span class="converge-title">误差随 n 增大如何下降（对数坐标）</span>
       <span class="order-html" v-html="orderHtml"></span>
     </div>
     <ThemedChart class="chart converge-chart" :option="convergeOption" autoresize />
@@ -453,7 +452,6 @@ const orderHtml = computed(() =>
 .compare-err { font-size: 11px; color: var(--danger, #dc2626); }
 .compare-rel { font-size: 11px; color: var(--text-3); }
 .converge-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 4px 0; flex-wrap: wrap; }
-.converge-title { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
 .order-html { font-size: 12px; color: var(--text-3); }
 .controls { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
 .control-row { display: flex; align-items: center; gap: 12px; }

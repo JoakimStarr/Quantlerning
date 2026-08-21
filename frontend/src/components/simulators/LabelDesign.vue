@@ -81,7 +81,7 @@ const histOption = computed(() => {
   const t = threshold.value / 100
   return {
     animation: false,
-    grid: { left: 56, right: 24, top: 36, bottom: 44 },
+    grid: { left: 56, right: 24, top: 24, bottom: 44 },
     tooltip: {
       trigger: 'axis',
       formatter: (ps: any[]) => {
@@ -135,15 +135,7 @@ const seriesOption = computed(() => {
   const lbl = labels.value
   return {
     animation: false,
-    grid: { left: 56, right: 24, top: 40, bottom: 44 },
-    title: [
-      {
-        text: '茅台净值 + 多空标签（起点 100）',
-        left: 56,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
+    grid: { left: 56, right: 24, top: 24, bottom: 44 },
     dataZoom: [
       {
         type: 'inside',

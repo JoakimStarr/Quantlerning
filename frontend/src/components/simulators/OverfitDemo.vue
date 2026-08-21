@@ -91,15 +91,7 @@ const fitOption = computed(() => {
   const dates = raw.value.length ? (data.value ? data.value.map((d) => d.date) : []) : []
   return {
     animation: false,
-    grid: { left: 56, right: 24, top: 36, bottom: 44 },
-    title: [
-      {
-        text: '多项式拟合与真实净值（起点 100）',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
+    grid: { left: 56, right: 24, top: 24, bottom: 44 },
     tooltip: { trigger: 'item' },
     legend: { top: 0, textStyle: { fontSize: 11 } },
     dataZoom: [
@@ -170,7 +162,7 @@ const errOption = computed(() => {
   const ec = errorCurve.value
   return {
     animation: false,
-    grid: { left: 56, right: 24, top: 36, bottom: 44 },
+    grid: { left: 56, right: 24, top: 24, bottom: 44 },
     tooltip: { trigger: 'axis' },
     legend: { top: 0, textStyle: { fontSize: 11 } },
     xAxis: { type: 'category', data: ec.degrees, name: '阶数', nameLocation: 'middle', nameGap: 30, axisLabel: { fontSize: 10 } },

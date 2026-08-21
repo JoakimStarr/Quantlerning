@@ -125,7 +125,7 @@ const heatmapOption = computed(() => {
   matrix.forEach((row, i) => row.forEach((v, j) => cells.push([j, i, +v.toFixed(2)])))
   return {
     animation: false,
-    grid: { left: 90, right: 40, top: 30, bottom: 60 },
+    grid: { left: 90, right: 40, top: 24, bottom: 60 },
     tooltip: {
       position: 'top',
       formatter: (p: any) => {
@@ -179,15 +179,7 @@ const navOption = computed(() => {
   ]
   return {
     animation: true,
-    grid: { left: 52, right: 24, top: 36, bottom: 44 },
-    title: [
-      {
-        text: '三策略与等权组合净值（起点 100）',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
+    grid: { left: 52, right: 24, top: 24, bottom: 44 },
     tooltip: { trigger: 'axis' },
     legend: { top: 0, textStyle: { fontSize: 11 } },
     dataZoom: [

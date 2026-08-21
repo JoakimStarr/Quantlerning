@@ -39,15 +39,7 @@ const option = computed(() => {
   const drawPct = dd.value.drawdown.map((v) => +(v * 100).toFixed(2))
   return {
     animation: true,
-    grid: { left: 52, right: 52, top: 40, bottom: 44 },
-    title: [
-      {
-        text: '复权净值与回撤（起点 100）',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
+    grid: { left: 52, right: 52, top: 24, bottom: 44 },
     tooltip: {
       trigger: 'axis',
       formatter: (ps: any[]) => {

@@ -74,12 +74,8 @@ const option = computed(() => {
     },
     legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', 'DIF', 'DEA', 'MACD'] },
     grid: [
-      { left: 56, right: 24, top: 48, height: '48%' },
+      { left: 56, right: 24, top: 28, height: '48%' },
       { left: 56, right: 24, top: '68%', height: '22%' },
-    ],
-    title: [
-      { text: '① 价格 + MACD 线（元）', left: 56, top: 8, textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text } },
-      { text: '② MACD 柱（DIF − DEA）', left: 56, top: '64%', textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text } },
     ],
     xAxis: [
       { type: 'category', data: dates.value, gridIndex: 0, axisLabel: { show: false }, axisPointer: { label: { show: false } } },

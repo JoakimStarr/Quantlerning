@@ -44,15 +44,7 @@ const option = computed(() => {
   const c = com.value
   return {
     animation: true,
-    grid: { left: 52, right: 24, top: 40, bottom: 44 },
-    title: [
-      {
-        text: '合规 vs 前视净值对比（起点 100）',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
+    grid: { left: 52, right: 24, top: 24, bottom: 44 },
     dataZoom: [
       {
         type: 'inside',

@@ -63,15 +63,7 @@ const option = computed(() => {
   if (!series.value) return {}
   return {
     animation: true,
-    grid: { left: 52, right: 24, top: 40, bottom: 44 },
-    title: [
-      {
-        text: '复权 / 未复权 / 对数累计净值（起点 100）',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
+    grid: { left: 52, right: 24, top: 24, bottom: 44 },
     dataZoom: [
       {
         type: 'inside',

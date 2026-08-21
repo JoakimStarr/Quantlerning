@@ -70,15 +70,7 @@ const option = computed(() => {
   const dates = data.value!.map((d) => d.date)
   return {
     animation: true,
-    grid: { left: 52, right: 24, top: 36, bottom: 44 },
-    title: [
-      {
-        text: '五策略净值对比（起点 100）',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
+    grid: { left: 52, right: 24, top: 24, bottom: 44 },
     tooltip: {
       trigger: 'axis',
       formatter: (ps: any[]) => {

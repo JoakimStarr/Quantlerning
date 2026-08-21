@@ -65,12 +65,8 @@ const option = computed(() => {
     },
     legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', `RSI(${period})`] },
     grid: [
-      { left: 56, right: 24, top: 48, height: '48%' },
+      { left: 56, right: 24, top: 28, height: '48%' },
       { left: 56, right: 24, top: '68%', height: '22%' },
-    ],
-    title: [
-      { text: '① 价格（元）', left: 56, top: 8, textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text } },
-      { text: '② RSI（0–100，超买 >70 / 超卖 <30）', left: 56, top: '64%', textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text } },
     ],
     xAxis: [
       { type: 'category', data: dates.value, gridIndex: 0, axisLabel: { show: false }, axisPointer: { label: { show: false } } },

@@ -62,29 +62,9 @@ const option = computed(() => {
     },
     legend: { top: 0, textStyle: { fontSize: 12 }, data: ['收盘价', '持仓', '策略净值', '买入持有'] },
     grid: [
-      { left: 52, right: 24, top: 44, height: '42%' },
+      { left: 52, right: 24, top: 28, height: '42%' },
       { left: 52, right: 24, top: '52%', height: '10%' },
       { left: 52, right: 24, top: '70%', height: '20%' },
-    ],
-    title: [
-      {
-        text: '① 价格（元）',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-      {
-        text: '② 持仓状态（0/1）',
-        left: 52,
-        top: '48%',
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-      {
-        text: '③ 策略净值 vs 买入持有（起点 100）',
-        left: 52,
-        top: '66%',
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
     ],
     dataZoom: [
       {

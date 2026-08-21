@@ -470,7 +470,6 @@ const methodFormulaHtml = computed(() => {
 
     <!-- 收敛曲线：取极限 -->
     <div class="converge-head">
-      <span class="converge-title">取极限：S<sub>n</sub> 随 n 增大 → ∫</span>
       <button class="play-btn" :class="{ on: playing }" @click="togglePlay">
         {{ playing ? '⏸ 暂停' : '▶ 播放 n 增大' }}
       </button>
@@ -554,7 +553,6 @@ const methodFormulaHtml = computed(() => {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   margin: 2px 0 4px;
 }
-.converge-title { font-size: 12.5px; font-weight: 600; color: var(--text-2); }
 .play-btn {
   flex-shrink: 0; font-size: 12px; padding: 4px 12px;
   border: 1px solid var(--border); border-radius: 999px;

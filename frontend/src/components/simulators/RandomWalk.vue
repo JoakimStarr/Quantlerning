@@ -109,15 +109,7 @@ const option = computed(() => {
   }
   return {
     animation: false,
-    grid: { left: 52, right: 24, top: 36, bottom: 40 },
-    title: [
-      {
-        text: '模拟 GBM 路径 vs 真实茅台（起点 100）',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
+    grid: { left: 52, right: 24, top: 24, bottom: 40 },
     tooltip: { trigger: 'axis' },
     legend: { top: 0, textStyle: { fontSize: 11 } },
     dataZoom: [

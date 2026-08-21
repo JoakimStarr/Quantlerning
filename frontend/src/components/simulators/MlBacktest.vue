@@ -106,15 +106,7 @@ const navOption = computed(() => {
   const r = result.value
   return {
     animation: false,
-    grid: { left: 56, right: 24, top: 36, bottom: 44 },
-    title: [
-      {
-        text: '测试段净值对比（起点 100）',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
+    grid: { left: 56, right: 24, top: 24, bottom: 44 },
     tooltip: { trigger: 'axis' },
     legend: { top: 0, textStyle: { fontSize: 11 } },
     dataZoom: [
@@ -163,15 +155,7 @@ const posOption = computed(() => {
   const r = result.value
   return {
     animation: false,
-    grid: { left: 56, right: 24, top: 36, bottom: 44 },
-    title: [
-      {
-        text: 'ML 概率预测与仓位',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
+    grid: { left: 56, right: 24, top: 24, bottom: 44 },
     tooltip: { trigger: 'axis' },
     legend: { top: 0, textStyle: { fontSize: 11 } },
     dataZoom: [

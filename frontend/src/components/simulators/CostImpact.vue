@@ -52,15 +52,7 @@ const option = computed(() => {
   const c = com.value
   return {
     animation: true,
-    grid: { left: 52, right: 24, top: 40, bottom: 44 },
-    title: [
-      {
-        text: '零成本 vs 含成本净值（起点 100）',
-        left: 52,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
+    grid: { left: 52, right: 24, top: 24, bottom: 44 },
     dataZoom: [
       {
         type: 'inside',

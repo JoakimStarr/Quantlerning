@@ -61,7 +61,7 @@ const spreadOption = computed(() => {
   const shortOpen = a.zscore.map((z, i) => (i > 0 && a.sig[i] === -1 && a.sig[i - 1] !== -1 ? [i, z] : null)).filter(Boolean) as any
   return {
     animation: false,
-    grid: { left: 56, right: 24, top: 44, bottom: 20 },
+    grid: { left: 56, right: 24, top: 24, bottom: 20 },
     tooltip: {
       trigger: 'axis',
       formatter: (ps: any[]) => {
@@ -80,14 +80,6 @@ const spreadOption = computed(() => {
       },
     },
     legend: { top: 0, textStyle: { fontSize: 11 } },
-    title: [
-      {
-        text: '① 价差 z-score（σ）',
-        left: 56,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
     dataZoom: [
       {
         type: 'inside',
@@ -150,7 +142,7 @@ const navOption = computed(() => {
   if (!a) return {}
   return {
     animation: false,
-    grid: { left: 56, right: 24, top: 44, bottom: 20 },
+    grid: { left: 56, right: 24, top: 24, bottom: 20 },
     tooltip: {
       trigger: 'axis',
       formatter: (ps: any[]) => {
@@ -168,14 +160,6 @@ const navOption = computed(() => {
       },
     },
     legend: { top: 0, textStyle: { fontSize: 11 } },
-    title: [
-      {
-        text: '② 价差策略净值 vs 价差买入持有（起点 100）',
-        left: 56,
-        top: 8,
-        textStyle: { fontSize: 12, fontWeight: 600, color: C.value.text },
-      },
-    ],
     dataZoom: [
       {
         type: 'inside',
