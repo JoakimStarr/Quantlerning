@@ -1,11 +1,13 @@
 """Quantlerning FastAPI 入口。"""
 from contextlib import asynccontextmanager
+from mimetypes import guess_type
 from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.datastructures import Headers
 
 from .api import chat, courses, data, exec as exec_api
 from .api import settings as settings_api
@@ -65,6 +67,48 @@ class _GzipNoSSE:
 
 
 app.add_middleware(_GzipNoSSE)
+
+
+class _BrotliStatic:
+    """brotli 预压缩静态分发：命中 /assets 且 Accept-Encoding: br 且有 .br 文件时，
+    直接返回预压缩字节（不经过 GZip，避免二次压缩）。需要放在最外层（后 add 先执行）。"""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or not HAS_DIST:
+            await self.app(scope, receive, send)
+            return
+        path = scope.get("path", "")
+        if not path.startswith("/assets/"):
+            await self.app(scope, receive, send)
+            return
+        headers = Headers(scope=scope)
+        if "br" not in headers.get("Accept-Encoding", ""):
+            await self.app(scope, receive, send)
+            return
+        # 找同名 .br 文件（vite-plugin-compression 生成）
+        rel = path[len("/assets/") :]
+        br_file = DIST_DIR / "assets" / f"{rel}.br"
+        if not br_file.is_file():
+            await self.app(scope, receive, send)
+            return
+        body = br_file.read_bytes()
+        ctype = guess_type(rel)[0] or "application/octet-stream"
+        resp_headers = [
+            (b"content-type", ctype.encode()),
+            (b"content-encoding", b"br"),
+            (b"content-length", str(len(body)).encode()),
+            (b"cache-control", b"public, max-age=31536000, immutable"),
+            (b"vary", b"accept-encoding"),
+        ]
+        await send({"type": "http.response.start", "status": 200, "headers": resp_headers})
+        await send({"type": "http.response.body", "body": body})
+
+
+# 注册顺序：后 add 先执行 → _BrotliStatic 在最外层，GZip 在其内，CORS 最内层
+app.add_middleware(_BrotliStatic)
 
 app.include_router(courses.router, prefix="/api/v1")
 app.include_router(data.router, prefix="/api/v1")
