@@ -445,7 +445,6 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
   padding: 6px;
   z-index: 60;
 }
