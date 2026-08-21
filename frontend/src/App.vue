@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch, type Component } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, type Component } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import {
   BarChart3, BookMarked, Check, ChevronDown, ChevronRight, ChevronUp,
-  ClipboardList, Dna, FlaskConical, Menu, Microscope, Moon, Settings, Sun, TrendingUp,
+  ClipboardList, Dna, FlaskConical, Menu, Microscope, Moon, Search, Settings, Sun, TrendingUp, X,
 } from 'lucide-vue-next'
 import { fetchCourses, fetchLesson } from '@/api'
 import { isCompleted } from '@/stores/progress'
@@ -130,22 +130,50 @@ const topNav = computed(() => [
   { label: '设置', to: '/settings', active: route.path === '/settings' },
 ])
 
-// 顶栏「更多」下拉：次要工具页 + 外链 QuantLab
+// 顶栏「更多」下拉：次要工具页
 const moreNav = computed(() => [
-  { label: '可视化实验室', to: '/lab', active: route.path === '/lab' },
-  { label: '速查表', to: '/cheatsheet', active: route.path === '/cheatsheet' },
-  { label: '因子库', to: '/factors', active: route.path === '/factors' },
-  { label: '学习统计', to: '/stats', active: route.path === '/stats' },
+  { label: '可视化实验室', to: '/lab', icon: FlaskConical, active: route.path === '/lab' },
+  { label: '速查表', to: '/cheatsheet', icon: ClipboardList, active: route.path === '/cheatsheet' },
+  { label: '因子库', to: '/factors', icon: Dna, active: route.path === '/factors' },
+  { label: '学习统计', to: '/stats', icon: TrendingUp, active: route.path === '/stats' },
 ])
 const isMoreActive = computed(() => moreNav.value.some((n) => n.active))
 
+// 全局键盘体验：Esc 关闭所有弹层/抽屉；「/」聚焦目录搜索（非输入态）
+const searchInputRef = ref<HTMLInputElement | null>(null)
+function onGlobalKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    if (menuOpen.value) {
+      menuOpen.value = false
+      return
+    }
+    moreOpen.value = false
+    toolsOpen.value = false
+    const si = searchInputRef.value
+    if (si && document.activeElement === si) si.blur()
+    return
+  }
+  if (e.key === '/' && !isTypingTarget(e.target)) {
+    e.preventDefault()
+    searchInputRef.value?.focus()
+  }
+}
+function isTypingTarget(t: EventTarget | null): boolean {
+  const el = t as HTMLElement | null
+  if (!el) return false
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return true
+  return el.isContentEditable
+}
+
 onMounted(async () => {
+  document.addEventListener('keydown', onGlobalKeydown)
   try {
     volumes.value = await fetchCourses()
   } finally {
     loaded.value = true
   }
 })
+onBeforeUnmount(() => document.removeEventListener('keydown', onGlobalKeydown))
 
 // 加载并缓存某课程的子节（与 LessonView 的 sections 对齐）
 async function loadSections(lessonId: string) {
@@ -252,7 +280,10 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
                 :class="{ active: n.active }"
                 role="menuitem"
                 @click="moreOpen = false"
-              >{{ n.label }}</RouterLink>
+              >
+                <component :is="n.icon" :size="15" class="mi-icon" />
+                <span>{{ n.label }}</span>
+              </RouterLink>
             </div>
           </Transition>
         </div>
@@ -280,7 +311,18 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
       <div class="toc-label"><BookMarked :size="13" class="toc-icon" /> 目录</div>
 
       <div class="toc-search">
-        <input v-model="searchQuery" type="search" placeholder="搜索课程…" spellcheck="false" />
+        <span class="toc-search-icon"><Search :size="13" /></span>
+        <input
+          ref="searchInputRef"
+          v-model="searchQuery"
+          type="search"
+          class="toc-search-input"
+          placeholder="搜索课程…"
+          spellcheck="false"
+          aria-label="搜索课程"
+        />
+        <button v-if="searchQuery" class="toc-clear" type="button" aria-label="清除搜索" @click="searchQuery = ''"><X :size="13" /></button>
+        <span v-if="!searchQuery" class="toc-kbd">/</span>
       </div>
 
       <nav class="toc">
@@ -323,22 +365,24 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
             </div>
 
             <!-- 展开的子节 -->
-            <div v-if="openLessons.has(l.id)" class="subsections">
-              <div v-if="sectionsCache[l.id]?.length">
-                <div
-                  v-for="s in sectionsCache[l.id]"
-                  :key="s.id"
-                  class="subsection"
-                  :class="{ active: currentLessonId === l.id }"
-                  role="link"
-                  tabindex="0"
-                  @click="goToSection(l.id, s.id)"
-                  @keydown.enter="keyActivate($event, () => goToSection(l.id, s.id))"
-                  @keydown.space.prevent="keyActivate($event, () => goToSection(l.id, s.id))"
-                >{{ s.title }}</div>
+            <Transition name="subs">
+              <div v-if="openLessons.has(l.id)" class="subsections">
+                <div v-if="sectionsCache[l.id]?.length">
+                  <div
+                    v-for="s in sectionsCache[l.id]"
+                    :key="s.id"
+                    class="subsection"
+                    :class="{ active: currentLessonId === l.id }"
+                    role="link"
+                    tabindex="0"
+                    @click="goToSection(l.id, s.id)"
+                    @keydown.enter="keyActivate($event, () => goToSection(l.id, s.id))"
+                    @keydown.space.prevent="keyActivate($event, () => goToSection(l.id, s.id))"
+                  >{{ s.title }}</div>
+                </div>
+                <div v-else class="subsection loading">加载中...</div>
               </div>
-              <div v-else class="subsection loading">加载中...</div>
-            </div>
+            </Transition>
           </div>
         </div>
       </nav>
@@ -413,14 +457,25 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 .app-topbar .topbar-brand .brand-name .q { color: var(--primary); }
 .app-topbar .topbar-nav { display: flex; gap: 4px; margin-left: 4px; }
 .app-topbar .nav-link {
+  position: relative;
   padding: 7px 13px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   color: var(--text-2); font-size: 13px; font-weight: 600;
-  white-space: nowrap;
-  transition: background 0.12s, color 0.12s;
+  white-space: nowrap; text-decoration: none;
+  transition: background 0.16s var(--ease-out), color 0.16s var(--ease-out);
 }
 .app-topbar .nav-link:hover { background: var(--bg-hover); color: var(--text-1); }
 .app-topbar .nav-link.active { background: var(--primary-soft); color: var(--primary); }
+/* active 底部小短条：清楚指示当前位置 */
+.app-topbar .nav-link.active::after {
+  content: '';
+  position: absolute;
+  left: 50%; bottom: 2px;
+  transform: translateX(-50%);
+  width: 16px; height: 2px;
+  border-radius: 2px;
+  background: var(--primary);
+}
 .app-topbar .topbar-title {
   flex: 1;
   font-size: 14px; font-weight: 600; color: var(--text-1);
@@ -451,23 +506,29 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  min-width: 176px;
+  min-width: 200px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
   padding: 6px;
   z-index: 60;
+  overflow: hidden;
 }
 .more-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: var(--r-sm);
   color: var(--text-2); font-size: 13px; font-weight: 500;
-  transition: background 0.12s, color 0.12s;
+  text-decoration: none;
+  transition: background 0.14s var(--ease-out), color 0.14s var(--ease-out);
 }
+.more-item .mi-icon { color: var(--text-3); flex-shrink: 0; transition: color 0.14s; }
 .more-item:hover { background: var(--bg-hover); color: var(--text-1); }
-.more-item.active { background: var(--bg-active); color: var(--primary); font-weight: 600; }
-.more-pop-enter-active, .more-pop-leave-active { transition: opacity 0.15s, transform 0.15s; }
-.more-pop-enter-from, .more-pop-leave-to { opacity: 0; transform: translateY(6px); }
+.more-item:hover .mi-icon { color: var(--primary); }
+.more-item.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.more-item.active .mi-icon { color: var(--primary); }
+.more-pop-enter-active, .more-pop-leave-active { transition: opacity 0.16s var(--ease-out), transform 0.16s var(--ease-out); }
+.more-pop-enter-from, .more-pop-leave-to { opacity: 0; transform: translateY(6px) scale(0.97); transform-origin: top left; }
 
 .menu-btn {
   border: none; background: none;
@@ -475,10 +536,12 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   color: var(--text-1);
   width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-sm);
   cursor: pointer;
   flex-shrink: 0;
+  transition: background 0.14s var(--ease-out);
 }
+.menu-btn:hover { background: var(--bg-hover); }
 .menu-btn:active { background: var(--bg-hover); }
 .theme-btn {
   border: none; background: none;
@@ -494,6 +557,18 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 .theme-btn:hover { background: var(--bg-hover); color: var(--text-1); }
 .theme-btn:active { background: var(--bg-hover); }
 
+/* 键盘可达性：菜单交互元素统一焦点环 */
+.app-topbar .nav-link:focus-visible,
+.app-topbar .more-btn:focus-visible,
+.app-topbar .icon-btn:focus-visible,
+.app-topbar .theme-btn:focus-visible,
+.menu-btn:focus-visible,
+.tools-toggle:focus-visible,
+.toc-clear:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
 /* 主题图标切换动效：旧图标淡出旋转、新图标淡入旋转，避免「啪」地硬换 */
 .theme-icon-enter-active,
 .theme-icon-leave-active {
@@ -508,11 +583,16 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   transform: rotate(70deg) scale(0.6);
 }
 
-/* 抽屉遮罩（移动端） */
+/* 抽屉遮罩（移动端）：淡入淡出 */
 .drawer-mask {
   position: fixed; inset: 0;
   background: rgba(15, 20, 32, 0.45);
   z-index: 25;
+  animation: drawer-mask-in 0.2s ease;
+}
+@keyframes drawer-mask-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* 侧边栏：fixed 固定，位于顶栏下方（body 滚动时保持原位） */
@@ -536,25 +616,46 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 .toc-icon { flex-shrink: 0; }
 .toc-status { padding: 8px 20px; color: var(--text-3); font-size: 13px; }
 
-.toc-search { padding: 0 12px 8px; }
+.toc-search { position: relative; padding: 0 12px 10px; }
+.toc-search-icon {
+  position: absolute; left: 22px; top: 50%; transform: translateY(-50%);
+  color: var(--text-3); display: flex; pointer-events: none;
+}
 .toc-search input {
   width: 100%;
-  padding: 7px 10px;
+  padding: 7px 34px 7px 30px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--r-md);
   background: var(--bg-page);
   color: var(--text-1);
   font-size: 13px;
+  transition: border-color 0.16s var(--ease-out), box-shadow 0.16s var(--ease-out);
 }
-.toc-search input:focus { outline: none; border-color: var(--primary); }
+.toc-search input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent); }
+.toc-search input::placeholder { color: var(--text-3); }
+.toc-clear {
+  position: absolute; right: 22px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border: none; background: none;
+  color: var(--text-3); cursor: pointer; border-radius: 6px;
+  transition: background 0.14s, color 0.14s;
+}
+.toc-clear:hover { background: var(--bg-hover); color: var(--text-1); }
+.toc-kbd {
+  position: absolute; right: 22px; top: 50%; transform: translateY(-50%);
+  font-family: var(--font-mono); font-size: 10px; line-height: 1;
+  color: var(--text-3); background: var(--bg-hover);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 3px 6px; pointer-events: none;
+}
 
 .toc { flex: 1; overflow-y: auto; padding: 0 8px 12px; }
 
 .volume { margin-bottom: 4px; }
 .volume-head {
   display: flex; align-items: center; gap: 6px;
-  padding: 7px 10px; cursor: pointer; border-radius: var(--radius-sm);
-  transition: background 0.12s;
+  padding: 7px 10px; cursor: pointer; border-radius: var(--r-sm);
+  transition: background 0.14s var(--ease-out);
 }
 .volume-head:hover { background: var(--bg-hover); }
 .volume-title { font-weight: 700; color: var(--primary); font-size: 13px; flex-shrink: 0; }
@@ -563,8 +664,8 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 
 .chapter-head {
   display: flex; align-items: center; gap: 6px;
-  padding: 5px 10px 5px 20px; border-radius: var(--radius-sm);
-  cursor: pointer; transition: background 0.12s;
+  padding: 5px 10px 5px 20px; border-radius: var(--r-sm);
+  cursor: pointer; transition: background 0.14s var(--ease-out);
 }
 .chapter-head:hover { background: var(--bg-hover); }
 .chapter-head.active { background: var(--bg-active); }
@@ -577,11 +678,15 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 .subsection {
   padding: 4px 10px; font-size: 12.5px; color: var(--text-3);
   cursor: pointer; border-radius: var(--radius-sm);
-  transition: all 0.12s;
+  transition: background 0.14s var(--ease-out), color 0.14s var(--ease-out);
 }
 .subsection:hover { color: var(--primary); background: var(--bg-hover); }
 .subsection.active { color: var(--primary); background: var(--bg-active); }
 .subsection.loading { cursor: default; }
+
+/* 子节展开/收起过渡 */
+.subs-enter-active, .subs-leave-active { transition: opacity 0.18s var(--ease-out), transform 0.18s var(--ease-out); }
+.subs-enter-from, .subs-leave-to { opacity: 0; transform: translateY(-4px); }
 
 /* 底部工具（二级菜单：悬停/点击浮出面板） */
 .tools { position: relative; border-top: 1px solid var(--border); padding: 8px; }
@@ -592,11 +697,11 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   border: none; background: none;
   color: var(--text-3); font-size: 12px; font-weight: 600;
   cursor: pointer; font-family: inherit;
-  border-radius: var(--radius-sm);
-  transition: background 0.12s;
+  border-radius: var(--r-sm);
+  transition: background 0.14s var(--ease-out), color 0.14s var(--ease-out);
 }
 .tools-toggle:hover { background: var(--bg-hover); color: var(--text-1); }
-.tools-arrow { font-size: 10px; }
+.tools-arrow { font-size: 10px; display: flex; }
 .tools-popup {
   position: absolute;
   left: 0;
@@ -605,20 +710,25 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
   min-width: 190px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--r-lg);
   box-shadow: var(--shadow-lg);
-  padding: 6px;
+  padding: 8px;
   z-index: 60;
+  overflow: hidden;
 }
-.tools-pop-enter-active, .tools-pop-leave-active { transition: opacity 0.15s, transform 0.15s; }
-.tools-pop-enter-from, .tools-pop-leave-to { opacity: 0; transform: translateY(6px); }
+.tools-pop-enter-active, .tools-pop-leave-active { transition: opacity 0.16s var(--ease-out), transform 0.16s var(--ease-out); }
+.tools-pop-enter-from, .tools-pop-leave-to { opacity: 0; transform: translateY(6px) scale(0.97); transform-origin: bottom left; }
 .tool-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 12px; border-radius: var(--radius-sm);
-  color: var(--text-2); font-size: 13px; transition: all 0.12s;
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 12px; border-radius: var(--r-sm);
+  color: var(--text-2); font-size: 13px; text-decoration: none;
+  transition: background 0.14s var(--ease-out), color 0.14s var(--ease-out);
 }
+.tool-item svg { color: var(--text-3); flex-shrink: 0; transition: color 0.14s; }
 .tool-item:hover { background: var(--bg-hover); color: var(--text-1); }
+.tool-item:hover svg { color: var(--primary); }
 .tool-item.router-link-active { background: var(--bg-active); color: var(--primary); font-weight: 600; }
+.tool-item.router-link-active svg { color: var(--primary); }
 
 /* 内容区（body 滚动，浏览器原生恢复） */
 .main {
@@ -655,7 +765,7 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 
   .sidebar {
     transform: translateX(-100%);
-    transition: transform 0.25s ease;
+    transition: transform 0.3s var(--ease-out-soft);
     box-shadow: var(--shadow-lg);
   }
   .sidebar.open { transform: translateX(0); }
