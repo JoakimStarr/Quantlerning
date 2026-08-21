@@ -72,19 +72,19 @@ function onOrderChange() {
     <AppError v-else-if="error" :message="error" @retry="load" />
 
     <template v-else-if="summary">
-      <!-- 概览（真实计数） -->
+      <!-- 概览（真实计数，KPI 卡风格） -->
       <div class="stat-row">
-        <div class="stat-card">
-          <div class="stat-num">{{ summary.total }}</div>
-          <div class="faint stat-label">因子总数</div>
+        <div class="kpi stat-card">
+          <span class="label">因子总数</span>
+          <span class="val">{{ summary.total }}</span>
         </div>
-        <div class="stat-card">
-          <div class="stat-num">{{ summary.active }}</div>
-          <div class="faint stat-label">活跃因子</div>
+        <div class="kpi stat-card">
+          <span class="label">活跃因子</span>
+          <span class="val">{{ summary.active }}</span>
         </div>
-        <div class="stat-card">
-          <div class="stat-num">{{ summary.categories.length }}</div>
-          <div class="faint stat-label">类别数</div>
+        <div class="kpi stat-card">
+          <span class="label">类别数</span>
+          <span class="val">{{ summary.categories.length }}</span>
         </div>
       </div>
 
@@ -153,9 +153,8 @@ function onOrderChange() {
 .status { padding: 40px; text-align: center; }
 
 .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 20px; }
-.stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px; text-align: center; box-shadow: var(--shadow-sm); }
-.stat-num { font-size: 28px; font-weight: 700; color: var(--primary); }
-.stat-label { font-size: 13px; }
+.stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px 20px; box-shadow: var(--shadow-sm); }
+.stat-card .val { color: var(--primary); }
 
 .section { margin-bottom: 16px; }
 .section-title { font-size: 16px; margin: 0; }
@@ -177,8 +176,9 @@ function onOrderChange() {
 .empty { padding: 20px; text-align: center; }
 .table-wrap { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.table th, .table td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--bg-hover); white-space: nowrap; }
-.table th { color: var(--text-3); font-weight: 600; font-size: 12px; }
+.table th, .table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.table th { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-3); font-weight: 600; background: var(--bg-hover); }
+.table tbody tr { transition: background 0.12s; }
 .table tbody tr:hover { background: var(--bg-hover); }
 .mono { font-family: var(--font-mono); font-size: 12.5px; }
 .pos { color: var(--success); font-weight: 600; }
