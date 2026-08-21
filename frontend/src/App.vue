@@ -480,11 +480,13 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
 .theme-btn {
   border: none; background: none;
   font-size: 18px; line-height: 1;
+  color: var(--text-2);
   width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
   border-radius: var(--radius-sm);
   cursor: pointer;
   flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
 }
 .theme-btn:hover { background: var(--bg-hover); color: var(--text-1); }
 .theme-btn:active { background: var(--bg-hover); }
