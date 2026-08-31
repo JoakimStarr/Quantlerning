@@ -23,6 +23,7 @@ function def<T extends Component>(
 }
 
 const registry = {
+  asset_map: def('资产风险-收益地图', '四大资产的风险-收益散点 + 股债组合线，拖动比例看分散化', () => import('../simulators/AssetMap.vue')),
   discount_curve: def('折现曲线', '拖动利率 r / 期数 n，实时看现值 PV 变化', () => import('../simulators/DiscountCurve.vue')),
   bond_duration: def('债券久期', '价格-利率曲线 + 久期敏感度', () => import('../simulators/BondDuration.vue')),
   convexity_demo: def('债券凸性', '真实曲线 vs 久期切线 vs 凸性二阶修正', () => import('../simulators/ConvexityDemo.vue')),

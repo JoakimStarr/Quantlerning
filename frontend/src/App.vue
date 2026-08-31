@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, type Component } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, type Component } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import {
   BarChart3, BookMarked, Check, ChevronDown, ChevronRight, ChevronUp,
@@ -55,17 +55,36 @@ const openLessons = reactive<Set<string>>(new Set())
 // 子节缓存：lesson_id → {title, id}[]（id 与 LessonView 的 sec-N 对齐）
 const sectionsCache = reactive<Record<string, { title: string; id: string }[]>>({})
 const currentLessonId = ref('')
+// 侧边栏目录容器（用于把当前课程滚动到可视区）
+const tocRef = ref<HTMLElement | null>(null)
+
+// 把当前高亮的课程滚动到侧边栏可视区（居中），刷新/切课后目录自动定位
+function scrollToCurrentLesson() {
+  if (!currentLessonId.value) return
+  const toc = tocRef.value
+  if (!toc) return
+  const el = toc.querySelector<HTMLElement>('.chapter-head.active')
+  if (!el) return
+  // 用 getBoundingClientRect 计算：目标 = 元素相对 toc 容器的偏移 − 半容器高 + 半元素高（垂直居中）
+  const tocRect = toc.getBoundingClientRect()
+  const elRect = el.getBoundingClientRect()
+  const target = toc.scrollTop + (elRect.top - tocRect.top) - toc.clientHeight / 2 + el.clientHeight / 2
+  toc.scrollTo({ top: Math.max(target, 0), behavior: 'smooth' })
+}
 
 // 当前路由是课程页时：高亮该章，并自动展开其子节
 watch(
   () => route.params.id,
-  (id) => {
+  async (id) => {
     const lessonId = typeof id === 'string' ? id : ''
     currentLessonId.value = lessonId
     if (lessonId && !openLessons.has(lessonId)) {
       openLessons.add(lessonId)
-      loadSections(lessonId)
+      await loadSections(lessonId)
     }
+    // 目录渲染（含子节展开）后，把当前课程滚动到可视区
+    await nextTick()
+    scrollToCurrentLesson()
   },
   { immediate: true },
 )
@@ -159,6 +178,9 @@ onMounted(async () => {
     volumes.value = await fetchCourses()
   } finally {
     loaded.value = true
+    // 目录渲染完成后，把当前课程滚动到侧边栏可视区（刷新页面时 immediate watch 早于目录加载）
+    await nextTick()
+    scrollToCurrentLesson()
   }
 })
 onBeforeUnmount(() => document.removeEventListener('keydown', onGlobalKeydown))
@@ -316,7 +338,7 @@ const tools: { to?: string; href?: string; label: string; icon: Component; exter
         <button v-if="searchQuery" class="toc-clear" type="button" aria-label="清除搜索" @click="searchQuery = ''"><X :size="13" /></button>
       </div>
 
-      <nav class="toc">
+      <nav ref="tocRef" class="toc">
         <div v-if="!loaded" class="toc-status">加载目录...</div>
         <div v-else-if="filteredVolumes.length === 0" class="toc-status">无匹配课程</div>
         <div v-for="v in filteredVolumes" :key="v.phase" class="volume">
