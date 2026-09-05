@@ -55,9 +55,12 @@ const metricLabel = computed(() => {
 })
 const metricUnit = computed(() => (fin.value?.units ? fin.value.units[metric.value] ?? '' : ''))
 
+// 只取年报（12-31 报告期）：中报/季报为年内累计值，与年报不可比（ROE 未经年化），
+// 混绘会让「最新」卡片与折线出现误导性的年中低点，故按年报过滤，与 ProfitCashCompare/MoatCompare 口径一致
+const annuals = computed(() => (fin.value ? fin.value.periods.filter((p) => p.report_date.endsWith('12-31')) : []))
 // 按时间升序（接口返回倒序，最新在前）
-const periods = computed(() => (fin.value ? [...fin.value.periods].reverse() : []))
-const latest = computed(() => fin.value?.periods[0] ?? null)
+const periods = computed(() => [...annuals.value].reverse())
+const latest = computed(() => annuals.value[0] ?? null)
 
 // 最新报告期统计卡片
 const fmtYi = (v: unknown) => (typeof v === 'number' ? `${(v / 1e8).toFixed(1)} 亿` : '—')
@@ -67,7 +70,7 @@ const latestCards = computed(() => {
   if (!l) return []
   return [
     { label: '报告期', value: l.report_date, sub: `披露 ${l.available_date}` },
-    { label: '营收', value: fmtYi(l.revenue), sub: 'TTM 前 12 月' },
+    { label: '营收', value: fmtYi(l.revenue), sub: '全年（年报口径）' },
     { label: '净利', value: fmtYi(l.netprofit), sub: '归母' },
     { label: 'ROE', value: fmtPct(l.roe), sub: '净资产收益率' },
     { label: '毛利率', value: fmtPct(l.gross_margin), sub: '盈利能力' },
@@ -188,7 +191,7 @@ const option = computed(() => (tab.value === 'rev' ? revOption.value : ratioOpti
       <ThemedChart class="chart" :option="option" autoresize />
 
       <p class="hint">
-        数据来自财务指标表（报告期口径，披露日已在数据中标注，避免前视）。
+        数据来自财务指标表（年报口径，仅取 12-31 报告期；披露日已在数据中标注，避免前视）。
         营收与净利看绝对规模与增长，比率指标看质地——ROE 与毛利率反映赚钱能力，净现比反映利润含金量，负债率反映杠杆风险。
       </p>
     </template>
