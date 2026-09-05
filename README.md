@@ -4,8 +4,8 @@
 
 ## ✨ 特色
 
-- **55 课系统课程**（Phase 0~6），覆盖数学基础 → 财务指标 → 回测 → 因子分析 → 期权定价 → 机器学习 → 组合优化
-- **75+ 交互模拟器**（ECharts / Canvas），每个核心概念都有可视化，随手拖动参数即可观察现象
+- **64 课系统课程**（Phase 0~7），覆盖数学基础 → 财务指标 → 回测 → 因子分析 → 期权定价 → 机器学习 → 组合优化与实盘
+- **90+ 交互模拟器**（ECharts / Canvas），每个核心概念都有可视化，随手拖动参数即可观察现象
 - **真实数据驱动**：回测、因子、指标全部基于 10 年真实 A 股数据，而非玩具数据
 - **Python 在线练习 + 测验**：代码沙箱实时运行，练习自动判题，测验立即反馈
 - **AI 追问助手**：看不懂的内容随时追问，AI 结合当前课程上下文作答
@@ -70,7 +70,7 @@ backend/
     core/            # 配置 / 只读 DB 连接
     api/             # courses / data / compute / chat / exec 路由
     services/        # 课程内容 / 数据查询 / 金融计算 / 沙箱
-    content/         # 课程 Markdown（phase0~phase6）
+    content/         # 课程 Markdown（phase0~phase7）
 frontend/
   src/
     views/           # Home / Phase / Lesson / Lab / DataBrowser / Factors / Stats / Settings
@@ -87,12 +87,13 @@ frontend/
 | Phase | 主题 | 状态 |
 |---|---|---|
 | Phase 0 | 数学与编程基础 | ✅ 完成 |
-| Phase 1 | 财务指标与单标的分析 | ✅ 完成 |
-| Phase 2 | 策略回测与绩效评估 | ✅ 完成 |
-| Phase 3 | 因子分析与多因子 | ✅ 完成 |
-| Phase 4 | 衍生品与风险度量 | ✅ 完成 |
-| Phase 5 | 机器学习在量化中的应用 | ✅ 完成 |
-| Phase 6 | 组合优化与完整流程 | ✅ 完成 |
+| Phase 1 | 金融市场基础 + 金融学 + 数据获取 | ✅ 完成 |
+| Phase 2 | 基本面分析 | ✅ 完成 |
+| Phase 3 | 量化策略入门 + 回测 | ✅ 完成 |
+| Phase 4 | 因子投资与选股模型 | ✅ 完成 |
+| Phase 5 | 衍生品定价与风险管理 | ✅ 完成 |
+| Phase 6 | 机器学习量化 | ✅ 完成 |
+| Phase 7 | 组合优化 + 实盘 | ✅ 完成 |
 
 详情见 [PLAN.md](PLAN.md)，内容质量审核见 [CONTENT_REVIEW.md](CONTENT_REVIEW.md)。
 
