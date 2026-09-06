@@ -386,6 +386,10 @@ vue-tsc --noEmit：0 错误（含 :::answer 新渲染分支）
 answer/exercise 配对：134/134
 ```
 
+## 八之二、CI 首跑验证（2026-09-06）
+
+GitHub Actions 三个 job 全绿（run 34037436586）：前端类型检查 24s、内容校验+沙箱重放 21s、**行情沙箱实测（连库）44s**——p1-l8 主线四指标、p0-l3 五股波动锚点与正定性、p3-l8 前视对照三组断言在 CI 导入的最小数据集上全部通过，第四轮遗留的「本机无库无法验证」缺口正式关闭。过程修正两处 CI 配置：sandbox-db 补 python-frontmatter 依赖、postgres 镜像升 18（数据集为 pg_dump 18 导出，含 transaction_timeout 参数）。
+
 ## 七、待办（需要产品决策或部署环境）
 
 - 错题本（quiz 错题存 localStorage 生成复习队列）与自检清单状态持久化：前端功能设计先行；
