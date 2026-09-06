@@ -191,7 +191,11 @@ const guided = ref(localStorage.getItem('ql:aiAskGuide') === '1')
 const model = ref(localStorage.getItem('ql:aiAskModel') || '') // '' = 默认（当前配置）
 const models = ref<string[]>([])
 const currentModel = ref('')
-const web = ref(localStorage.getItem('ql:aiAskWeb') === '1')
+// 「联网」开关偏好（ql:aiAskWeb）：'1' 显式开启 / '0' 显式关闭 / 无记录 = 未选择，
+// 未选择时跟随默认——阿里云/千问模型源默认开启（用其内置联网搜索），其他源默认关闭
+const webPref = localStorage.getItem('ql:aiAskWeb')
+const webExplicit = webPref === '1' || webPref === '0'
+const web = ref(webPref === '1')
 const webSearchConfigured = ref(true) // 默认乐观；挂载后按设置页实际值修正
 const webSearchNative = ref(false) // 当前模型源是否为阿里云百炼/千问（内置联网搜索，无需 Tavily key）
 // 「联网」开关可用性：阿里云/千问模型源直接可用；其他模型源需配置 Tavily key
@@ -239,6 +243,8 @@ onMounted(async () => {
     models.value = configured.filter((m) => m !== currentModel.value) // 当前模型已作为「默认」首项
     webSearchConfigured.value = !!cfg.web_search_configured
     webSearchNative.value = !!cfg.builtin_web_search
+    // 千问模型源默认开启联网（内置搜索）；用户显式选过开/关则尊重其选择
+    if (!webExplicit && webSearchNative.value) web.value = true
     // 之前保存的模型若已不在配置列表（切换 provider / 配置变更），回退默认
     if (model.value && !configured.includes(model.value)) model.value = ''
   } catch {
@@ -311,8 +317,8 @@ function toggleGuide() {
 function toggleWeb() {
   if (!webAvailable.value) return
   web.value = !web.value
-  if (web.value) localStorage.setItem('ql:aiAskWeb', '1')
-  else localStorage.removeItem('ql:aiAskWeb')
+  // 显式选择落盘（'1'/'0'），此后不再跟随「千问源默认开」的默认值
+  localStorage.setItem('ql:aiAskWeb', web.value ? '1' : '0')
 }
 
 // 「联网」开关提示文案：按可用路径区分（阿里云/千问内置搜索 / Tavily / 均不可用）
