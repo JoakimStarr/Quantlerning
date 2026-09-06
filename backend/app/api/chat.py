@@ -176,6 +176,7 @@ async def chat_stream(payload: ChatRequest):
 
     async def gen():
         sources: list[dict] = []
+        native_search = False
         try:
             messages = build_messages(
                 payload.lesson_id,
@@ -185,20 +186,29 @@ async def chat_stream(payload: ChatRequest):
                 guided=payload.guided,
                 context=payload.context or "",
             )
-            # 联网搜索：用最后一条用户消息检索，结果作为 system 上下文注入（标注外部来源）
+            # 联网搜索两条路径：
+            # 1) 当前模型源为阿里云百炼（DashScope）→ 模型内置联网搜索（enable_search），
+            #    无需额外 Key；OpenAI 兼容协议不返回来源清单，故无参考文献区块。
+            # 2) 其他模型源 → Tavily 检索（需在设置页配置 Key），结果注入 system 上下文。
             if payload.web_search:
-                from app.services.ai.settings_store import get_effective_config
+                from app.services.ai.settings_store import (
+                    get_effective_config,
+                    is_dashscope_base_url,
+                )
 
                 cfg = get_effective_config()
-                query = next(
-                    (m["content"] for m in reversed(history) if m["role"] == "user"), ""
-                )
-                results = await web_search(query, cfg.get("web_search_key", ""))
-                context = build_search_context(results)
-                if context:
-                    messages.append({"role": "system", "content": context})
-                # 来源清单单独发给前端：渲染为回答下方的「参考文献」区块
-                sources = [{"title": r["title"], "url": r["url"]} for r in results]
+                if is_dashscope_base_url(cfg.get("base_url", "")):
+                    native_search = True
+                else:
+                    query = next(
+                        (m["content"] for m in reversed(history) if m["role"] == "user"), ""
+                    )
+                    results = await web_search(query, cfg.get("web_search_key", ""))
+                    context = build_search_context(results)
+                    if context:
+                        messages.append({"role": "system", "content": context})
+                    # 来源清单单独发给前端：渲染为回答下方的「参考文献」区块
+                    sources = [{"title": r["title"], "url": r["url"]} for r in results]
         except ValueError as e:
             yield _sse({"error": str(e)})
             yield _sse({"done": True})
@@ -210,7 +220,8 @@ async def chat_stream(payload: ChatRequest):
         if sources:
             yield _sse({"sources": sources})
         try:
-            async for delta in stream_chat(messages, model=payload.model, deep=payload.deep):
+            extra = {"enable_search": True} if native_search else None
+            async for delta in stream_chat(messages, model=payload.model, deep=payload.deep, extra=extra):
                 yield _sse({"delta": delta})
             yield _sse({"done": True})
         except AINotConfiguredError as e:

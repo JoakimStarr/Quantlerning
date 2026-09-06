@@ -41,7 +41,7 @@ DEFAULTS = {
     "web_search_key": settings.tavily_api_key,
 }
 
-# 内置三家默认 provider（OpenAI 兼容接口）。OpenCodeZen 跟随 .env（保持零配置行为不变）。
+# 内置四家默认 provider（OpenAI 兼容接口）。OpenCodeZen 跟随 .env（保持零配置行为不变）。
 BUILTIN_PROVIDERS = [
     {
         "id": "builtin_glm",
@@ -61,7 +61,22 @@ BUILTIN_PROVIDERS = [
         "base_url": "https://api.siliconflow.cn/v1",
         "model": "Qwen/Qwen2.5-7B-Instruct",
     },
+    {
+        "id": "builtin_dashscope",
+        "name": "阿里云百炼（千问）",
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "model": "qwen-plus",
+    },
 ]
+
+
+def is_dashscope_base_url(base_url: str) -> bool:
+    """是否为阿里云百炼（DashScope）接口：仅这类模型源支持内置联网搜索（enable_search）。
+
+    覆盖国内 dashscope.aliyuncs.com 与海外 dashscope-intl.aliyuncs.com（自定义
+    provider 填 DashScope 地址同样命中）。
+    """
+    return "dashscope" in (base_url or "").lower()
 
 # 全局参数（顶层保存字段）
 _GLOBAL_KEYS = ("max_tokens", "temperature", "web_search_key")
@@ -384,7 +399,11 @@ def _public_provider(p: dict, builtin: bool) -> dict:
 
 
 def public_config() -> dict:
-    """返回给前端展示的完整配置（api_key 打码）。"""
+    """返回给前端展示的完整配置（api_key 打码）。
+
+    builtin_web_search：当前模型源是否为阿里云百炼（DashScope）——
+    这类源支持模型内置联网搜索（enable_search），「联网」开关无需 Tavily key 即可用。
+    """
     cfg = get_effective_config()
     return {
         "providers": [_public_provider(p, builtin=bool(p.get("builtin"))) for p in get_providers()],
@@ -393,6 +412,7 @@ def public_config() -> dict:
         "temperature": cfg["temperature"],
         "web_search_key_masked": mask_key(cfg.get("web_search_key", "")),
         "web_search_configured": bool(cfg.get("web_search_key")),
+        "builtin_web_search": is_dashscope_base_url(cfg.get("base_url", "")),
     }
 
 

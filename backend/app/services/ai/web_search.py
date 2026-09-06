@@ -17,7 +17,7 @@ _MAX_CONTENT_CHARS = 600
 
 
 class WebSearchNotConfiguredError(Exception):
-    """未配置 Tavily API key。"""
+    """未配置 Tavily API key（当前模型源非阿里云/千问，无法用内置联网搜索）。"""
 
 
 class WebSearchError(Exception):
@@ -31,7 +31,9 @@ async def web_search(query: str, api_key: str, max_results: int = _MAX_RESULTS) 
     """
     if not api_key:
         raise WebSearchNotConfiguredError(
-            "联网搜索未配置：请在「设置」页填写 Tavily API Key。"
+            "联网搜索未配置：当前模型源不是阿里云/千问，"
+            "可切换到「阿里云百炼（千问）」后使用内置联网搜索（无需额外 Key），"
+            "或在「设置」页填写 Tavily API Key。"
         )
     if not query.strip():
         return []

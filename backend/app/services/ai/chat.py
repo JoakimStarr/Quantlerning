@@ -518,12 +518,13 @@ def build_review_messages(progress_summary: str) -> list[dict]:
 
 
 async def _stream_once(
-    messages: list[dict], cfg: dict, deep: bool = False
+    messages: list[dict], cfg: dict, deep: bool = False, extra: dict | None = None
 ) -> AsyncGenerator[str, None]:
     """用给定配置发起一次流式调用，逐段 yield 回答文本。
 
     429 限流抛 AIRateLimitError（供上层切换备用模型）；其他非 200 抛 AIProviderError。
     deep=True 时 max_tokens 翻倍（深度思考需要更多输出空间），上限 8192。
+    extra 为附加请求参数（如阿里云百炼的 {"enable_search": True}），原样并入请求体。
     """
     if not cfg.get("api_key"):
         raise AINotConfiguredError(
@@ -545,6 +546,8 @@ async def _stream_once(
         "temperature": float(cfg.get("temperature") or 0.4),
         "max_tokens": max_tokens,
     }
+    if extra:
+        payload.update(extra)
 
     try:
         async with httpx.AsyncClient(trust_env=False, timeout=60) as client:
@@ -580,15 +583,20 @@ async def _stream_once(
 
 
 async def stream_chat(
-    messages: list[dict], model: str | None = None, deep: bool = False
+    messages: list[dict],
+    model: str | None = None,
+    deep: bool = False,
+    extra: dict | None = None,
 ) -> AsyncGenerator[str, None]:
     """流式调用 LLM：先走当前 provider，异常时自动轮换其他已配置 key 的 provider。
 
-    model 非空时覆盖本次使用的模型（如用户在面板手动选择）；deep=True 启用深度思考。
+    model 非空时覆盖本次使用的模型（如用户在面板手动选择）；deep=True 启用深度思考；
+    extra 为附加请求参数（如阿里云百炼联网搜索 {"enable_search": True}），轮换到
+    非 DashScope 的备用 provider 时自动丢弃（该参数仅阿里云/千问支持）。
     可降级异常：限流(429) 或 模型不可用（401 Model not supported 等）。
     全部 provider 失败时，模型错误给友好引导（去设置页换模型）。
     """
-    from app.services.ai.settings_store import get_effective_config, get_rotation_providers
+    from app.services.ai.settings_store import get_effective_config, get_rotation_providers, is_dashscope_base_url
 
     cfg = get_effective_config()
     if model:
@@ -596,7 +604,7 @@ async def stream_chat(
     rotations = get_rotation_providers()
     first_err: Exception | None = None
     try:
-        async for delta in _stream_once(messages, cfg, deep=deep):
+        async for delta in _stream_once(messages, cfg, deep=deep, extra=extra):
             yield delta
         return
     except (AIRateLimitError, AIProviderError) as e:
@@ -610,9 +618,11 @@ async def stream_chat(
     for p in rotations:
         alt = dict(cfg)
         alt.update(base_url=p["base_url"], model=p["model"], api_key=p["api_key"])
+        # enable_search 等附加参数仅 DashScope 支持：备用源非阿里云/千问时丢弃，避免 400
+        alt_extra = extra if is_dashscope_base_url(p["base_url"]) else None
         logger.info("主 provider 异常（%s），轮换 %s", first_err.__class__.__name__, p["model"])
         try:
-            async for delta in _stream_once(messages, alt, deep=deep):
+            async for delta in _stream_once(messages, alt, deep=deep, extra=alt_extra):
                 yield delta
             return
         except (AIRateLimitError, AIProviderError) as e2:

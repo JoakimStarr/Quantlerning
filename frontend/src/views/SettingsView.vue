@@ -587,7 +587,7 @@ async function saveGlobal() {
           <Globe :size="16" class="card-head-ico" />
           <div>
             <h2 class="card-title">联网搜索</h2>
-            <p class="card-desc">可选。AI 面板开启「联网」开关后，回答会检索外部实时信息并列出参考文献。</p>
+            <p class="card-desc">可选。AI 面板开启「联网」开关后，回答会检索实时网络信息。模型源为阿里云百炼（千问）时使用其内置联网搜索，无需在此配置；其他模型源需填写 Tavily Key。</p>
           </div>
         </div>
 
@@ -605,8 +605,9 @@ async function saveGlobal() {
             已配置：<code class="masked">{{ webKeyMasked }}</code>（重新输入可更换；不输入则保留原 key）
           </p>
           <p class="field-help" v-else>
-            未配置——面板的「联网」开关将不可用。Tavily 有免费额度（约 1000 次/月），在
-            <a href="https://tavily.com" target="_blank" rel="noreferrer">tavily.com</a> 注册后复制 API Key 填入。
+            未配置——「联网」开关仅阿里云百炼（千问）模型源可用；其他模型源需填写 Tavily API Key（有免费额度约
+            1000 次/月，在
+            <a href="https://tavily.com" target="_blank" rel="noreferrer">tavily.com</a> 注册后复制填入）。
           </p>
         </div>
       </section>

@@ -193,6 +193,9 @@ const models = ref<string[]>([])
 const currentModel = ref('')
 const web = ref(localStorage.getItem('ql:aiAskWeb') === '1')
 const webSearchConfigured = ref(true) // 默认乐观；挂载后按设置页实际值修正
+const webSearchNative = ref(false) // 当前模型源是否为阿里云百炼/千问（内置联网搜索，无需 Tavily key）
+// 「联网」开关可用性：阿里云/千问模型源直接可用；其他模型源需配置 Tavily key
+const webAvailable = computed(() => webSearchNative.value || webSearchConfigured.value)
 // 附加上下文（如代码沙箱代码与运行结果）：仅注入下一次发送，不进聊天历史
 const pendingContext = ref('')
 
@@ -235,6 +238,7 @@ onMounted(async () => {
     currentModel.value = active?.model || ''
     models.value = configured.filter((m) => m !== currentModel.value) // 当前模型已作为「默认」首项
     webSearchConfigured.value = !!cfg.web_search_configured
+    webSearchNative.value = !!cfg.builtin_web_search
     // 之前保存的模型若已不在配置列表（切换 provider / 配置变更），回退默认
     if (model.value && !configured.includes(model.value)) model.value = ''
   } catch {
@@ -305,10 +309,18 @@ function toggleGuide() {
   else localStorage.removeItem('ql:aiAskGuide')
 }
 function toggleWeb() {
+  if (!webAvailable.value) return
   web.value = !web.value
   if (web.value) localStorage.setItem('ql:aiAskWeb', '1')
   else localStorage.removeItem('ql:aiAskWeb')
 }
+
+// 「联网」开关提示文案：按可用路径区分（阿里云/千问内置搜索 / Tavily / 均不可用）
+const webTitle = computed(() => {
+  if (webSearchNative.value) return '联网搜索：使用阿里云/千问模型的内置联网搜索，回答基于实时网络信息'
+  if (webSearchConfigured.value) return '联网搜索：回答时检索外部实时信息并标注来源（Tavily）'
+  return '联网搜索目前仅支持阿里云百炼（千问）模型源：可在设置页切换后使用，或配置 Tavily Key'
+})
 
 // 停止生成：中断当前流式请求（send 的 catch 会清理空气泡）
 function stopGenerate() {
@@ -401,9 +413,10 @@ function send() {
   const text = input.value.trim()
   if (!text || thinking.value) return
 
-  // 联网搜索开启但未配置 Tavily key：本地拦截并提示，避免发了才报错
-  if (web.value && !webSearchConfigured.value) {
-    error.value = '联网搜索未配置：请先在「设置」页填写 Tavily API Key。'
+  // 联网搜索开启但当前不可用（非阿里云/千问且未配 Tavily key）：本地拦截并提示，避免发了才报错
+  if (web.value && !webAvailable.value) {
+    error.value =
+      '联网搜索目前仅支持阿里云百炼（千问）模型源：请到「设置」页切换模型源（无需额外 Key），或配置 Tavily API Key。'
     return
   }
 
@@ -674,7 +687,8 @@ watch(
           <button
             class="tb-btn"
             :class="{ on: web }"
-            :title="webSearchConfigured ? '联网搜索：回答时检索外部实时信息并标注来源' : '未配置 Tavily Key（设置页填写）'"
+            :disabled="!webAvailable"
+            :title="webTitle"
             @click="toggleWeb"
           >
             <Globe :size="13" />
@@ -1195,7 +1209,8 @@ watch(
   transition: all 0.15s;
   flex-shrink: 0;
 }
-.tb-btn:hover { border-color: var(--primary); color: var(--primary); }
+.tb-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.tb-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .tb-btn.on {
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   border-color: transparent;

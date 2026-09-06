@@ -341,8 +341,9 @@ async function streamSSE(
 /**
  * 围绕当前课程小节追问，SSE 流式返回。
  * @param payload.model 覆盖模型（空=用当前配置）；payload.deep 深度思考开关；
- *        payload.web_search 联网搜索开关（需在设置页配置 Tavily key）
- * @param onSources 联网搜索来源清单回调（回答下方「参考文献」）
+ *        payload.web_search 联网搜索开关（阿里云百炼/千问模型源用内置搜索，
+ *        其他模型源需在设置页配置 Tavily key）
+ * @param onSources 联网搜索来源清单回调（回答下方「参考文献」；仅 Tavily 路径返回）
  * @returns 若发生错误返回 {error}，否则 {}（正常结束或被取消）
  */
 export async function streamChat(
@@ -512,6 +513,8 @@ export interface AISettings {
   temperature: number
   web_search_key_masked: string
   web_search_configured: boolean
+  /** 当前模型源是否为阿里云百炼（DashScope）：内置联网搜索，「联网」开关无需 Tavily key */
+  builtin_web_search: boolean
 }
 
 export async function fetchAISettings(): Promise<AISettings> {
