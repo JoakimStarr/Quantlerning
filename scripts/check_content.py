@@ -1,255 +1,215 @@
-#!/usr/bin/env python3
-"""内容质量检查器：把「课程写作规范」落成可重复执行的检查脚本。
+#!/usr/bin/env python
+"""内容校验脚本：课程 Markdown 的一致性/完整性静态检查 + 纯数学沙箱重放。
 
 用法：
-    python scripts/check_content.py           # 全量检查
-    python scripts/check_content.py phase5     # 指定阶段
-    python scripts/check_content.py p5-l3      # 指定课
+    python scripts/check_content.py            # 全部静态检查 + 纯数学沙箱重放
+    python scripts/check_content.py --no-replay # 仅静态检查
 
-检查维度（对应《课程写作规范》+ 内容补充机制）：
-  A 结构完整性（治「散」）：章引言 / 前置标注 / 学习目标 / 跨课引用
-  B 内容深度（治「少」）：正文行数 / 知识点字数 / 图引导 / 参考文献
-  C 专业度（治「不专业」）：术语与数字锚点一致 / LaTeX 闭合
-  D 可学习性（治「学不懂」）：概念四步引入 / 衔接 / 练习分离
-  E 生态介绍（补「缺生态」）：生态/平台/工具链提及
+检查项：
+  1) 全部课程可被 phase_loader 解析，id 与文件名一致；
+  2) :::quiz 答案索引落在选项范围内（quiz 块合法）；
+  3) :::answer 与 :::exercise 一一配对（应用题均有参考答案要点）；
+  4) :::viz 组件名全部在 vizRegistry 注册；
+  5) :::code_sandbox 块代码可编译；纯数学沙箱（p1-l3/p5-l1）重放输出与「预期输出」逐行一致；
+  6) 残留问题模式扫描（被删词断句、裸 \\sqrt、全角冒号代码、已知错别字）；
+  7) 快照日期时效提醒（>90 天的「YYYY-MM-DD 快照」打 warning，不判失败）。
+退出码：有 error 则 1，仅 warning 则 0。
 """
-import glob
+import io
+import math
 import re
 import sys
+import contextlib
+from datetime import date
 from pathlib import Path
 
-CONTENT_DIR = Path(__file__).resolve().parent.parent / "backend" / "app" / "content"
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "backend"))
 
-# ---------- 检查阈值（可调） ----------
-MIN_PROSE_LINES = 100          # 每课正文行数下限（或满足下方字数条件）
-MIN_SECTION_CHARS = 80         # 每知识点小节字数下限
-MIN_INTRO_CHARS = 120          # 章引言（courses.py intro）字数下限
-REF_KEYWORDS = ["生态", "平台", "工具链", "框架", "社区", "实盘", "券商", "数据源", "开源"]
-QUIZ_SEPARATED = True          # 练习必须独立成节
+ERRORS: list[str] = []
+WARNINGS: list[str] = []
 
 
-# ---------- 内容解析 ----------
-def parse_lesson(path: Path) -> dict:
-    """解析单课 md → 结构信息。"""
-    text = path.read_text(encoding="utf-8")
-    lines = text.splitlines()
-
-    # frontmatter
-    fm = {}
-    if lines and lines[0].strip() == "---":
-        for ln in lines[1:]:
-            if ln.strip() == "---":
-                break
-            if ":" in ln:
-                k, v = ln.split(":", 1)
-                fm[k.strip()] = v.strip()
-
-    # 正文/sections
-    in_q = in_e = in_c = False
-    prose_lines = 0
-    sections = []          # {title, chars, code_lines}
-    cur = None
-    quiz_blocks = 0
-    exercise_blocks = 0
-    viz_count = 0
-    for ln in lines:
-        s = ln.strip()
-        if s.startswith("```"):
-            if in_c:
-                in_c = False
-            else:
-                in_c = True
-                if cur:
-                    cur["code_lines"] = cur.get("code_lines", 0) + 1
-            continue
-        if in_c:
-            if cur:
-                cur["code_lines"] = cur.get("code_lines", 0) + 1
-            continue
-        if s == ":::quiz":
-            in_q = True
-            quiz_blocks += 1
-            continue
-        if s == ":::exercise":
-            in_e = True
-            exercise_blocks += 1
-            continue
-        if s == ":::" and (in_q or in_e):
-            in_q = in_e = False
-            continue
-        if in_q or in_e:
-            continue
-        if s.startswith(":::viz"):
-            viz_count += 1
-            prose_lines += 1
-            if cur:
-                cur["chars"] += len(s)
-            continue
-        if s.startswith("## "):
-            cur = {"title": s[3:], "chars": 0, "code_lines": 0}
-            sections.append(cur)
-            prose_lines += 1
-            continue
-        prose_lines += 1
-        if cur:
-            cur["chars"] += len(s)
-
-    return {
-        "path": path,
-        "id": fm.get("id", path.stem),
-        "title": fm.get("title", ""),
-        "summary": fm.get("summary", ""),
-        "prose_lines": prose_lines,
-        "sections": sections,
-        "quiz_blocks": quiz_blocks,
-        "exercise_blocks": exercise_blocks,
-        "viz_count": viz_count,
-        "text": text,
-        "refs": re.findall(r"p[0-6]-l[0-9]+", text),
-    }
+def err(msg: str):
+    ERRORS.append(msg)
 
 
-# ---------- 检查器 ----------
-def check_structure(lesson: dict) -> list[str]:
-    """A 结构完整性。"""
-    issues = []
-    # 前置标注
-    if not re.search(r"前置|前提|你需要先|先学|本节需要|这一课需要", lesson["text"]):
-        issues.append("A1 无「前置知识」标注（读者不知道学这课需要什么）")
-    # 学习目标 / 学完能做什么
-    if not re.search(r"学完|本课目标|你将能|能.*回答|交付", lesson["text"]):
-        issues.append("A2 无「学完能做什么」表述（学习目标缺失）")
-    return issues
+def warn(msg: str):
+    WARNINGS.append(msg)
 
 
-def check_depth(lesson: dict) -> list[str]:
-    """B 内容深度。"""
-    issues = []
-    # 正文行数（豁免：产出课 l7/l8/l12、前言课 l0、综合题库 t1——这些课的正文短是结构决定的；
-    # 以及「每节字数达标」的课——规范为「≥100 行 或 每节 ≥80-100 字」）
-    lesson_id = lesson["id"]
-    is_outcome = lesson_id.endswith(("-l7", "-l8", "-l12")) or lesson_id.endswith("-t1")
-    is_prereq = lesson_id.endswith("-l0")
-    all_secs_filled = all(
-        sec["chars"] >= MIN_SECTION_CHARS or sec["title"] in ("练习题", "参考文献")
-        for sec in lesson["sections"]
-    )
-    if lesson["prose_lines"] < MIN_PROSE_LINES and not is_outcome and not is_prereq and not all_secs_filled:
-        issues.append(
-            f"B1 正文仅 {lesson['prose_lines']} 行 < {MIN_PROSE_LINES}（且存在不足 80 字的小节）"
-        )
-    # 薄节（不含练习/参考文献/代码块小节/测验模块标题）
-    for sec in lesson["sections"]:
-        if sec["title"] in ("练习题", "参考文献", "阶段测验"):
-            continue
-        if sec["title"].startswith("模块"):
-            continue  # 阶段测验的模块标题（主体是 quiz 块，非正文）
-        if sec.get("code_lines", 0) > 0:
-            continue  # 代码块主导的小节（参考实现框架等），文字少是正常的
-        if sec["chars"] < MIN_SECTION_CHARS:
-            issues.append(f"B2 小节「{sec['title']}」仅 {sec['chars']} 字 < {MIN_SECTION_CHARS}")
-    # 参考文献
-    if "## 参考文献" not in lesson["text"]:
-        issues.append("B3 无参考文献节")
-    elif not re.search(r"https?://", lesson["text"].split("## 参考文献")[-1]):
-        issues.append("B3 参考文献节无 URL")
-    return issues
+def load_content():
+    from app.services.content.phase_loader import load_all_content
+    return load_all_content()
 
 
-def check_professionalism(lesson: dict) -> list[str]:
-    """C 专业度。"""
-    issues = []
-    # LaTeX 闭合（跳过含 $ 的公式行判断；简单检查奇数 $）
-    for i, ln in enumerate(lesson["text"].splitlines(), 1):
-        s = ln.strip()
-        if s.startswith(":::") or s.startswith("$$"):
-            continue
-        if s.count("$") % 2 == 1:
-            issues.append(f"C1 LaTeX 未闭合 @L{i}")
-            break
-    # Unicode 公式符号（非 LaTeX 上下文）——仅真正的数学符号，不含 →/±/≈ 等正文标点
-    bad = re.compile(r"[σΣμβπθΔλ√][^→±≈]|²|³|×")
-    for i, ln in enumerate(lesson["text"].splitlines(), 1):
-        if "$" in ln:
-            continue
-        for m in bad.findall(ln):
-            issues.append(f"C2 非 LaTeX 公式符号「{m}」@L{i}")
-            break
-    return issues
+def check_quiz(content):
+    for fid, c in content.items():
+        for s in c["sections"]:
+            for m in re.finditer(r":::quiz\n(.*?)\n:::", s["body"], re.S):
+                block = m.group(1)
+                am = re.search(r"^A:\s*([\d,，、\s]+)$", block, re.M)
+                opts = re.findall(r"^-\s+", block, re.M)
+                if not am:
+                    err(f"{fid}::{s['title'][:20]} quiz 缺 A: 行")
+                    continue
+                for a in re.split(r"[,，、\s]+", am.group(1).strip()):
+                    if a and not (1 <= int(a) <= len(opts)):
+                        err(f"{fid}::{s['title'][:20]} quiz 答案 {a} 超出选项数 {len(opts)}")
 
 
-def check_learnability(lesson: dict) -> list[str]:
-    """D 可学习性。"""
-    issues = []
-    # 衔接：小节开头不应直接抛公式/术语（要求小节正文首行非公式）
-    for sec in lesson["sections"]:
-        if sec["title"] in ("练习题", "参考文献"):
-            continue
-        if sec["chars"] < MIN_SECTION_CHARS:
-            continue  # 已由 B2 报
-    # 图引导：viz 后应有正文承接（非空、非直接 ## ）
-    lines = lesson["text"].splitlines()
-    for i, ln in enumerate(lines):
-        if ln.strip().startswith(":::viz"):
-            j = i + 1
-            while j < len(lines) and (lines[j].strip() in (":::", "") or lines[j].strip().startswith(":::")):
-                j += 1
-            nxt = lines[j].strip() if j < len(lines) else ""
-            if not nxt or nxt.startswith("## "):
-                issues.append(f"D1 viz @L{i+1} 图后无引导段（「先看什么→看到什么→为什么」）")
-    # 练习分离
-    if "## 练习题" in lesson["text"]:
-        body = lesson["text"].split("## 练习题")[0]
-        if ":::quiz" in body or ":::exercise" in body:
-            issues.append("D2 正文中混有随堂测验（练习必须收进末尾「练习题」节）")
-    return issues
+def check_answer_pairing(content):
+    for fid, c in content.items():
+        for s in c["sections"]:
+            n_ex = len(re.findall(r"^:::exercise", s["body"], re.M))
+            n_ans = len(re.findall(r"^:::answer", s["body"], re.M))
+            if n_ex != n_ans:
+                err(f"{fid}::{s['title'][:20]} 应用题 {n_ex} 道 vs 答案 {n_ans} 条")
 
 
-def check_ecosystem(lesson: dict) -> list[str]:
-    """E 生态介绍。"""
-    issues = []
-    if not any(kw in lesson["text"] for kw in REF_KEYWORDS):
-        issues.append("E1 全文未提及生态/平台/工具链/数据源/社区")
-    return issues
+def check_viz_registry(content):
+    ts = (ROOT / "frontend/src/components/lesson/vizRegistry.ts").read_text()
+    keys = set(re.findall(r"^\s{2}([a-z_0-9]+):\s*def\(", ts, re.M))
+    for fid, c in content.items():
+        for s in c["sections"]:
+            for m in re.finditer(r":::viz\s+([a-z_0-9]+)", s["body"]):
+                if m.group(1) not in keys:
+                    err(f"{fid} viz 组件未注册: {m.group(1)}")
+
+
+def extract_sandboxes(content):
+    blocks = {}
+    for fid, c in content.items():
+        for s in c["sections"]:
+            for m in re.finditer(r":::viz code_sandbox[^\n]*\n(.*?)\n:::", s["body"], re.S):
+                body = m.group(1)
+                marker = "# === 预期输出 ==="
+                if marker in body:
+                    code, expected = body.split(marker)
+                    blocks.setdefault(fid, (code.rstrip(), expected.strip()))
+                else:
+                    blocks.setdefault(fid, (body, ""))
+    return blocks
+
+
+def check_sandbox_syntax(blocks):
+    for fid, (code, _) in blocks.items():
+        try:
+            compile(code, fid, "exec")
+        except SyntaxError as e:
+            err(f"{fid} 沙箱代码语法错误: {e}")
+
+
+def replay_sandbox(fid, code, expected):
+    ns = {"math": math, "__name__": "__main__"}
+    try:
+        import numpy as np
+        ns["np"] = np
+    except ImportError:
+        warn("numpy 不可用，跳过沙箱重放")
+        return
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+    except ImportError:
+        pass
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(io.StringIO()):
+            exec(compile(code, fid, "exec"), ns)
+    except Exception as e:  # noqa: BLE001
+        err(f"{fid} 沙箱重放抛出异常: {type(e).__name__}: {e}")
+        return
+    got = [l.strip() for l in buf.getvalue().splitlines() if l.strip()]
+    exp = [l.strip() for l in expected.splitlines() if l.strip()]
+    if len(got) != len(exp):
+        err(f"{fid} 沙箱输出行数 {len(got)} != 预期 {len(exp)}")
+        return
+    for i, (g, e) in enumerate(zip(got, exp), 1):
+        if g != e:
+            err(f"{fid} 沙箱输出第 {i} 行不一致:\n  got: {g}\n  exp: {e}")
+
+
+# 纯数学沙箱（不依赖数据库，输出确定性可复现）——新增纯数学沙箱后在此登记
+PURE_MATH_SANDBOXES = {"p0-l4", "p1-l3", "p5-l1"}
+
+
+def check_stale_patterns(content):
+    # 数学定界符外的裸 \sqrt：把同一行内所有 $...$ 片段删掉后再找
+    def raw_latex_outside_math(body: str):
+        hits = []
+        for lineno, line in enumerate(body.splitlines(), 1):
+            stripped = re.sub(r"\$[^$]*\$", "", re.sub(r"\$\$[^$]*?\$\$", "", line))
+            if re.search(r"\\sqrt\{", stripped):
+                hits.append((lineno, line))
+        return hits
+
+    patterns = [
+        (r"(^|[\s（])的 161 因子库就是|来自 ，|（ 宏观|。 中计算|因为 暂无", "被删词断句"),
+        (r"rs\.next()：", "代码内全角冒号"),
+        (r"可可靠|的 的|是 是的", "疑似错别字"),
+    ]
+    for fid, c in content.items():
+        for s in c["sections"]:
+            for pat, label in patterns:
+                m = re.search(pat, s["body"])
+                if m:
+                    err(f"{fid}::{s['title'][:20]} {label}: …{s['body'][max(0, m.start()-20):m.end()+20]}…")
+            for lineno, line in raw_latex_outside_math(s["body"]):
+                err(f"{fid}::{s['title'][:20]} 第{lineno}行数学定界符外的裸 \\sqrt: {line.strip()[:60]}")
+
+
+def check_snapshot_freshness(content):
+    today = date.today()
+    for fid, c in content.items():
+        for s in c["sections"]:
+            for m in re.finditer(r"(\d{4}-\d{2}-\d{2})\s*快照", s["body"]):
+                try:
+                    d = date.fromisoformat(m.group(1))
+                except ValueError:
+                    continue
+                age = (today - d).days
+                if age > 90:
+                    warn(f"{fid} 含 {m.group(1)} 快照（已 {age} 天），确认数据是否需要更新")
 
 
 def main():
-    targets = sys.argv[1:] if len(sys.argv) > 1 else ["all"]
-    files = []
-    for t in targets:
-        if t == "all":
-            files += sorted(glob.glob(str(CONTENT_DIR / "phase*" / "p*-l*.md")))
-        elif t.startswith("phase"):
-            files += sorted(glob.glob(str(CONTENT_DIR / t / "p*-l*.md")))
-        elif re.match(r"p[0-6]-l[0-9]+", t):
-            ph = t[1]
-            files += sorted(glob.glob(str(CONTENT_DIR / f"phase{ph}" / f"{t}.md")))
-        else:
-            files += sorted(glob.glob(str(Path(t))))
-    files = sorted(set(files))
+    no_replay = "--no-replay" in sys.argv
+    content = load_content()
+    print(f"[1] 课程解析: {len(content)} 课")
+    if len(content) < 60:
+        err(f"课程数异常: {len(content)} < 60")
+    ids_in_files = {p.stem for p in (ROOT / "backend/app/content").rglob("*.md")}
+    missing = ids_in_files - set(content)
+    if missing:
+        err(f"以下文件缺 frontmatter id，未被加载: {sorted(missing)}")
 
-    all_checks = {
-        "A 结构": check_structure,
-        "B 深度": check_depth,
-        "C 专业": check_professionalism,
-        "D 可学": check_learnability,
-        "E 生态": check_ecosystem,
-    }
+    print("[2] quiz 答案索引")
+    check_quiz(content)
+    print("[3] 应用题/答案配对")
+    check_answer_pairing(content)
+    print("[4] viz 组件注册")
+    check_viz_registry(content)
+    print("[5] 沙箱语法 + 纯数学沙箱重放")
+    blocks = extract_sandboxes(content)
+    print(f"    沙箱块: {len(blocks)} 个")
+    check_sandbox_syntax(blocks)
+    if not no_replay:
+        for fid in PURE_MATH_SANDBOXES:
+            if fid in blocks:
+                print(f"    重放 {fid} …")
+                replay_sandbox(fid, *blocks[fid])
+    print("[6] 残留问题模式")
+    check_stale_patterns(content)
+    print("[7] 快照时效")
+    check_snapshot_freshness(content)
 
-    total = {"issues": 0, "lessons": 0}
-    for f in files:
-        lesson = parse_lesson(Path(f))
-        total["lessons"] += 1
-        issues = []
-        for cat, fn in all_checks.items():
-            issues += fn(lesson)
-        if issues:
-            total["issues"] += len(issues)
-            print(f"\n### {lesson['id']} ({lesson['title']}) [{lesson['prose_lines']} 行正文, "
-                  f"{lesson['quiz_blocks']} quiz, {lesson['exercise_blocks']} ex, {lesson['viz_count']} viz]")
-            for it in issues:
-                print(f"  - {it}")
-    print(f"\n===== 检查完毕：{total['lessons']} 课，{total['issues']} 项问题 =====")
+    for w in WARNINGS:
+        print(f"WARNING: {w}")
+    for e in ERRORS:
+        print(f"ERROR: {e}")
+    print(f"\n结果: {len(ERRORS)} errors, {len(WARNINGS)} warnings")
+    sys.exit(1 if ERRORS else 0)
 
 
 if __name__ == "__main__":

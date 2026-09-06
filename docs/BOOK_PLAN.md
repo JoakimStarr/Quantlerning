@@ -1,3 +1,5 @@
+> **历史文档**：本稿为早期规划，章节划分已过时。现行课程结构以 [README.md](../README.md) 与 `backend/app/services/content/courses.py`（Phase 0~7）为准。
+
 # Quantlerning · 一本书计划（内容版 Book Plan）
 
 > 目标：把 Quantlerning 的内容本身做成**一本可交互、可演算、可动手的量化书**——结构完整、前后贯通、图文交融、经得起逐字读。
