@@ -12,6 +12,7 @@ import type { VizKey } from './vizRegistry'
 // - :::viz 组件名 参数 自定义块（嵌入可视化）
 // - :::quiz 自定义块（知识点测验）
 // - :::exercise 自定义块（应用题，调 AI 批改）
+// - :::answer 自定义块（应用题参考答案要点，默认折叠）
 
 interface VizNode {
   component: VizKey
@@ -32,7 +33,7 @@ export interface ExerciseQuestion {
 }
 
 interface Part {
-  kind: 'md' | 'viz' | 'quiz' | 'exercise'
+  kind: 'md' | 'viz' | 'quiz' | 'exercise' | 'answer'
   html?: string
   viz?: VizNode
   quiz?: QuizQuestion
@@ -123,6 +124,9 @@ const parts = computed<Part[]>(() => {
           exerciseIndex: out.filter((p) => p.kind === 'exercise').length,
         })
       }
+    } else if (tag === 'answer') {
+      const body = m[3].trim()
+      if (body) out.push({ kind: 'answer', html: renderMd(body) })
     }
     last = m.index + m[0].length
   }
@@ -246,6 +250,10 @@ function parseParams(raw: string): Record<string, unknown> {
         :section-index="sectionIndex ?? 0"
         :exercise-index="part.exerciseIndex ?? 0"
       />
+      <details v-else-if="part.kind === 'answer' && part.html" class="answer-block">
+        <summary>参考答案要点（先自己作答，再展开对照）</summary>
+        <div class="answer-body" v-html="part.html"></div>
+      </details>
       <div v-else-if="part.html" v-html="part.html" class="md-fragment"></div>
     </template>
   </div>
@@ -253,6 +261,25 @@ function parseParams(raw: string): Record<string, unknown> {
 
 <style scoped>
 .markdown-body { line-height: 1.8; font-size: 15px; }
+
+/* :::answer 折叠答案块 */
+.answer-block {
+  margin: 14px 0;
+  border: 1px dashed var(--vp-c-border, #8886);
+  border-radius: 8px;
+  padding: 8px 14px;
+  background: color-mix(in srgb, var(--vp-c-bg-soft, #8881) 60%, transparent);
+}
+.answer-block summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vp-c-text-2, inherit);
+  user-select: none;
+}
+.answer-body { font-size: 14px; margin-top: 8px; }
+.answer-body :deep(p) { margin: 6px 0; }
+.answer-body :deep(ul), .answer-body :deep(ol) { margin: 6px 0; padding-left: 22px; }
 
 /* Markdown 内容样式（作用于 v-html 注入的 HTML） */
 .md-fragment :deep(h1),
