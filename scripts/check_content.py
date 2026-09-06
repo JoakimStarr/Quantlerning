@@ -131,7 +131,7 @@ def replay_sandbox(fid, code, expected):
 
 
 # 纯数学沙箱（不依赖数据库，输出确定性可复现）——新增纯数学沙箱后在此登记
-PURE_MATH_SANDBOXES = {"p0-l4", "p1-l3", "p5-l1"}
+PURE_MATH_SANDBOXES = {"p0-l1", "p0-l2", "p0-l4", "p1-l3", "p5-l1"}
 
 
 def check_stale_patterns(content):
