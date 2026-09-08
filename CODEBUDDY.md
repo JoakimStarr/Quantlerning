@@ -267,7 +267,7 @@ python scripts/check_content.py p5-l3    # 指定课
 - M3 ✅ 第四章因子内容与可视化（7 课 + ic_distribution / factor_ic / layer_returns / industry_pe / factor_backtest_dashboard）
 - M4 ✅ 第五章衍生品内容与可视化（7 课 + random_walk / bs_price_slider / binomial_tree / monte_carlo_pricing / var_simulator）
 - M5 ✅ 第六章 ML 内容与可视化（8 课 + label_design / overfit_demo / feature_importance / ml_backtest，复用 gradient_field 讲梯度下降）**2026-09 逐课重写 l1~l8**：l1 规则来源光谱、l2 特征三工序（时间对齐代码骨架）、l3 标签三自由度与「标签≠赚钱目标」、l4 选模型=选先验、l5 三层数据与四道防线（含选择偏差）、l6 LSTM 门控链与 MDP 判据、l7 三把尺子与多重检验、l8 可复核对比实验（八条验收清单）
-- M6 ✅ 第七章组合优化与实盘（6 课 + 5 模拟器：frontier / risk_parity / black_litterman / pair_trading / portfolio_risk）
+- M6 ✅ 第七章组合优化与实盘（6 课 + 5 模拟器：frontier / risk_parity / black_litterman / pair_trading / portfolio_risk）**2026-09 逐课重写 l1~l6**：l1 「对估计误差的三种退让」主线（含 1/N 基线、欧拉分解、协方差收缩）、l2 相关≠协整（I(1) 前提、搜索偏差、半衰期）、l3 三层风控防线（风险预算反推仓位、四类止损、压力测试）、l4 订单状态机与幂等性、放大闸门、l5 A 股规则速查与价差供给侧、l6 六环验收锚点 + 毕业报告模板
 - M7 ✅ **新第二章「基本面分析」**（2026-08-18 插入，8 课：报表/杜邦/现金流质量/DCF/相对估值/护城河/阶段产出 + financial_trends 真实财务模拟器；原第二~六章顺延为第三~七章）
 
 ### 第二章真实锚点（财务指标 + 三公司对比，quantlab financial_indicator 表）
