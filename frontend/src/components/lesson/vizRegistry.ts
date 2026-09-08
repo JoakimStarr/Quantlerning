@@ -98,6 +98,7 @@ const registry = {
   parameter_landscape: def('参数热力图', '快慢周期 × 年化收益', () => import('../simulators/ParameterLandscape.vue')),
   sawtooth: def('参数扫描：锯齿现象', '快线参数扫描年化柱状图：样本内锯齿 + 最优邻域高亮，样本外对照验证', () => import('../simulators/Sawtooth.vue')),
   random_walk: def('随机游走', '几何布朗运动 vs 真实茅台（示意 + 真实锚点）', () => import('../simulators/RandomWalk.vue')),
+  option_payoff: def('期权/期货到期损益', '期货多空 × 看涨看跌 × 买入卖出六头寸损益图，含权利金与盈亏平衡点', () => import('../simulators/OptionPayoff.vue')),
   bs_price_slider: def('BS 定价滑块', 'S/K/σ/T/r 实时看涨看跌价格', () => import('../simulators/BSPricing.vue')),
   binomial_tree: def('二叉树定价', '步数滑块：二叉树收敛到 BS', () => import('../simulators/BinomialTree.vue')),
   monte_carlo_pricing: def('蒙特卡洛定价', '路径数滑块：MC 收敛 + 到期分布', () => import('../simulators/MonteCarlo.vue')),
