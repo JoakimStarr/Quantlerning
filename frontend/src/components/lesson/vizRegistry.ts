@@ -103,6 +103,7 @@ const registry = {
   binomial_tree: def('二叉树定价', '步数滑块：二叉树收敛到 BS', () => import('../simulators/BinomialTree.vue')),
   monte_carlo_pricing: def('蒙特卡洛定价', '路径数滑块：MC 收敛 + 到期分布', () => import('../simulators/MonteCarlo.vue')),
   var_simulator: def('VaR 三种算法', '真实茅台收益：参数/历史/MC 对比', () => import('../simulators/VarSimulator.vue')),
+  portfolio_var: def('组合 VaR 分散化', '真实 5 股：配对与权重滑块看相关性与分散化收益', () => import('../simulators/PortfolioVar.vue')),
   greeks_sensitivity: def('Greeks 敏感度曲线', 'Delta/Gamma/Vega/Theta/Rho 随 S 变化的形状', () => import('../simulators/GreeksSensitivity.vue')),
   vol_smile: def('波动率微笑/偏斜', 'IV vs 行权价曲线（教学示意）', () => import('../simulators/VolSmile.vue')),
   label_design: def('标签设计', '前瞻收益 > 阈值 → 上涨标签（茅台真实收益 + 周期/阈值滑块）', () => import('../simulators/LabelDesign.vue')),

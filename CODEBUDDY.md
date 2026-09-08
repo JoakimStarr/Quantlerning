@@ -259,7 +259,7 @@ python scripts/check_content.py p5-l3    # 指定课
 
 ## 里程碑
 
-> 实际进度（2026-09-08 验证）：内容分布 phase0=8 / phase1=12 / **phase2=8** / phase3=9 / phase4=7 / **phase5=8**（2026-09 新增 p5-l0 期权与期货基础）/ phase6=8 / phase7=6 课（共 66 课）；simulators 目录 95 个组件全部注册实现，vizRegistry 全量激活。
+> 实际进度（2026-09-08 验证）：内容分布 phase0=8 / phase1=12 / **phase2=8** / phase3=9 / phase4=7 / **phase5=8**（2026-09 新增 p5-l0 期权与期货基础，p5-l4~l7 扩充）/ phase6=8 / phase7=6 课（共 66 课）；simulators 目录 96 个组件全部注册实现，vizRegistry 全量激活（2026-09 新增 option_payoff / portfolio_var）。
 
 - M0 ✅ 骨架：前后端、课程地图、内容填充（前言+第一章）
 - M1 ✅ 交互组件批量实现（sharpe/mdd/macd/rsi/capm 等）
