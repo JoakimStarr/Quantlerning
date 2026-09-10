@@ -16,11 +16,14 @@
 ## 🚀 快速启动
 
 ```bash
-./start.sh
+./start.sh dev        # 开发模式（Vite HMR），后台运行不占用终端
 ```
 
 - 前端: http://localhost:5173
 - 后端 API 文档: http://localhost:8100/docs
+- 停止 `./start.sh stop` ｜ 重启 `./start.sh restart` ｜ 状态 `./start.sh status`
+
+> 其他命令：`./start.sh start` 生产模式（`npm run build` 后用 vite preview 服务构建产物）；`./start.sh help` 查看全部。
 
 > 依赖：PostgreSQL、Python 3.11（`.venv`）、Node.js
 
@@ -37,7 +40,7 @@ gunzip -c data/quantlerning_sample.sql.gz | psql -d quantlab
 #    POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB=quantlab / POSTGRES_HOST / POSTGRES_PORT
 
 # 3. 启动
-./start.sh
+./start.sh dev
 ```
 
 数据范围与口径见 [scripts/export_sample.py](scripts/export_sample.py)。若你有完整 quantlab 库，也可跳过导入直接使用。

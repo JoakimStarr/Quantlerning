@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Quantlerning 内网穿透（cloudflared quick tunnel）
-# 把前端 5173（Vite 代理 /api → 8100）或生产后端 8100 暴露到公网临时地址 https://xxx.trycloudflare.com
+# 把前端 5173（Vite dev 或 vite preview，均把 /api 代理到后端 8100）暴露到公网临时地址
 # 注意：quick tunnel 域名每次重启都会变化，仅适合临时演示/自用。
 #
 # 用法：
-#   ./tunnel.sh            开启穿透（默认 dev：前端 5173）
-#   ./tunnel.sh --prod     开启穿透（生产模式：后端 8100，需已构建 dist 并 ./start.sh --prod）
+#   ./tunnel.sh            开启穿透（默认 dev：前端 5173，Vite dev server）
+#   ./tunnel.sh --prod     开启穿透（生产模式：前端 5173，vite preview 静态产物）
 #   ./tunnel.sh --stop     停止穿透
 #   ./tunnel.sh --status   查看状态与外网地址
 #   ./tunnel.sh -h         查看帮助
@@ -18,14 +18,15 @@ LOG_FILE="$RUN_DIR/tunnel.log"
 MODE_FILE="$RUN_DIR/tunnel.mode"  # 记录当前隧道模式（dev/prod），供 --status 读取
 CF_BIN="${CLOUDFLARED_BIN:-$(command -v cloudflared || echo "$HOME/.local/bin/cloudflared")}"
 
-# 目标端口：dev=5173（Vite 热更新），prod=8100（后端托管 dist）
+# 目标：dev = vite dev(5173)，prod = vite preview(5173，服务 dist 构建产物)；
+# 两者都由 Vite 把 /api 代理到后端 8100，故穿透目标端口相同，模式仅用于提示背后的服务形态
 MODE="dev"
 TARGET_URL="http://localhost:5173"
 
 # 恢复上次启动的模式（供 --status 显示；不改变本次启动的默认行为）
 if [ -f "$MODE_FILE" ] && [ "$(cat "$MODE_FILE")" = "prod" ]; then
   MODE="prod"
-  TARGET_URL="http://localhost:8100"
+  TARGET_URL="http://localhost:5173"
 fi
 
 mkdir -p "$RUN_DIR"
@@ -35,16 +36,16 @@ usage() {
 Quantlerning 内网穿透（cloudflared quick tunnel）
 
 用法：
-  ./tunnel.sh            开启穿透（默认 dev：前端 5173）
-  ./tunnel.sh --prod     开启穿透（生产模式：后端 8100）
+  ./tunnel.sh            开启穿透（默认 dev：Vite dev server 5173）
+  ./tunnel.sh --prod     开启穿透（生产模式：vite preview 5173）
   ./tunnel.sh --stop     停止穿透
   ./tunnel.sh --status   查看状态与外网地址
   ./tunnel.sh -h         查看帮助
 
 说明：
-  - dev 模式：暴露 Vite dev server 5173（/api 由 Vite 代理到 8100），适合开发演示
-  - --prod 模式：暴露后端 8100（FastAPI 托管 dist 静态文件 + API），外网加载快，需先：
-      ./start.sh --prod     （构建前端并启动生产后端）
+  - 两种模式都穿透前端 5173（/api 由 Vite 代理到后端 8100）：
+      dev  → 对应 ./start.sh dev    （Vite dev server，热更新）
+      prod → 对应 ./start.sh start  （vite preview，服务 dist 构建产物，加载更快）
   - quick tunnel 域名每次重启变化，如需固定域名请改用 cloudflared named tunnel 或花生壳
 EOF
 }
@@ -112,7 +113,7 @@ case "${1:-}" in
   -h|--help) usage ;;
   --stop) stop ;;
   --status) status ;;
-  --prod) MODE="prod"; TARGET_URL="http://localhost:8100"; start ;;
+  --prod) MODE="prod"; TARGET_URL="http://localhost:5173"; start ;;
   "") MODE="dev"; TARGET_URL="http://localhost:5173"; start ;;
   *) echo "未知参数：$1（-h 查看帮助）" >&2; exit 1 ;;
 esac

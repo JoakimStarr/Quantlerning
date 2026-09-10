@@ -16,8 +16,8 @@ gunzip -c data/quantlerning_sample.sql.gz | psql -d quantlab
 # 3. 配置连接 backend/.env（参考 backend/.env.example）
 #    POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB / POSTGRES_HOST / POSTGRES_PORT
 
-# 4. 启动
-./start.sh
+# 4. 启动（后台运行，停止用 ./start.sh stop）
+./start.sh dev
 ```
 
 > 没有 `data/quantlerning_sample.sql.gz`？说明尚未发布，可先在 issue 里说明，或用 `python scripts/export_sample.py --universe 800` 从你自己的库导出。

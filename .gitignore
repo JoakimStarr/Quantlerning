@@ -30,3 +30,6 @@ vite.config.d.ts
 /tmp/
 .DS_Store
 *.swp
+
+# start.sh 记录的运行时端口/进程状态（含 mode / port / pid）
+.runtime_ports

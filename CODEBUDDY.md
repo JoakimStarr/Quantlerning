@@ -13,13 +13,14 @@ Quantlerning 是一个渐进式量化学习网站——「可视化动态的一�
 ## 常用命令
 
 ```bash
-# 启动前后端（推荐）：默认静默后台启动，不占用终端，日志在 /tmp/quantlerning/
-./start.sh
+# 启动前后端（推荐）：后台运行、不占用终端；dev 模式前端 HMR、后端 --reload，日志在 /tmp/quantlerning/
+./start.sh dev
 
-# 其他参数：
-./start.sh -f          # 前台启动，占用终端，Ctrl+C 停止
-./start.sh --stop      # 停止后台运行的后端/前端
-./start.sh --status    # 查看运行状态
+# 其他命令（统一接口：start|dev|stop|restart|status|help）
+./start.sh start       # 生产模式：npm run build → vite preview(5173) 服务构建产物 + 后端(8100)
+./start.sh stop        # 停止本项目服务（按 .runtime_ports + 端口校验进程归属）
+./start.sh restart     # 重启（沿用上次模式；restart dev / restart prod 可显式指定）
+./start.sh status      # 查看运行状态
 
 # 或分别启动
 cd backend && ../.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8100 --reload
